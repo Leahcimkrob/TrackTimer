@@ -2,6 +2,7 @@ package de.ethria.trackTimer;
 
 import de.ethria.trackTimer.command.TrackTimerCommand;
 import de.ethria.trackTimer.database.DatabaseManager;
+import de.ethria.trackTimer.heads.HeadDatabaseService;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,6 +15,7 @@ public final class TrackTimer extends JavaPlugin {
 
     private DatabaseManager databaseManager;
     private LanguageManager languageManager;
+    private HeadDatabaseService headDatabaseService;
 
     @Override
     public void onEnable() {
@@ -31,6 +33,9 @@ public final class TrackTimer extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+
+        headDatabaseService = new HeadDatabaseService(this);
+        headDatabaseService.register();
 
         registerMainCommand();
     }
@@ -65,7 +70,7 @@ public final class TrackTimer extends JavaPlugin {
      * supported for this plugin format.
      */
     private void registerMainCommand() {
-        TrackTimerCommand command = new TrackTimerCommand(this, languageManager);
+        TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
@@ -83,5 +88,8 @@ public final class TrackTimer extends JavaPlugin {
             databaseManager.close();
         }
     }
-}
 
+    public HeadDatabaseService getHeadDatabaseService() {
+        return headDatabaseService;
+    }
+}

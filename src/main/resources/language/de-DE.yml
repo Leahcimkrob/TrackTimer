@@ -9,11 +9,14 @@ general:
 help:
   header: "<gold>=== TrackTimer Hilfe ==="
   reload: "<yellow>/<command> reload <gray>- Lädt Konfiguration und Sprachdateien neu."
+  create: "<yellow>/<command> create <eventname> <laps> <mode: player|signal> <gray>- Erstellt ein Event."
   help: "<yellow>/<command> help <gray>- Zeigt diese Hilfe an."
 
 event:
-  created: "<green>Event <yellow><event></yellow> wurde erstellt (<yellow><laps></yellow> Runden)."
+  created: "<green>Event <yellow><event></yellow> wurde erstellt (<yellow><laps></yellow> Runden, Modus <yellow><mode></yellow>)."
   already-exists: "<red>Ein Event mit dem Namen <yellow><event></yellow> existiert bereits."
+  invalid-name: "<red>Ungültiger Eventname. Erlaubt sind 1 bis 128 Buchstaben, Zahlen, Unterstriche und Bindestriche."
+  create-failed: "<red>Event <yellow><event></yellow> konnte wegen eines Datenbankfehlers nicht erstellt werden."
   not-found: "<red>Event <yellow><event></yellow> wurde nicht gefunden."
   deleted: "<green>Event <yellow><event></yellow> wurde gelöscht."
   list-header: "<gold>Verfügbare Events:"
@@ -42,4 +45,3 @@ leaderboard:
 database:
   connected: "<green>Datenbank (<yellow><type></yellow>) erfolgreich verbunden."
   error: "<red>Datenbankfehler: <message>"
-

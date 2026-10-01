@@ -43,6 +43,7 @@ Start automatisch angelegt:
 |-------------------------|-------------------------------------------------------|-------------------------------|
 | `/tracktimer help`      | Zeigt die verfügbaren Befehle an.                     | `tracktimer.command.help`    |
 | `/tracktimer reload`    | Lädt `config.yml` und die Sprachdateien neu.          | `tracktimer.command.reload`  |
+| `/tracktimer create <eventname> <laps> <mode>` | Erstellt ein Event; `mode` ist `player` oder `signal`. | `tracktimer.command.create` |
 
 Alias: `/tt` (konfigurierbar über `command.aliases` in `config.yml`).
 

@@ -3,6 +3,7 @@ package de.ethria.trackTimer.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import de.ethria.trackTimer.TrackTimer;
+import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -21,17 +22,20 @@ import java.util.List;
 public final class TrackTimerCommand {
 
     private final TrackTimer plugin;
+    private final DatabaseManager database;
     private final LanguageManager language;
 
-    public TrackTimerCommand(TrackTimer plugin, LanguageManager language) {
+    public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language) {
         this.plugin = plugin;
+        this.database = database;
         this.language = language;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
         ReloadSubCommand reload = new ReloadSubCommand(plugin, language);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload));
-        List<SubCommand> subCommands = List.of(help, reload);
+        CreateSubCommand create = new CreateSubCommand(plugin, database, language);
+        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create));
+        List<SubCommand> subCommands = List.of(help, reload, create);
 
         var root = Commands.literal(label)
                 .executes(context -> {
@@ -46,4 +50,3 @@ public final class TrackTimerCommand {
         return root.build();
     }
 }
-

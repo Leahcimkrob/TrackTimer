@@ -9,11 +9,14 @@ general:
 help:
   header: "<gold>=== TrackTimer Help ==="
   reload: "<yellow>/<command> reload <gray>- Reloads the configuration and language files."
+  create: "<yellow>/<command> create <eventname> <laps> <mode: player|signal> <gray>- Creates an event."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:
-  created: "<green>Event <yellow><event></yellow> has been created (<yellow><laps></yellow> laps)."
+  created: "<green>Event <yellow><event></yellow> has been created (<yellow><laps></yellow> laps, mode <yellow><mode></yellow>)."
   already-exists: "<red>An event named <yellow><event></yellow> already exists."
+  invalid-name: "<red>Invalid event name. Use 1 to 128 letters, digits, underscores, or hyphens."
+  create-failed: "<red>Event <yellow><event></yellow> could not be created because of a database error."
   not-found: "<red>Event <yellow><event></yellow> was not found."
   deleted: "<green>Event <yellow><event></yellow> has been deleted."
   list-header: "<gold>Available events:"
@@ -42,4 +45,3 @@ leaderboard:
 database:
   connected: "<green>Database (<yellow><type></yellow>) connected successfully."
   error: "<red>Database error: <message>"
-

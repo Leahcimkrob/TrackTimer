@@ -9,6 +9,15 @@ load: POSTWORLD
 
 authors: [ Bloody_Mind ]
 
+# HeadDatabase is optional: TrackTimer can add custom heads to its GUIs when
+# the HeadDatabase plugin is installed, but works fine without it.
+dependencies:
+  server:
+    HeadDatabase:
+      load: BEFORE
+      required: false
+      join-classpath: true
+
 # Note: Paper plugins (paper-plugin.yml) do not support a "commands:" YAML
 # section. /tracktimer is registered in code via the lifecycle COMMANDS
 # event using a Brigadier command tree (see TrackTimer.registerMainCommand
@@ -21,6 +30,7 @@ permissions:
     children:
       tracktimer.command.help: true
       tracktimer.command.reload: true
+      tracktimer.command.create: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -30,3 +40,6 @@ permissions:
     description: Allows viewing the TrackTimer help message.
     default: true
 
+  tracktimer.command.create:
+    description: Allows creating TrackTimer events.
+    default: op

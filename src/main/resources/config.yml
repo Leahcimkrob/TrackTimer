@@ -4,11 +4,13 @@ language: de-DE
 
 command:
   # Additional aliases for the /tracktimer command (e.g. "tt").
+  # Can only be changed by restarting.
   aliases:
     - tt
 
 database:
   # Supported values: sqlite, mysql
+  # Can only be changed by restarting.
   type: sqlite
 
   sqlite:

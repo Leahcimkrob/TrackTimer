@@ -6,6 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -13,6 +14,9 @@ import java.util.List;
 import java.util.Locale;
 
 public final class DatabaseManager {
+    private static final java.util.regex.Pattern EVENT_NAME_PATTERN =
+            java.util.regex.Pattern.compile("[\\p{L}\\p{N}_-]+");
+
     private final JavaPlugin plugin;
     private final Connection connection;
     private final String autoIncrement;
@@ -62,6 +66,54 @@ public final class DatabaseManager {
         plugin.getLogger().info("Database tables are ready.");
     }
 
+    /**
+     * Inserts an event, returning {@code false} if its unique name is already
+     * in use.
+     */
+    public boolean createEvent(String eventName, int laps, String startMode) throws SQLException {
+        if (!isValidEventName(eventName)) {
+            throw new IllegalArgumentException("Event names must contain 1 to 128 letters, digits, underscores, or hyphens.");
+        }
+        if (laps < 1) {
+            throw new IllegalArgumentException("Event laps must be greater than zero.");
+        }
+        if (!List.of("player", "signal").contains(startMode)) {
+            throw new IllegalArgumentException("Start mode must be 'player' or 'signal'.");
+        }
+
+        String sql = "INSERT INTO events (event_name, laps, start_mode) VALUES (?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, eventName);
+            statement.setInt(2, laps);
+            statement.setString(3, startMode);
+            statement.executeUpdate();
+            return true;
+        } catch (SQLException exception) {
+            if (isUniqueConstraintViolation(exception)) {
+                return false;
+            }
+            throw exception;
+        }
+    }
+
+    public static boolean isValidEventName(String eventName) {
+        return eventName != null
+                && eventName.codePointCount(0, eventName.length()) <= 128
+                && EVENT_NAME_PATTERN.matcher(eventName).matches();
+    }
+
+    private boolean isUniqueConstraintViolation(SQLException exception) {
+        for (SQLException current = exception; current != null; current = current.getNextException()) {
+            if (current.getErrorCode() == 19
+                    || current.getErrorCode() == 1062
+                    || "23000".equals(current.getSQLState())
+                    || "23505".equals(current.getSQLState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void close() {
         try {
             connection.close();
@@ -84,8 +136,10 @@ public final class DatabaseManager {
                     id %s,
                     event_name VARCHAR(128) NOT NULL UNIQUE,
                     laps INTEGER NOT NULL,
+                    start_mode VARCHAR(16) NOT NULL DEFAULT 'player',
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    CHECK (laps > 0)
+                    CHECK (laps > 0),
+                    CHECK (start_mode IN ('player', 'signal'))
                 )
                 """.formatted(autoIncrement),
                 """
