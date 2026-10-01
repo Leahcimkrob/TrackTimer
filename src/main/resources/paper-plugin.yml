@@ -1,0 +1,32 @@
+name: TrackTimer
+description: $description
+prefix: vm_gui
+version: '${version}'
+
+main: de.ethria.trackTimer.TrackTimer
+api-version: '26.2'
+load: POSTWORLD
+
+authors: [ Bloody_Mind ]
+
+# Note: Paper plugins (paper-plugin.yml) do not support a "commands:" YAML
+# section. /tracktimer is registered in code via the lifecycle COMMANDS
+# event using a Brigadier command tree (see TrackTimer.registerMainCommand
+# and TrackTimerCommand.build).
+
+permissions:
+  tracktimer.*:
+    description: Allows access to all TrackTimer commands.
+    default: op
+    children:
+      tracktimer.command.help: true
+      tracktimer.command.reload: true
+
+  tracktimer.command.reload:
+    description: Allows reloading the TrackTimer configuration and language files.
+    default: op
+
+  tracktimer.command.help:
+    description: Allows viewing the TrackTimer help message.
+    default: true
+

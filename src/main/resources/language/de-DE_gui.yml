@@ -1,0 +1,48 @@
+overview:
+  title: "TrackTimer - Übersicht"
+  event-item:
+    name: "<yellow><event>"
+    lore:
+      - "<gray>Runden: <white><laps>"
+      - "<gray>Erstellt: <white><created_at>"
+      - ""
+      - "<green>Klicke zum Öffnen"
+  empty-item:
+    name: "<gray>Keine Events vorhanden"
+
+event-detail:
+  title: "Event: <event>"
+  info-item:
+    name: "<gold>Informationen"
+    lore:
+      - "<gray>Runden: <white><laps>"
+      - "<gray>Trigger: <white><trigger_count>"
+  leaderboard-item:
+    name: "<gold>Bestenliste"
+    lore:
+      - "<gray>Klicke, um die Bestenliste zu öffnen"
+  delete-item:
+    name: "<red>Event löschen"
+    lore:
+      - "<gray>Shift-Klick zum Bestätigen"
+
+leaderboard:
+  title: "Bestenliste - <event>"
+  entry-item:
+    name: "<yellow>#<rank> <player>"
+    lore:
+      - "<gray>Zeit: <white><time>"
+      - "<gray>Runden: <white><laps>"
+  empty-item:
+    name: "<gray>Noch keine Ergebnisse"
+
+buttons:
+  close:
+    name: "<red>Schließen"
+  back:
+    name: "<gray>Zurück"
+  next-page:
+    name: "<green>Nächste Seite"
+  previous-page:
+    name: "<green>Vorherige Seite"
+

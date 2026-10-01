@@ -1,0 +1,48 @@
+overview:
+  title: "TrackTimer - Overview"
+  event-item:
+    name: "<yellow><event>"
+    lore:
+      - "<gray>Laps: <white><laps>"
+      - "<gray>Created: <white><created_at>"
+      - ""
+      - "<green>Click to open"
+  empty-item:
+    name: "<gray>No events available"
+
+event-detail:
+  title: "Event: <event>"
+  info-item:
+    name: "<gold>Information"
+    lore:
+      - "<gray>Laps: <white><laps>"
+      - "<gray>Triggers: <white><trigger_count>"
+  leaderboard-item:
+    name: "<gold>Leaderboard"
+    lore:
+      - "<gray>Click to open the leaderboard"
+  delete-item:
+    name: "<red>Delete event"
+    lore:
+      - "<gray>Shift-click to confirm"
+
+leaderboard:
+  title: "Leaderboard - <event>"
+  entry-item:
+    name: "<yellow>#<rank> <player>"
+    lore:
+      - "<gray>Time: <white><time>"
+      - "<gray>Laps: <white><laps>"
+  empty-item:
+    name: "<gray>No results yet"
+
+buttons:
+  close:
+    name: "<red>Close"
+  back:
+    name: "<gray>Back"
+  next-page:
+    name: "<green>Next page"
+  previous-page:
+    name: "<green>Previous page"
+

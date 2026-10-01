@@ -1,0 +1,24 @@
+# Language for chat and GUI messages. Matches files in the language/ folder,
+# e.g. "de-DE" (language/de-DE.yml + language/de-DE_gui.yml) or "en-US".
+language: de-DE
+
+command:
+  # Additional aliases for the /tracktimer command (e.g. "tt").
+  aliases:
+    - tt
+
+database:
+  # Supported values: sqlite, mysql
+  type: sqlite
+
+  sqlite:
+    # Relative paths are resolved from the plugin data folder.
+    file: tracktimer.db
+
+  mysql:
+    host: localhost
+    port: 3306
+    database: tracktimer
+    username: root
+    password: ""
+    useSSL: true

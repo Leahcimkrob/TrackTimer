@@ -1,0 +1,45 @@
+prefix: "<dark_gray>[<gold>TrackTimer</gold>]</dark_gray> <reset>"
+
+general:
+  no-permission: "<red>Du hast keine Berechtigung für diesen Befehl."
+  player-only: "<red>Dieser Befehl kann nur von Spielern ausgeführt werden."
+  unknown-command: "<red>Unbekannter Befehl. Nutze /tracktimer help für Hilfe."
+  reload: "<green>Konfiguration und Sprachdateien wurden neu geladen."
+
+help:
+  header: "<gold>=== TrackTimer Hilfe ==="
+  reload: "<yellow>/<command> reload <gray>- Lädt Konfiguration und Sprachdateien neu."
+  help: "<yellow>/<command> help <gray>- Zeigt diese Hilfe an."
+
+event:
+  created: "<green>Event <yellow><event></yellow> wurde erstellt (<yellow><laps></yellow> Runden)."
+  already-exists: "<red>Ein Event mit dem Namen <yellow><event></yellow> existiert bereits."
+  not-found: "<red>Event <yellow><event></yellow> wurde nicht gefunden."
+  deleted: "<green>Event <yellow><event></yellow> wurde gelöscht."
+  list-header: "<gold>Verfügbare Events:"
+  list-entry: "<yellow>- <event> <gray>(<laps> Runden)"
+
+trigger:
+  added: "<green>Trigger <yellow><type></yellow> wurde für Event <yellow><event></yellow> hinzugefügt."
+  removed: "<green>Trigger wurde entfernt."
+  invalid-type: "<red>Ungültiger Trigger-Typ. Erlaubt: start, checkpoint, end."
+  checkpoint-order-required: "<red>Für Checkpoints muss eine Reihenfolge angegeben werden."
+
+race:
+  started: "<green>Dein Lauf für <yellow><event></yellow> hat begonnen!"
+  checkpoint: "<yellow>Checkpoint <white><order></white> erreicht. Zwischenzeit: <white><time>"
+  lap-completed: "<green>Runde <white><lap></white>/<white><laps></white> abgeschlossen."
+  finished: "<gold>Ziel erreicht! Deine Zeit: <yellow><time>"
+  already-running: "<red>Du fährst bereits auf <yellow><event></yellow>."
+  not-running: "<red>Du fährst aktuell keine Strecke."
+  new-record: "<gold><bold>Neuer Rekord auf <event>! </bold><gold>Zeit: <white><time>"
+
+leaderboard:
+  header: "<gold>Bestenliste - <event>"
+  entry: "<white>#<rank> <yellow><player> <gray>- <white><time>"
+  empty: "<gray>Für dieses Event liegen noch keine Ergebnisse vor."
+
+database:
+  connected: "<green>Datenbank (<yellow><type></yellow>) erfolgreich verbunden."
+  error: "<red>Datenbankfehler: <message>"
+

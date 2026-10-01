@@ -1,0 +1,45 @@
+prefix: "<dark_gray>[<gold>TrackTimer</gold>]</dark_gray> <reset>"
+
+general:
+  no-permission: "<red>You do not have permission to use this command."
+  player-only: "<red>This command can only be used by players."
+  unknown-command: "<red>Unknown command. Use /tracktimer help for help."
+  reload: "<green>Configuration and language files have been reloaded."
+
+help:
+  header: "<gold>=== TrackTimer Help ==="
+  reload: "<yellow>/<command> reload <gray>- Reloads the configuration and language files."
+  help: "<yellow>/<command> help <gray>- Shows this help."
+
+event:
+  created: "<green>Event <yellow><event></yellow> has been created (<yellow><laps></yellow> laps)."
+  already-exists: "<red>An event named <yellow><event></yellow> already exists."
+  not-found: "<red>Event <yellow><event></yellow> was not found."
+  deleted: "<green>Event <yellow><event></yellow> has been deleted."
+  list-header: "<gold>Available events:"
+  list-entry: "<yellow>- <event> <gray>(<laps> laps)"
+
+trigger:
+  added: "<green>Trigger <yellow><type></yellow> has been added to event <yellow><event></yellow>."
+  removed: "<green>Trigger has been removed."
+  invalid-type: "<red>Invalid trigger type. Allowed: start, checkpoint, end."
+  checkpoint-order-required: "<red>Checkpoints require an order value."
+
+race:
+  started: "<green>Your run on <yellow><event></yellow> has started!"
+  checkpoint: "<yellow>Checkpoint <white><order></white> reached. Split time: <white><time>"
+  lap-completed: "<green>Lap <white><lap></white>/<white><laps></white> completed."
+  finished: "<gold>Finish reached! Your time: <yellow><time>"
+  already-running: "<red>You are already racing on <yellow><event></yellow>."
+  not-running: "<red>You are not currently racing."
+  new-record: "<gold><bold>New record on <event>! </bold><gold>Time: <white><time>"
+
+leaderboard:
+  header: "<gold>Leaderboard - <event>"
+  entry: "<white>#<rank> <yellow><player> <gray>- <white><time>"
+  empty: "<gray>No results for this event yet."
+
+database:
+  connected: "<green>Database (<yellow><type></yellow>) connected successfully."
+  error: "<red>Database error: <message>"
+
