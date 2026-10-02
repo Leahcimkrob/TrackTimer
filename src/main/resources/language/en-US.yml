@@ -38,9 +38,12 @@ trigger:
   start-selection-ended: "<green>Start selection finished."
   end-selection-started: "<green>End selection active: left-click to add, right-click to remove, type <yellow>exit</yellow> to finish."
   end-selection-ended: "<green>End selection finished."
+  redstone-selection-started: "<green>Redstone start signal selection active: left-click to add, right-click to remove, type <yellow>exit</yellow> to finish."
+  redstone-selection-ended: "<green>Redstone start signal selection finished."
   pressure-plate-not-pressed: "<red>The pressure plate must be pressed when adding it."
   start-added: "<green>Start point saved."
   end-added: "<green>End point saved."
+  redstone-added: "<green>Redstone start signal saved."
   already-exists: "<yellow>This event already has a matching trigger at this block."
   not-found: "<red>No matching trigger for this event is saved here."
 

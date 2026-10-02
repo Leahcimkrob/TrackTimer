@@ -5,6 +5,7 @@ import de.ethria.trackTimer.database.DatabaseManager.EventTrigger;
 import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
+import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -26,13 +27,16 @@ public final class EventTriggerGui implements Listener {
     private final EventEditorGui eventEditorGui;
     private final StartTriggerTool startTriggerTool;
     private final EndTriggerTool endTriggerTool;
+    private final RedstoneTriggerTool redstoneTriggerTool;
 
     public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui,
-                           StartTriggerTool startTriggerTool, EndTriggerTool endTriggerTool) {
+                           StartTriggerTool startTriggerTool, EndTriggerTool endTriggerTool,
+                           RedstoneTriggerTool redstoneTriggerTool) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
         this.startTriggerTool = startTriggerTool;
         this.endTriggerTool = endTriggerTool;
+        this.redstoneTriggerTool = redstoneTriggerTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -64,6 +68,8 @@ public final class EventTriggerGui implements Listener {
 
         inventory.setItem(slot("button-bar.start-trigger.slot", 46, size), configuredNamed(
                 "guis.trigger-editor.button-bar.start-trigger", Material.PLAYER_HEAD, "trigger-editor.add-start"));
+        inventory.setItem(slot("button-bar.start-redstone-trigger.slot", 49, size), configuredNamed(
+                "guis.trigger-editor.button-bar.start-redstone-trigger", Material.PLAYER_HEAD, "trigger-editor.add-redstone"));
         inventory.setItem(slot("button-bar.checkpoint-trigger.slot", 47, size), configuredNamed(
                 "guis.trigger-editor.button-bar.checkpoint-trigger", Material.PLAYER_HEAD, "trigger-editor.add-checkpoint"));
         inventory.setItem(slot("button-bar.end-trigger.slot", 48, size), configuredNamed(
@@ -78,7 +84,10 @@ public final class EventTriggerGui implements Listener {
         String type = trigger.type().toLowerCase(java.util.Locale.ROOT);
         String key;
         String iconPath;
-        if ("start".equals(type)) {
+        if ("REDSTONE_SIGNAL".equals(trigger.triggerMode())) {
+            key = "trigger-editor.redstone";
+            iconPath = "guis.trigger-editor.items.redstone";
+        } else if ("start".equals(type)) {
             key = "trigger-editor.start";
             iconPath = "guis.trigger-editor.items.start";
         } else if ("checkpoint".equals(type)) {
@@ -100,9 +109,17 @@ public final class EventTriggerGui implements Listener {
         } else {
             meta.displayName(context.language.gui(key + ".name"));
         }
+        String modeLabel = switch (trigger.triggerMode()) {
+            case "PRESSURE_PLATE" -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
+                    ? "Druckplatte" : "Pressure plate";
+            case "REDSTONE_SIGNAL" -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
+                    ? "Redstone-Signal" : "Redstone signal";
+            default -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
+                    ? "Block" : "Block";
+        };
         meta.lore(context.language.guiList(key + ".lore", LanguageManager.placeholders(
                 "server", trigger.server(), "world", trigger.world(), "x", trigger.x(), "y", trigger.y(),
-                "z", trigger.z(), "block", trigger.blockType())));
+                "z", trigger.z(), "block", trigger.blockType(), "trigger_mode", modeLabel)));
         item.setItemMeta(meta);
         return item;
     }
@@ -136,6 +153,8 @@ public final class EventTriggerGui implements Listener {
         }
         if (event.getRawSlot() == slot("button-bar.start-trigger.slot", 46, size)) {
             startTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        } else if (event.getRawSlot() == slot("button-bar.start-redstone-trigger.slot", 49, size)) {
+            redstoneTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 48, size)) {
             endTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         }

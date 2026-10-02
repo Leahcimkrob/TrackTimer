@@ -10,6 +10,7 @@ import de.ethria.trackTimer.gui.EventIconSwapGui;
 import de.ethria.trackTimer.gui.EventTriggerGui;
 import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
+import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,7 +52,9 @@ public final class TrackTimer extends JavaPlugin {
         EventEditorGui eventEditorGui = new EventEditorGui(editorGuiContext, eventOverviewGui);
         StartTriggerTool startTriggerTool = new StartTriggerTool(editorGuiContext, eventEditorGui);
         EndTriggerTool endTriggerTool = new EndTriggerTool(editorGuiContext, eventEditorGui);
-        EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui, startTriggerTool, endTriggerTool);
+        RedstoneTriggerTool redstoneTriggerTool = new RedstoneTriggerTool(editorGuiContext, eventEditorGui);
+        EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui,
+                startTriggerTool, endTriggerTool, redstoneTriggerTool);
         eventOverviewGui.setEventEditorGui(eventEditorGui);
         eventEditorGui.setIconSwapGui(eventIconSwapGui);
         eventEditorGui.setTriggerGui(eventTriggerGui);
@@ -62,6 +65,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(eventTriggerGui, this);
         getServer().getPluginManager().registerEvents(startTriggerTool, this);
         getServer().getPluginManager().registerEvents(endTriggerTool, this);
+        getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         registerMainCommand(eventOverviewGui);
     }
 

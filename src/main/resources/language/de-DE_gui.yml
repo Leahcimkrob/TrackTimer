@@ -62,11 +62,20 @@ trigger-editor:
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
+      - "<gray>Auslösung: <trigger_mode>"
+  redstone:
+    name: "<blue>Redstone-Startsignal"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Block: <block>"
+      - "<gray>Auslösung: <trigger_mode>"
   unknown:
     name: "<gray>Unbekannter Trigger"
     lore: []
   add-start:
     name: "<green>Start-Trigger setzen"
+  add-redstone:
+    name: "<blue>Redstone-Startsignal setzen"
   add-checkpoint:
     name: "<yellow>Checkpoint setzen"
   add-end:
@@ -76,6 +85,12 @@ trigger-editor:
       name: "<gold>Start-Trigger-Werkzeug"
     end:
       name: "<gold>End-Trigger-Werkzeug"
+    redstone:
+      name: "<gold>Redstone-Trigger-Werkzeug"
+      lore:
+        - "Wenn du das Startsignal über Redstone auslösen möchtest,"
+        - "musst du auch normale Start-Trigger setzen, da Redstone "
+        - "nur das Startsignal auslöst."
     lore:
       - "<gray>Linksklick: Trigger hinzufügen"
       - "<gray>Rechtsklick: Trigger entfernen"

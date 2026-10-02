@@ -5,6 +5,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -63,8 +64,31 @@ public final class DatabaseManager {
                 statement.executeUpdate(sql);
             }
         }
+        ensureTriggerModeColumn();
         createIndexes();
         plugin.getLogger().info("Database tables are ready.");
+    }
+
+    private void ensureTriggerModeColumn() throws SQLException {
+        boolean present = false;
+        DatabaseMetaData metadata = connection.getMetaData();
+        try (ResultSet columns = metadata.getColumns(null, null, "event_triggers", null)) {
+            while (columns.next()) {
+                if ("trigger_mode".equalsIgnoreCase(columns.getString("COLUMN_NAME"))) {
+                    present = true;
+                    break;
+                }
+            }
+        }
+        if (!present) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE event_triggers ADD COLUMN trigger_mode VARCHAR(32) NOT NULL DEFAULT 'BLOCK'");
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("UPDATE event_triggers SET trigger_mode = 'PRESSURE_PLATE' "
+                    + "WHERE trigger_mode = 'BLOCK' AND block_type LIKE '%PRESSURE_PLATE'");
+        }
     }
 
     /**
@@ -147,7 +171,7 @@ public final class DatabaseManager {
     public List<String> listEventTriggers(long eventId) throws SQLException {
         List<String> triggers = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type
+                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type, trigger_mode
                 FROM event_triggers WHERE event_id = ?
                 ORDER BY CASE trigger_type WHEN 'start' THEN 0 WHEN 'checkpoint' THEN 1 ELSE 2 END,
                          checkpoint_order
@@ -161,7 +185,7 @@ public final class DatabaseManager {
                     triggers.add(type + orderLabel + " — " + rows.getString("server") + "/"
                             + rows.getString("world") + " " + rows.getInt("x") + ", "
                             + rows.getInt("y") + ", " + rows.getInt("z")
-                            + " [" + rows.getString("block_type") + "]");
+                            + " [" + rows.getString("trigger_mode") + ":" + rows.getString("block_type") + "]");
                 }
             }
         }
@@ -171,7 +195,7 @@ public final class DatabaseManager {
     public List<EventTrigger> listEventTriggerDetails(long eventId) throws SQLException {
         List<EventTrigger> triggers = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type
+                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type, trigger_mode
                 FROM event_triggers WHERE event_id = ?
                 ORDER BY CASE trigger_type WHEN 'start' THEN 0 WHEN 'checkpoint' THEN 1 ELSE 2 END,
                          checkpoint_order
@@ -183,7 +207,7 @@ public final class DatabaseManager {
                     Integer checkpointOrder = rows.wasNull() ? null : order;
                     triggers.add(new EventTrigger(rows.getString("trigger_type"), checkpointOrder,
                             rows.getString("server"), rows.getString("world"), rows.getInt("x"),
-                            rows.getInt("y"), rows.getInt("z"), rows.getString("block_type")));
+                            rows.getInt("y"), rows.getInt("z"), rows.getString("block_type"), rows.getString("trigger_mode")));
                 }
             }
         }
@@ -191,24 +215,32 @@ public final class DatabaseManager {
     }
 
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
-                               int x, int y, int z, String blockType) { }
+                               int x, int y, int z, String blockType, String triggerMode) { }
 
     public boolean addStartTrigger(long eventId, String server, String world, int x, int y, int z,
-                                   String blockType) throws SQLException {
-        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType);
+                                   String blockType, String triggerMode) throws SQLException {
+        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType, triggerMode);
     }
 
     public boolean addEndTrigger(long eventId, String server, String world, int x, int y, int z,
-                                 String blockType) throws SQLException {
-        return addBlockTrigger(eventId, "end", server, world, x, y, z, blockType);
+                                 String blockType, String triggerMode) throws SQLException {
+        return addBlockTrigger(eventId, "end", server, world, x, y, z, blockType, triggerMode);
+    }
+
+    public boolean addRedstoneStartTrigger(long eventId, String server, String world, int x, int y, int z,
+                                           String blockType) throws SQLException {
+        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType, "REDSTONE_SIGNAL");
     }
 
     private boolean addBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z,
-                                    String blockType) throws SQLException {
-        if (hasBlockTrigger(eventId, type, server, world, x, y, z)) return false;
+                                    String blockType, String triggerMode) throws SQLException {
+        if (!List.of("BLOCK", "PRESSURE_PLATE", "REDSTONE_SIGNAL").contains(triggerMode)) {
+            throw new IllegalArgumentException("Unsupported trigger mode: " + triggerMode);
+        }
+        if (hasBlockTrigger(eventId, type, triggerMode, server, world, x, y, z)) return false;
         try (PreparedStatement statement = connection.prepareStatement("""
-                INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type)
-                VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)
+                INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type, trigger_mode)
+                VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
                 """)) {
             statement.setLong(1, eventId);
             statement.setString(2, type);
@@ -218,25 +250,27 @@ public final class DatabaseManager {
             statement.setInt(6, y);
             statement.setInt(7, z);
             statement.setString(8, blockType);
+            statement.setString(9, triggerMode);
             return statement.executeUpdate() > 0;
         }
     }
 
-    private boolean hasBlockTrigger(long eventId, String type, String server, String world,
+    private boolean hasBlockTrigger(long eventId, String type, String triggerMode, String server, String world,
                                     int x, int y, int z) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT 1 FROM event_triggers
-                WHERE event_id = ? AND trigger_type = ? AND server = ? AND world = ?
+                WHERE event_id = ? AND trigger_type = ? AND trigger_mode = ? AND server = ? AND world = ?
                   AND x = ? AND y = ? AND z = ?
                 LIMIT 1
                 """)) {
             statement.setLong(1, eventId);
             statement.setString(2, type);
-            statement.setString(3, server);
-            statement.setString(4, world);
-            statement.setInt(5, x);
-            statement.setInt(6, y);
-            statement.setInt(7, z);
+            statement.setString(3, triggerMode);
+            statement.setString(4, server);
+            statement.setString(5, world);
+            statement.setInt(6, x);
+            statement.setInt(7, y);
+            statement.setInt(8, z);
             try (ResultSet rows = statement.executeQuery()) {
                 return rows.next();
             }
@@ -245,27 +279,35 @@ public final class DatabaseManager {
 
     public boolean removeStartTrigger(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
-        return removeBlockTrigger(eventId, "start", server, world, x, y, z);
+        return removeBlockTrigger(eventId, "start", "BLOCK_OR_PRESSURE_PLATE", server, world, x, y, z);
     }
 
     public boolean removeEndTrigger(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
-        return removeBlockTrigger(eventId, "end", server, world, x, y, z);
+        return removeBlockTrigger(eventId, "end", null, server, world, x, y, z);
     }
 
-    private boolean removeBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z)
+    public boolean removeRedstoneStartTrigger(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("""
-                DELETE FROM event_triggers WHERE event_id = ? AND trigger_type = ?
-                  AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?
-                """)) {
+        return removeBlockTrigger(eventId, "start", "REDSTONE_SIGNAL", server, world, x, y, z);
+    }
+
+    private boolean removeBlockTrigger(long eventId, String type, String triggerMode, String server, String world, int x, int y, int z)
+            throws SQLException {
+        String modeClause = triggerMode == null ? ""
+                : "BLOCK_OR_PRESSURE_PLATE".equals(triggerMode)
+                ? " AND trigger_mode <> 'REDSTONE_SIGNAL'" : " AND trigger_mode = ?";
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM event_triggers WHERE event_id = ? AND trigger_type = ?"
+                + modeClause + " AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?")) {
             statement.setLong(1, eventId);
             statement.setString(2, type);
-            statement.setString(3, server);
-            statement.setString(4, world);
-            statement.setInt(5, x);
-            statement.setInt(6, y);
-            statement.setInt(7, z);
+            int index = 3;
+            if (triggerMode != null && !"BLOCK_OR_PRESSURE_PLATE".equals(triggerMode)) statement.setString(index++, triggerMode);
+            statement.setString(index++, server);
+            statement.setString(index++, world);
+            statement.setInt(index++, x);
+            statement.setInt(index++, y);
+            statement.setInt(index, z);
             return statement.executeUpdate() > 0;
         }
     }
@@ -371,8 +413,10 @@ public final class DatabaseManager {
                     y INTEGER NOT NULL,
                     z INTEGER NOT NULL,
                     block_type VARCHAR(100) NOT NULL,
+                    trigger_mode VARCHAR(32) NOT NULL DEFAULT 'BLOCK',
                     FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
                     CHECK (trigger_type IN ('start', 'checkpoint', 'end')),
+                    CHECK (trigger_mode IN ('BLOCK', 'PRESSURE_PLATE', 'REDSTONE_SIGNAL')),
                     CHECK (
                         (trigger_type = 'checkpoint' AND checkpoint_order IS NOT NULL)
                         OR (trigger_type != 'checkpoint' AND checkpoint_order IS NULL)

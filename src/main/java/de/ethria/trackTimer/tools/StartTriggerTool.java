@@ -36,6 +36,8 @@ public class StartTriggerTool implements Listener {
     private final EditorGuiContext context;
     private final EventEditorGui eventEditorGui;
     private final String triggerType;
+    private final String configuredMode;
+    private final String toolVariant;
     private final NamespacedKey toolKey;
     private final Map<UUID, Selection> selections = new ConcurrentHashMap<>();
 
@@ -44,10 +46,17 @@ public class StartTriggerTool implements Listener {
     }
 
     protected StartTriggerTool(EditorGuiContext context, EventEditorGui eventEditorGui, String triggerType) {
+        this(context, eventEditorGui, triggerType, "BLOCK", triggerType);
+    }
+
+    protected StartTriggerTool(EditorGuiContext context, EventEditorGui eventEditorGui, String triggerType,
+                               String configuredMode, String toolVariant) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
         this.triggerType = triggerType;
-        this.toolKey = new NamespacedKey(context.plugin(), triggerType + "_trigger_tool");
+        this.configuredMode = configuredMode;
+        this.toolVariant = toolVariant;
+        this.toolKey = new NamespacedKey(context.plugin(), toolVariant + "_trigger_tool");
     }
 
     public void begin(Player player, long eventId, int overviewPage) {
@@ -57,7 +66,7 @@ public class StartTriggerTool implements Listener {
         ItemStack tool = new ItemStack(context.material(
                 context.triggerSettings().getString("guis.trigger-editor.items.tool.material"), Material.STICK));
         ItemMeta meta = tool.getItemMeta();
-        meta.displayName(context.language().gui("trigger-editor.tool." + triggerType + ".name"));
+        meta.displayName(context.language().gui("trigger-editor.tool." + toolVariant + ".name"));
         meta.lore(context.language().guiList("trigger-editor.tool.lore"));
         meta.setEnchantmentGlintOverride(true);
         meta.getPersistentDataContainer().set(toolKey, PersistentDataType.BYTE, (byte) 1);
@@ -68,7 +77,7 @@ public class StartTriggerTool implements Listener {
         selections.put(player.getUniqueId(), selection);
         ACTIVE_TOOLS.put(player.getUniqueId(), this);
         selection.particles = Bukkit.getScheduler().runTaskTimer(context.plugin(), () -> showTriggerParticles(player, selection), 0L, 10L);
-        player.sendMessage(context.language().chat("trigger." + triggerType + "-selection-started"));
+        player.sendMessage(context.language().chat("trigger." + toolVariant + "-selection-started"));
     }
 
     private void showTriggerParticles(Player player, Selection selection) {
@@ -83,6 +92,7 @@ public class StartTriggerTool implements Listener {
             }
             for (EventTrigger trigger : context.database().listEventTriggerDetails(selection.eventId)) {
                 if (!triggerType.equals(trigger.type()) || !trigger.world().equals(player.getWorld().getName())) continue;
+                if ("redstone".equals(toolVariant) && !"REDSTONE_SIGNAL".equals(trigger.triggerMode())) continue;
                 Location point = new Location(player.getWorld(), trigger.x() + .5, trigger.y() + 1.1, trigger.z() + .5);
                 player.spawnParticle(particle, point, 2, .12, .12, .12, 0);
             }
@@ -106,15 +116,18 @@ public class StartTriggerTool implements Listener {
     }
 
     private void addTrigger(Player player, Selection selection, Block block) {
-        if (isPressurePlate(block) && (!(block.getBlockData() instanceof Powerable powerable) || !powerable.isPowered())) {
+        if (!"REDSTONE_SIGNAL".equals(configuredMode) && isPressurePlate(block)
+                && (!(block.getBlockData() instanceof Powerable powerable) || !powerable.isPowered())) {
             player.sendMessage(context.language().chat("trigger.pressure-plate-not-pressed"));
             return;
         }
         try {
+            String mode = "REDSTONE_SIGNAL".equals(configuredMode) ? configuredMode
+                    : isPressurePlate(block) ? "PRESSURE_PLATE" : configuredMode;
             boolean added = addTriggerToDatabase(selection.eventId, context.plugin().getServer().getName(),
-                    block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name());
+                    block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name(), mode);
             player.sendMessage(context.language().chat(added
-                    ? "trigger." + triggerType + "-added" : "trigger.already-exists"));
+                    ? "trigger." + toolVariant + "-added" : "trigger.already-exists"));
         } catch (SQLException exception) {
             context.plugin().getLogger().log(Level.SEVERE, "Could not save " + triggerType + " trigger.", exception);
             player.sendMessage(context.language().chat("event.list-failed"));
@@ -142,7 +155,7 @@ public class StartTriggerTool implements Listener {
         Bukkit.getScheduler().runTask(context.plugin(), () -> {
             Player player = event.getPlayer();
             stop(player, true);
-            player.sendMessage(context.language().chat("trigger." + triggerType + "-selection-ended"));
+            player.sendMessage(context.language().chat("trigger." + toolVariant + "-selection-ended"));
             eventEditorGui.reopen(player, selection.eventId, selection.overviewPage);
         });
     }
@@ -161,14 +174,21 @@ public class StartTriggerTool implements Listener {
         return block.getType().name().endsWith("_PRESSURE_PLATE");
     }
 
-    private boolean addTriggerToDatabase(long eventId, String server, String world, int x, int y, int z, String blockType)
+    private boolean addTriggerToDatabase(long eventId, String server, String world, int x, int y, int z,
+                                         String blockType, String triggerMode)
             throws SQLException {
-        if ("end".equals(triggerType)) return context.database().addEndTrigger(eventId, server, world, x, y, z, blockType);
-        return context.database().addStartTrigger(eventId, server, world, x, y, z, blockType);
+        if ("REDSTONE_SIGNAL".equals(triggerMode)) {
+            return context.database().addRedstoneStartTrigger(eventId, server, world, x, y, z, blockType);
+        }
+        if ("end".equals(triggerType)) {
+            return context.database().addEndTrigger(eventId, server, world, x, y, z, blockType, triggerMode);
+        }
+        return context.database().addStartTrigger(eventId, server, world, x, y, z, blockType, triggerMode);
     }
 
     private boolean removeTriggerFromDatabase(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
+        if ("REDSTONE_SIGNAL".equals(configuredMode)) return context.database().removeRedstoneStartTrigger(eventId, server, world, x, y, z);
         if ("end".equals(triggerType)) return context.database().removeEndTrigger(eventId, server, world, x, y, z);
         return context.database().removeStartTrigger(eventId, server, world, x, y, z);
     }

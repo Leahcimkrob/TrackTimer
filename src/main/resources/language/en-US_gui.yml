@@ -52,6 +52,7 @@ trigger-editor:
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
+      - "<gray>Trigger mode: <trigger_mode>"
   checkpoint:
     name: "<yellow>Checkpoint <number>"
     lore:
@@ -62,11 +63,20 @@ trigger-editor:
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
+      - "<gray>Trigger mode: <trigger_mode>"
+  redstone:
+    name: "<blue>Redstone start signal"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Block: <block>"
+      - "<gray>Trigger mode: <trigger_mode>"
   unknown:
     name: "<gray>Unknown trigger"
     lore: []
   add-start:
     name: "<green>Set start trigger"
+  add-redstone:
+    name: "<blue>Set redstone start signal"
   add-checkpoint:
     name: "<yellow>Set checkpoint"
   add-end:
@@ -76,6 +86,8 @@ trigger-editor:
       name: "<gold>Start trigger tool"
     end:
       name: "<gold>End trigger tool"
+    redstone:
+      name: "<gold>Redstone trigger tool"
     lore:
       - "<gray>Left-click: add trigger"
       - "<gray>Right-click: remove trigger"

@@ -10,22 +10,28 @@ guis:
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
       start-trigger:
-        slot: 48
+        slot: 47
         material: PLAYER_HEAD
         head-database-id: "24211"
         fallback-material: GREEN_WOOL
+      start-redstone-trigger:
+        slot: 49
+        material: PLAYER_HEAD
+        head-database-id: "24214"
+        fallback-material: BLUE_WOOL
+
       checkpoint-trigger:
-        slot: 50
+        slot: 51
         material: PLAYER_HEAD
         head-database-id: "24208"
         fallback-material: YELLOW_WOOL
       end-trigger:
-        slot: 52
+        slot: 53
         material: PLAYER_HEAD
         head-database-id: "24205"
         fallback-material: RED_WOOL
       back:
-        slot: 46
+        slot: 45
         material: ARROW
     items:
       tool:
@@ -35,6 +41,10 @@ guis:
         material: PLAYER_HEAD
         head-database-id: "2074"
         fallback-material: GREEN_WOOL
+      redstone:
+        material: PLAYER_HEAD
+        head-database-id: "64618"
+        fallback-material: BLUE_WOOL
       checkpoint:
         material: PLAYER_HEAD
         head-database-id: "2073"
