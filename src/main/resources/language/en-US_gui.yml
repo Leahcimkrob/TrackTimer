@@ -72,10 +72,13 @@ trigger-editor:
   add-end:
     name: "<red>Set end trigger"
   tool:
-    name: "<gold>Start trigger tool"
+    start:
+      name: "<gold>Start trigger tool"
+    end:
+      name: "<gold>End trigger tool"
     lore:
-      - "<gray>Left-click: add start point"
-      - "<gray>Right-click: remove start point"
+      - "<gray>Left-click: add trigger"
+      - "<gray>Right-click: remove trigger"
       - "<yellow>Chat: exit to finish"
 
 event-detail:

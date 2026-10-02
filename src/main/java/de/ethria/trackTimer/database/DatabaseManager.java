@@ -195,33 +195,55 @@ public final class DatabaseManager {
 
     public void addStartTrigger(long eventId, String server, String world, int x, int y, int z,
                                 String blockType) throws SQLException {
+        addBlockTrigger(eventId, "start", server, world, x, y, z, blockType);
+    }
+
+    public void addEndTrigger(long eventId, String server, String world, int x, int y, int z,
+                              String blockType) throws SQLException {
+        addBlockTrigger(eventId, "end", server, world, x, y, z, blockType);
+    }
+
+    private void addBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z,
+                                 String blockType) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type)
-                VALUES (?, 'start', NULL, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)
                 """)) {
             statement.setLong(1, eventId);
-            statement.setString(2, server);
-            statement.setString(3, world);
-            statement.setInt(4, x);
-            statement.setInt(5, y);
-            statement.setInt(6, z);
-            statement.setString(7, blockType);
+            statement.setString(2, type);
+            statement.setString(3, server);
+            statement.setString(4, world);
+            statement.setInt(5, x);
+            statement.setInt(6, y);
+            statement.setInt(7, z);
+            statement.setString(8, blockType);
             statement.executeUpdate();
         }
     }
 
     public boolean removeStartTrigger(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
+        return removeBlockTrigger(eventId, "start", server, world, x, y, z);
+    }
+
+    public boolean removeEndTrigger(long eventId, String server, String world, int x, int y, int z)
+            throws SQLException {
+        return removeBlockTrigger(eventId, "end", server, world, x, y, z);
+    }
+
+    private boolean removeBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z)
+            throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
-                DELETE FROM event_triggers WHERE event_id = ? AND trigger_type = 'start'
+                DELETE FROM event_triggers WHERE event_id = ? AND trigger_type = ?
                   AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?
                 """)) {
             statement.setLong(1, eventId);
-            statement.setString(2, server);
-            statement.setString(3, world);
-            statement.setInt(4, x);
-            statement.setInt(5, y);
-            statement.setInt(6, z);
+            statement.setString(2, type);
+            statement.setString(3, server);
+            statement.setString(4, world);
+            statement.setInt(5, x);
+            statement.setInt(6, y);
+            statement.setInt(7, z);
             return statement.executeUpdate() > 0;
         }
     }

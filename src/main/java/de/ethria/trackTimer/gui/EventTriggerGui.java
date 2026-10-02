@@ -4,6 +4,7 @@ import de.ethria.trackTimer.database.DatabaseManager.Event;
 import de.ethria.trackTimer.database.DatabaseManager.EventTrigger;
 import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.tools.StartTriggerTool;
+import de.ethria.trackTimer.tools.EndTriggerTool;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -24,11 +25,14 @@ public final class EventTriggerGui implements Listener {
     private final EditorGuiContext context;
     private final EventEditorGui eventEditorGui;
     private final StartTriggerTool startTriggerTool;
+    private final EndTriggerTool endTriggerTool;
 
-    public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui, StartTriggerTool startTriggerTool) {
+    public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui,
+                           StartTriggerTool startTriggerTool, EndTriggerTool endTriggerTool) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
         this.startTriggerTool = startTriggerTool;
+        this.endTriggerTool = endTriggerTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -132,6 +136,8 @@ public final class EventTriggerGui implements Listener {
         }
         if (event.getRawSlot() == slot("button-bar.start-trigger.slot", 46, size)) {
             startTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 48, size)) {
+            endTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         }
     }
 
