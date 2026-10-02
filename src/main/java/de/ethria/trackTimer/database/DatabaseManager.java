@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Locale;
+import java.util.ArrayList;
 
 public final class DatabaseManager {
     private static final java.util.regex.Pattern EVENT_NAME_PATTERN =
@@ -96,6 +97,144 @@ public final class DatabaseManager {
         }
     }
 
+    public List<Event> listEvents() throws SQLException {
+        List<Event> events = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+             ResultSet rows = statement.executeQuery("""
+                     SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
+                            (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
+                     FROM events e ORDER BY e.event_name
+                     """)) {
+            while (rows.next()) {
+                events.add(new Event(rows.getLong("id"), rows.getString("event_name"),
+                        rows.getInt("laps"), rows.getString("start_mode"), rows.getString("icon"),
+                        rows.getInt("trigger_count"), rows.getString("created_at")));
+            }
+        }
+        return List.copyOf(events);
+    }
+
+    public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount, String created) { }
+
+    public void updateEventStartMode(long eventId, String startMode) throws SQLException {
+        if (!List.of("player", "signal").contains(startMode)) {
+            throw new IllegalArgumentException("Start mode must be 'player' or 'signal'.");
+        }
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET start_mode = ? WHERE id = ?")) {
+            statement.setString(1, startMode);
+            statement.setLong(2, eventId);
+            statement.executeUpdate();
+        }
+    }
+
+    /** Updates an event name, returning {@code false} when it is already in use. */
+    public boolean updateEventName(long eventId, String eventName) throws SQLException {
+        if (!isValidEventName(eventName)) {
+            throw new IllegalArgumentException("Event names must contain 1 to 128 letters, digits, underscores, or hyphens.");
+        }
+        try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE events SET event_name = ? WHERE id = ?")) {
+            statement.setString(1, eventName);
+            statement.setLong(2, eventId);
+            statement.executeUpdate();
+            return true;
+        } catch (SQLException exception) {
+            if (isUniqueConstraintViolation(exception)) return false;
+            throw exception;
+        }
+    }
+
+    public List<String> listEventTriggers(long eventId) throws SQLException {
+        List<String> triggers = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type
+                FROM event_triggers WHERE event_id = ?
+                ORDER BY CASE trigger_type WHEN 'start' THEN 0 WHEN 'checkpoint' THEN 1 ELSE 2 END,
+                         checkpoint_order
+                """)) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    String type = rows.getString("trigger_type");
+                    int order = rows.getInt("checkpoint_order");
+                    String orderLabel = rows.wasNull() ? "" : " #" + order;
+                    triggers.add(type + orderLabel + " — " + rows.getString("server") + "/"
+                            + rows.getString("world") + " " + rows.getInt("x") + ", "
+                            + rows.getInt("y") + ", " + rows.getInt("z")
+                            + " [" + rows.getString("block_type") + "]");
+                }
+            }
+        }
+        return List.copyOf(triggers);
+    }
+
+    public List<EventTrigger> listEventTriggerDetails(long eventId) throws SQLException {
+        List<EventTrigger> triggers = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT trigger_type, checkpoint_order, server, world, x, y, z, block_type
+                FROM event_triggers WHERE event_id = ?
+                ORDER BY CASE trigger_type WHEN 'start' THEN 0 WHEN 'checkpoint' THEN 1 ELSE 2 END,
+                         checkpoint_order
+                """)) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    int order = rows.getInt("checkpoint_order");
+                    Integer checkpointOrder = rows.wasNull() ? null : order;
+                    triggers.add(new EventTrigger(rows.getString("trigger_type"), checkpointOrder,
+                            rows.getString("server"), rows.getString("world"), rows.getInt("x"),
+                            rows.getInt("y"), rows.getInt("z"), rows.getString("block_type")));
+                }
+            }
+        }
+        return List.copyOf(triggers);
+    }
+
+    public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
+                               int x, int y, int z, String blockType) { }
+
+    public void updateEventLaps(long eventId, int laps) throws SQLException {
+        if (laps < 1) throw new IllegalArgumentException("Event laps must be greater than zero.");
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET laps = ? WHERE id = ?")) {
+            statement.setInt(1, laps);
+            statement.setLong(2, eventId);
+            statement.executeUpdate();
+        }
+    }
+
+    public void updateEventIcon(long eventId, String icon) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET icon = ? WHERE id = ?")) {
+            statement.setString(1, icon);
+            statement.setLong(2, eventId);
+            statement.executeUpdate();
+        }
+    }
+
+    public void deleteEvent(long eventId) throws SQLException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            executeDelete("DELETE FROM race_checkpoint_times WHERE race_result_id IN (SELECT id FROM race_results WHERE event_id = ?)", eventId);
+            executeDelete("DELETE FROM race_checkpoint_times WHERE trigger_id IN (SELECT id FROM event_triggers WHERE event_id = ?)", eventId);
+            executeDelete("DELETE FROM race_results WHERE event_id = ?", eventId);
+            executeDelete("DELETE FROM event_triggers WHERE event_id = ?", eventId);
+            executeDelete("DELETE FROM events WHERE id = ?", eventId);
+            connection.commit();
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
+    }
+
+    private void executeDelete(String sql, long eventId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, eventId);
+            statement.executeUpdate();
+        }
+    }
+
     public static boolean isValidEventName(String eventName) {
         return eventName != null
                 && eventName.codePointCount(0, eventName.length()) <= 128
@@ -137,6 +276,7 @@ public final class DatabaseManager {
                     event_name VARCHAR(128) NOT NULL UNIQUE,
                     laps INTEGER NOT NULL,
                     start_mode VARCHAR(16) NOT NULL DEFAULT 'player',
+                    icon TEXT NOT NULL DEFAULT 'stone',
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     CHECK (laps > 0),
                     CHECK (start_mode IN ('player', 'signal'))

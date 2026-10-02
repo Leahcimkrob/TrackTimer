@@ -1,0 +1,32 @@
+# GUI layout and item types. Labels and lore can be customized in the respective language file.
+#
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+guis:
+  trigger-editor:
+    size: 54
+    button-bar:
+      material: GRAY_STAINED_GLASS_PANE
+      back:
+        slot: 49
+        material: ARROW
+    items:
+      start:
+        material: PLAYER_HEAD
+        head-database-id: "2074"
+        fallback-material: GREEN_WOOL
+      checkpoint:
+        material: PLAYER_HEAD
+        head-database-id: "2073"
+        fallback-material: YELLOW_WOOL
+      end:
+        material: PLAYER_HEAD
+        head-database-id: "2072"
+        fallback-material: RED_WOOL
+      add-trigger:
+        slot: 47
+        material: PLAYER_HEAD
+        head-database-id: "45308"
+        fallback-material: REDSTONE_TORCH

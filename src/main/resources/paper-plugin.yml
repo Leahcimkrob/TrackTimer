@@ -31,6 +31,7 @@ permissions:
       tracktimer.command.help: true
       tracktimer.command.reload: true
       tracktimer.command.create: true
+      tracktimer.command.editor: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -38,8 +39,12 @@ permissions:
 
   tracktimer.command.help:
     description: Allows viewing the TrackTimer help message.
-    default: true
+    default: op
 
   tracktimer.command.create:
     description: Allows creating TrackTimer events.
+    default: op
+
+  tracktimer.command.editor:
+    description: Allows opening the TrackTimer event editor.
     default: op

@@ -4,11 +4,68 @@ overview:
     name: "<yellow><event>"
     lore:
       - "<gray>Laps: <white><laps>"
-      - "<gray>Created: <white><created_at>"
-      - ""
-      - "<green>Click to open"
+      - "<gray>Start mode: <white><start_mode>"
+      - "<gray>Created: <white><created>"
   empty-item:
     name: "<gray>No events available"
+
+event-editor:
+  title: "Event Editor: <event>"
+  event-name:
+    name: "<yellow><event>"
+    lore:
+      - "<gray>Left-click to change the name"
+  laps:
+    name: "<gold>Lap count"
+    lore:
+      - "<gray>Current: <white><laps>"
+      - "<green>Right-click: +1"
+      - "<red>Left-click: -1"
+  start-mode:
+    name: "<red>Start mode"
+    lore:
+      - "<gray>Start: <white><start_mode>"
+      - "<yellow>Left-click to switch"
+  change-icon:
+    name: "<yellow>Change event item"
+    lore:
+      - "Click to change the event item"
+    title: "Change event item: <event>"
+  delete:
+    name: "<red>Delete event"
+    lore:
+      - "<gray>Shift-left-click to delete"
+  trigger-editor:
+    name: "<gold>Configure triggers"
+    lore:
+      - "<gray>Left-click to open"
+
+trigger-editor:
+  title: "Triggers: <event>"
+  start:
+    name: "<green>Start trigger"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Block: <block>"
+  checkpoint:
+    name: "<yellow>Checkpoint <number>"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Block: <block>"
+  end:
+    name: "<red>Finish trigger"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Block: <block>"
+  unknown:
+    name: "<gray>Unknown trigger"
+    lore: []
+  add-trigger:
+    name: "<gold>Set trigger"
+    lore:
+      - "<green>Left-click: Start"
+      - "<red>Shift-left-click: Stop"
+      - "<yellow>Right-click: Checkpoint"
 
 event-detail:
   title: "Event: <event>"

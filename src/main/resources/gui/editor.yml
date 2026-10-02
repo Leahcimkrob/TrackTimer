@@ -1,0 +1,49 @@
+# GUI layout and item types. Labels and lore can be customized in the respective language file.
+#
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+
+guis:
+  event-overview:
+    size: 54 # inkl. Buttons
+  event-editor:
+    size: 54
+    button-bar:
+      material: GRAY_STAINED_GLASS_PANE
+      back:
+        slot: 49
+        material: ARROW
+    items:
+      event-name:
+        slot: 13
+        material: CRAFTING_TABLE
+      laps:
+        slot: 21
+        material: STRUCTURE_VOID
+      start-mode:
+        slot: 23
+        material: PLAYER_HEAD
+        head-database-id: "75167"
+        fallback-material: REDSTONE
+      change-icon:
+        slot: 29
+        material: CHEST
+      delete:
+        slot: 31
+        material: BARRIER
+      trigger-editor:
+        slot: 33
+        material: PLAYER_HEAD
+        head-database-id: "90854"
+        fallback-material: REDSTONE_LAMP
+  event-icon-swap:
+    size: 36
+    center-slot: 13
+    filler-material: RED_STAINED_GLASS_PANE
+    button-bar:
+      material: GRAY_STAINED_GLASS_PANE
+      back:
+        slot: 31
+        material: ARROW

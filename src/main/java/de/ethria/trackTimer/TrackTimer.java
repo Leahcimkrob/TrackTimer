@@ -3,6 +3,11 @@ package de.ethria.trackTimer;
 import de.ethria.trackTimer.command.TrackTimerCommand;
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.heads.HeadDatabaseService;
+import de.ethria.trackTimer.gui.EventOverviewGui;
+import de.ethria.trackTimer.gui.EditorGuiContext;
+import de.ethria.trackTimer.gui.EventEditorGui;
+import de.ethria.trackTimer.gui.EventIconSwapGui;
+import de.ethria.trackTimer.gui.EventTriggerGui;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,6 +21,7 @@ public final class TrackTimer extends JavaPlugin {
     private DatabaseManager databaseManager;
     private LanguageManager languageManager;
     private HeadDatabaseService headDatabaseService;
+    private EditorGuiContext editorGuiContext;
 
     @Override
     public void onEnable() {
@@ -37,7 +43,20 @@ public final class TrackTimer extends JavaPlugin {
         headDatabaseService = new HeadDatabaseService(this);
         headDatabaseService.register();
 
-        registerMainCommand();
+        editorGuiContext = new EditorGuiContext(this, databaseManager, languageManager, headDatabaseService);
+        EventOverviewGui eventOverviewGui = new EventOverviewGui(editorGuiContext);
+        EventIconSwapGui eventIconSwapGui = new EventIconSwapGui(editorGuiContext);
+        EventEditorGui eventEditorGui = new EventEditorGui(editorGuiContext, eventOverviewGui);
+        EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui);
+        eventOverviewGui.setEventEditorGui(eventEditorGui);
+        eventEditorGui.setIconSwapGui(eventIconSwapGui);
+        eventEditorGui.setTriggerGui(eventTriggerGui);
+        eventIconSwapGui.setEventEditorGui(eventEditorGui);
+        getServer().getPluginManager().registerEvents(eventOverviewGui, this);
+        getServer().getPluginManager().registerEvents(eventEditorGui, this);
+        getServer().getPluginManager().registerEvents(eventIconSwapGui, this);
+        getServer().getPluginManager().registerEvents(eventTriggerGui, this);
+        registerMainCommand(eventOverviewGui);
     }
 
     /**
@@ -69,8 +88,8 @@ public final class TrackTimer extends JavaPlugin {
      * plugin.yml command declarations and JavaPlugin#getCommand are not
      * supported for this plugin format.
      */
-    private void registerMainCommand() {
-        TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager);
+    private void registerMainCommand(EventOverviewGui eventOverviewGui) {
+        TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager, eventOverviewGui);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
@@ -91,5 +110,9 @@ public final class TrackTimer extends JavaPlugin {
 
     public HeadDatabaseService getHeadDatabaseService() {
         return headDatabaseService;
+    }
+
+    public void reloadEditorGuiConfig() {
+        if (editorGuiContext != null) editorGuiContext.reload();
     }
 }

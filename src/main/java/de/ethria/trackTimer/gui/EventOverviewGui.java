@@ -1,0 +1,114 @@
+package de.ethria.trackTimer.gui;
+
+import de.ethria.trackTimer.database.DatabaseManager.Event;
+import de.ethria.trackTimer.language.LanguageManager;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+/** The paginated GUI that lists all registered events. */
+public final class EventOverviewGui implements Listener {
+    private static final int PAGE_SIZE = 45;
+    private final EditorGuiContext context;
+    private EventEditorGui eventEditorGui;
+
+    public EventOverviewGui(EditorGuiContext context) {
+        this.context = context;
+    }
+
+    public void setEventEditorGui(EventEditorGui eventEditorGui) {
+        this.eventEditorGui = eventEditorGui;
+    }
+
+    public void open(Player player, int requestedPage) {
+        try {
+            List<Event> events = context.database.listEvents();
+            int pages = Math.max(1, (events.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+            int page = Math.max(0, Math.min(requestedPage, pages - 1));
+            OverviewHolder holder = new OverviewHolder(page, events);
+            int size = context.inventorySize("guis.event-overview.size", 54);
+            Inventory inventory = Bukkit.createInventory(holder, size, context.language.gui("overview.title"));
+            holder.inventory = inventory;
+            int start = page * PAGE_SIZE;
+            for (int index = start; index < Math.min(start + PAGE_SIZE, events.size()); index++) {
+                Event event = events.get(index);
+                ItemStack item = context.icon(event.icon());
+                ItemMeta meta = item.getItemMeta();
+                meta.displayName(context.language.gui("overview.event-item.name", LanguageManager.placeholders("event", event.name())));
+                boolean german = context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de");
+                String startModeLabel = "signal".equals(event.startMode())
+                        ? (german ? "Redstone-Signal" : "Redstone signal")
+                        : (german ? "Spieler" : "Player");
+                meta.lore(context.language.guiList("overview.event-item.lore",
+                        LanguageManager.placeholders("event", event.name(), "laps", event.laps(),
+                                "start_mode", startModeLabel, "created", event.created())));
+                item.setItemMeta(meta);
+                inventory.setItem(index - start, item);
+            }
+            if (events.isEmpty()) inventory.setItem(22, named(new ItemStack(Material.BARRIER), "overview.empty-item.name"));
+            if (page > 0) inventory.setItem(45, button(Material.ARROW, "buttons.previous-page"));
+            inventory.setItem(49, button(Material.BARRIER, "buttons.close"));
+            if (page + 1 < pages) inventory.setItem(53, button(Material.ARROW, "buttons.next-page"));
+            player.openInventory(inventory);
+        } catch (SQLException exception) {
+            reportDatabaseError(player, exception);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof OverviewHolder holder)) return;
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getView().getTopInventory()) return;
+        int slot = event.getRawSlot();
+        if (slot == 45) open(player, holder.page - 1);
+        else if (slot == 53) open(player, holder.page + 1);
+        else if (slot == 49) player.closeInventory();
+        else if (slot >= 0 && slot < PAGE_SIZE) {
+            int index = holder.page * PAGE_SIZE + slot;
+            if (index < holder.events.size() && eventEditorGui != null) {
+                eventEditorGui.open(player, holder.events.get(index), holder.page);
+            }
+        }
+    }
+
+    private ItemStack button(Material material, String key) {
+        return named(new ItemStack(material), key);
+    }
+
+    private ItemStack named(ItemStack item, String key) {
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(context.language.gui(key));
+        List<net.kyori.adventure.text.Component> lore = context.language.guiList(key.replace(".name", ".lore"));
+        if (!lore.isEmpty()) meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private void reportDatabaseError(Player player, SQLException exception) {
+        context.plugin.getLogger().log(java.util.logging.Level.SEVERE, "Could not load events for the GUI.", exception);
+        player.sendMessage(context.language.chat("event.list-failed"));
+    }
+
+    private static final class OverviewHolder implements InventoryHolder {
+        private final int page;
+        private final List<Event> events;
+        private Inventory inventory;
+        private OverviewHolder(int page, List<Event> events) {
+            this.page = page;
+            this.events = new ArrayList<>(events);
+        }
+        @Override public Inventory getInventory() { return inventory; }
+    }
+}

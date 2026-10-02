@@ -5,6 +5,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import de.ethria.trackTimer.TrackTimer;
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.language.LanguageManager;
+import de.ethria.trackTimer.gui.EventOverviewGui;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
@@ -24,18 +25,21 @@ public final class TrackTimerCommand {
     private final TrackTimer plugin;
     private final DatabaseManager database;
     private final LanguageManager language;
+    private final EventOverviewGui eventOverviewGui;
 
-    public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language) {
+    public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language, EventOverviewGui eventOverviewGui) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
+        this.eventOverviewGui = eventOverviewGui;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
         ReloadSubCommand reload = new ReloadSubCommand(plugin, language);
         CreateSubCommand create = new CreateSubCommand(plugin, database, language);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create));
-        List<SubCommand> subCommands = List.of(help, reload, create);
+        EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
+        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, editor));
+        List<SubCommand> subCommands = List.of(help, reload, create, editor);
 
         var root = Commands.literal(label)
                 .executes(context -> {

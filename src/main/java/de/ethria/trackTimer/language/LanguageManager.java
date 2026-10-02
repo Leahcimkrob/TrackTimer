@@ -141,10 +141,23 @@ public final class LanguageManager {
         }
 
         if (file.exists()) {
-            return YamlConfiguration.loadConfiguration(file);
+            YamlConfiguration messages = YamlConfiguration.loadConfiguration(file);
+            mergeBundledDefaults(fileName, file, messages);
+            return messages;
         }
 
         return loadFromClasspath(fileName);
+    }
+
+    private void mergeBundledDefaults(String fileName, File file, YamlConfiguration messages) {
+        YamlConfiguration defaults = loadFromClasspath(fileName);
+        messages.setDefaults(defaults);
+        messages.options().copyDefaults(true);
+        try {
+            messages.save(file);
+        } catch (IOException exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not add new default language keys to " + fileName, exception);
+        }
     }
 
     private void saveResourceIfPresent(String fileName, File file, File dataFolder) {

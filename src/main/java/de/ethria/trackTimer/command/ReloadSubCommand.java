@@ -47,6 +47,7 @@ public final class ReloadSubCommand implements SubCommand {
     private void execute(CommandSender sender) {
         plugin.updateConfigWithNewDefaults();
         language.load();
+        plugin.reloadEditorGuiConfig();
         sender.sendMessage(language.chat("general.reload"));
     }
 }
