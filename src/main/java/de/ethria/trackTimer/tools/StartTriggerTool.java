@@ -143,8 +143,7 @@ public class StartTriggerTool implements Listener {
                 return;
             }
             player.sendMessage(context.language().chat(added
-                    ? "trigger." + toolVariant + "-added"
-                    : "trigger.already-exists"));
+                    ? "trigger." + toolVariant + "-added" : "trigger.already-exists"));
         } catch (SQLException exception) {
             context.plugin().getLogger().log(Level.SEVERE, "Could not save " + triggerType + " trigger.", exception);
             player.sendMessage(context.language().chat("event.list-failed"));

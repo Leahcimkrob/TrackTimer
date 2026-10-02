@@ -229,8 +229,7 @@ public final class DatabaseManager {
         if (!List.of("BLOCK", "PRESSURE_PLATE", "REDSTONE_SIGNAL").contains(triggerMode)) {
             throw new IllegalArgumentException("Unsupported trigger mode: " + triggerMode);
         }
-        if (hasBlockTrigger(eventId, type, triggerMode, server, world, x, y, z)
-                || (checkpointOrder != null && hasCheckpointOrder(eventId, checkpointOrder))) return false;
+        if (hasBlockTrigger(eventId, type, triggerMode, server, world, x, y, z)) return false;
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type, trigger_mode)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -247,17 +246,6 @@ public final class DatabaseManager {
             statement.setString(9, blockType);
             statement.setString(10, triggerMode);
             return statement.executeUpdate() > 0;
-        }
-    }
-
-    private boolean hasCheckpointOrder(long eventId, int checkpointOrder) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT 1 FROM event_triggers WHERE event_id = ? AND trigger_type = 'checkpoint' AND checkpoint_order = ? LIMIT 1")) {
-            statement.setLong(1, eventId);
-            statement.setInt(2, checkpointOrder);
-            try (ResultSet rows = statement.executeQuery()) {
-                return rows.next();
-            }
         }
     }
 
@@ -456,8 +444,7 @@ public final class DatabaseManager {
                     CHECK (
                         (trigger_type = 'checkpoint' AND checkpoint_order IS NOT NULL)
                         OR (trigger_type != 'checkpoint' AND checkpoint_order IS NULL)
-                    ),
-                    UNIQUE (event_id, trigger_type, checkpoint_order)
+                    )
                 )
                 """.formatted(autoIncrement),
                 """
