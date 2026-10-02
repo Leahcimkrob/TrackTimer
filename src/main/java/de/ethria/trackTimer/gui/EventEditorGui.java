@@ -101,7 +101,7 @@ public final class EventEditorGui implements Listener {
         player.openInventory(inventory);
     }
 
-    void reopen(Player player, long eventId, int overviewPage) {
+    public void reopen(Player player, long eventId, int overviewPage) {
         try {
             for (Event event : context.database.listEvents()) {
                 if (event.id() == eventId) {
