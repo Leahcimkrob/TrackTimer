@@ -78,6 +78,10 @@ trigger-editor:
     name: "<green>Set start trigger"
   add-redstone:
     name: "<blue>Set redstone start signal"
+    lore:
+      - "If you want to trigger the start signal with redstone,"
+      - "you also need to set normal start triggers, because redstone"
+      - "only activates the start signal."
   add-checkpoint:
     name: "<yellow>Set checkpoint"
   add-end:
@@ -94,10 +98,7 @@ trigger-editor:
       lore: []
     redstone:
       name: "<gold>Redstone trigger tool"
-      lore:
-        - "If you want to trigger the start signal using Redstone,"
-        - "you also need to place standard start triggers, since Redstone "
-        - "only triggers the start signal."
+      lore: []
     lore:
       - "<gray>Left-click: add trigger"
       - "<gray>Right-click: remove trigger"
@@ -138,4 +139,3 @@ buttons:
     name: "<green>Next page"
   previous-page:
     name: "<green>Previous page"
-
