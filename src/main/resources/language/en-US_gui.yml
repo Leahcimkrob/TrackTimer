@@ -58,6 +58,7 @@ trigger-editor:
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
+      - "<gray>Trigger mode: <trigger_mode>"
   end:
     name: "<red>Finish trigger"
     lore:
@@ -84,6 +85,8 @@ trigger-editor:
   tool:
     start:
       name: "<gold>Start trigger tool"
+    checkpoint:
+      name: "<gold>Checkpoint tool"
     end:
       name: "<gold>End trigger tool"
     redstone:

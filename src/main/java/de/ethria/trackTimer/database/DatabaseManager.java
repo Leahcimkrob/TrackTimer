@@ -193,41 +193,71 @@ public final class DatabaseManager {
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
                                int x, int y, int z, String blockType, String triggerMode) { }
 
+    public int nextCheckpointOrder(long eventId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT COALESCE(MAX(checkpoint_order), 0) + 1 FROM event_triggers WHERE event_id = ? AND trigger_type = 'checkpoint'")) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next() ? rows.getInt(1) : 1;
+            }
+        }
+    }
+
     public boolean addStartTrigger(long eventId, String server, String world, int x, int y, int z,
                                    String blockType, String triggerMode) throws SQLException {
-        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType, triggerMode);
+        return addBlockTrigger(eventId, "start", null, server, world, x, y, z, blockType, triggerMode);
     }
 
     public boolean addEndTrigger(long eventId, String server, String world, int x, int y, int z,
                                  String blockType, String triggerMode) throws SQLException {
-        return addBlockTrigger(eventId, "end", server, world, x, y, z, blockType, triggerMode);
+        return addBlockTrigger(eventId, "end", null, server, world, x, y, z, blockType, triggerMode);
+    }
+
+    public boolean addCheckpointTrigger(long eventId, int checkpointOrder, String server, String world,
+                                        int x, int y, int z, String blockType, String triggerMode) throws SQLException {
+        if (checkpointOrder < 1) throw new IllegalArgumentException("Checkpoint order must be positive.");
+        return addBlockTrigger(eventId, "checkpoint", checkpointOrder, server, world, x, y, z, blockType, triggerMode);
     }
 
     public boolean addRedstoneStartTrigger(long eventId, String server, String world, int x, int y, int z,
                                            String blockType) throws SQLException {
-        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType, "REDSTONE_SIGNAL");
+        return addBlockTrigger(eventId, "start", null, server, world, x, y, z, blockType, "REDSTONE_SIGNAL");
     }
 
-    private boolean addBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z,
+    private boolean addBlockTrigger(long eventId, String type, Integer checkpointOrder, String server, String world, int x, int y, int z,
                                     String blockType, String triggerMode) throws SQLException {
         if (!List.of("BLOCK", "PRESSURE_PLATE", "REDSTONE_SIGNAL").contains(triggerMode)) {
             throw new IllegalArgumentException("Unsupported trigger mode: " + triggerMode);
         }
-        if (hasBlockTrigger(eventId, type, triggerMode, server, world, x, y, z)) return false;
+        if (hasBlockTrigger(eventId, type, triggerMode, server, world, x, y, z)
+                || (checkpointOrder != null && hasCheckpointOrder(eventId, checkpointOrder))) return false;
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type, trigger_mode)
-                VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """)) {
             statement.setLong(1, eventId);
             statement.setString(2, type);
-            statement.setString(3, server);
-            statement.setString(4, world);
-            statement.setInt(5, x);
-            statement.setInt(6, y);
-            statement.setInt(7, z);
-            statement.setString(8, blockType);
-            statement.setString(9, triggerMode);
+            if (checkpointOrder == null) statement.setNull(3, java.sql.Types.INTEGER);
+            else statement.setInt(3, checkpointOrder);
+            statement.setString(4, server);
+            statement.setString(5, world);
+            statement.setInt(6, x);
+            statement.setInt(7, y);
+            statement.setInt(8, z);
+            statement.setString(9, blockType);
+            statement.setString(10, triggerMode);
             return statement.executeUpdate() > 0;
+        }
+    }
+
+    private boolean hasCheckpointOrder(long eventId, int checkpointOrder) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT 1 FROM event_triggers WHERE event_id = ? AND trigger_type = 'checkpoint' AND checkpoint_order = ? LIMIT 1")) {
+            statement.setLong(1, eventId);
+            statement.setInt(2, checkpointOrder);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next();
+            }
         }
     }
 
@@ -261,6 +291,36 @@ public final class DatabaseManager {
     public boolean removeEndTrigger(long eventId, String server, String world, int x, int y, int z)
             throws SQLException {
         return removeBlockTrigger(eventId, "end", null, server, world, x, y, z);
+    }
+
+    public boolean removeCheckpointTrigger(long eventId, String server, String world, int x, int y, int z)
+            throws SQLException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (PreparedStatement statement = connection.prepareStatement("""
+                    DELETE FROM race_checkpoint_times WHERE trigger_id IN (
+                        SELECT id FROM event_triggers WHERE event_id = ? AND trigger_type = 'checkpoint'
+                          AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?
+                    )
+                    """)) {
+                statement.setLong(1, eventId);
+                statement.setString(2, server);
+                statement.setString(3, world);
+                statement.setInt(4, x);
+                statement.setInt(5, y);
+                statement.setInt(6, z);
+                statement.executeUpdate();
+            }
+            boolean removed = removeBlockTrigger(eventId, "checkpoint", null, server, world, x, y, z);
+            connection.commit();
+            return removed;
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
     }
 
     public boolean removeRedstoneStartTrigger(long eventId, String server, String world, int x, int y, int z)

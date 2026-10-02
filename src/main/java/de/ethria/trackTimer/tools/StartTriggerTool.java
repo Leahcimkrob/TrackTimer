@@ -60,6 +60,10 @@ public class StartTriggerTool implements Listener {
     }
 
     public void begin(Player player, long eventId, int overviewPage) {
+        beginWithOrder(player, eventId, overviewPage, null);
+    }
+
+    protected void beginWithOrder(Player player, long eventId, int overviewPage, Integer checkpointOrder) {
         StartTriggerTool currentTool = ACTIVE_TOOLS.get(player.getUniqueId());
         if (currentTool != null) currentTool.stop(player, true);
         stop(player, false);
@@ -73,7 +77,7 @@ public class StartTriggerTool implements Listener {
         tool.setItemMeta(meta);
         player.getInventory().addItem(tool);
 
-        Selection selection = new Selection(eventId, overviewPage);
+        Selection selection = new Selection(eventId, overviewPage, checkpointOrder);
         selections.put(player.getUniqueId(), selection);
         ACTIVE_TOOLS.put(player.getUniqueId(), this);
         selection.particles = Bukkit.getScheduler().runTaskTimer(context.plugin(), () -> showTriggerParticles(player, selection), 0L, 10L);
@@ -125,9 +129,17 @@ public class StartTriggerTool implements Listener {
             String mode = "REDSTONE_SIGNAL".equals(configuredMode) ? configuredMode
                     : isPressurePlate(block) ? "PRESSURE_PLATE" : configuredMode;
             boolean added = addTriggerToDatabase(selection.eventId, context.plugin().getServer().getName(),
-                    block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name(), mode);
+                    block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name(),
+                    mode, selection.checkpointOrder);
+            if ("checkpoint".equals(triggerType)) {
+                player.sendMessage(context.language().chat(added
+                                ? "trigger.checkpoint-added" : "trigger.checkpoint-order-used",
+                        de.ethria.trackTimer.language.LanguageManager.placeholders("number", selection.checkpointOrder)));
+                return;
+            }
             player.sendMessage(context.language().chat(added
-                    ? "trigger." + toolVariant + "-added" : "trigger.already-exists"));
+                    ? "trigger." + toolVariant + "-added"
+                    : "trigger.already-exists"));
         } catch (SQLException exception) {
             context.plugin().getLogger().log(Level.SEVERE, "Could not save " + triggerType + " trigger.", exception);
             player.sendMessage(context.language().chat("event.list-failed"));
@@ -175,13 +187,17 @@ public class StartTriggerTool implements Listener {
     }
 
     private boolean addTriggerToDatabase(long eventId, String server, String world, int x, int y, int z,
-                                         String blockType, String triggerMode)
+                                         String blockType, String triggerMode, Integer checkpointOrder)
             throws SQLException {
         if ("REDSTONE_SIGNAL".equals(triggerMode)) {
             return context.database().addRedstoneStartTrigger(eventId, server, world, x, y, z, blockType);
         }
         if ("end".equals(triggerType)) {
             return context.database().addEndTrigger(eventId, server, world, x, y, z, blockType, triggerMode);
+        }
+        if ("checkpoint".equals(triggerType)) {
+            return context.database().addCheckpointTrigger(eventId, checkpointOrder, server, world, x, y, z,
+                    blockType, triggerMode);
         }
         return context.database().addStartTrigger(eventId, server, world, x, y, z, blockType, triggerMode);
     }
@@ -190,6 +206,7 @@ public class StartTriggerTool implements Listener {
             throws SQLException {
         if ("REDSTONE_SIGNAL".equals(configuredMode)) return context.database().removeRedstoneStartTrigger(eventId, server, world, x, y, z);
         if ("end".equals(triggerType)) return context.database().removeEndTrigger(eventId, server, world, x, y, z);
+        if ("checkpoint".equals(triggerType)) return context.database().removeCheckpointTrigger(eventId, server, world, x, y, z);
         return context.database().removeStartTrigger(eventId, server, world, x, y, z);
     }
 
@@ -206,11 +223,13 @@ public class StartTriggerTool implements Listener {
     private static final class Selection {
         private final long eventId;
         private final int overviewPage;
+        private final Integer checkpointOrder;
         private BukkitTask particles;
 
-        private Selection(long eventId, int overviewPage) {
+        private Selection(long eventId, int overviewPage, Integer checkpointOrder) {
             this.eventId = eventId;
             this.overviewPage = overviewPage;
+            this.checkpointOrder = checkpointOrder;
         }
     }
 }

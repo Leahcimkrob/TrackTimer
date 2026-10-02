@@ -6,6 +6,7 @@ import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
+import de.ethria.trackTimer.tools.CheckpointTriggerTool;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -28,15 +29,17 @@ public final class EventTriggerGui implements Listener {
     private final StartTriggerTool startTriggerTool;
     private final EndTriggerTool endTriggerTool;
     private final RedstoneTriggerTool redstoneTriggerTool;
+    private final CheckpointTriggerTool checkpointTriggerTool;
 
     public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui,
                            StartTriggerTool startTriggerTool, EndTriggerTool endTriggerTool,
-                           RedstoneTriggerTool redstoneTriggerTool) {
+                           RedstoneTriggerTool redstoneTriggerTool, CheckpointTriggerTool checkpointTriggerTool) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
         this.startTriggerTool = startTriggerTool;
         this.endTriggerTool = endTriggerTool;
         this.redstoneTriggerTool = redstoneTriggerTool;
+        this.checkpointTriggerTool = checkpointTriggerTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -157,6 +160,8 @@ public final class EventTriggerGui implements Listener {
             redstoneTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 48, size)) {
             endTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        } else if (event.getRawSlot() == slot("button-bar.checkpoint-trigger.slot", 47, size)) {
+            checkpointTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         }
     }
 

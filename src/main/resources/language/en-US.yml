@@ -44,6 +44,11 @@ trigger:
   start-added: "<green>Start point saved."
   end-added: "<green>End point saved."
   redstone-added: "<green>Redstone start signal saved."
+  checkpoint-selection-started: "<green>Checkpoint selection active: left-click to add, right-click to remove, type <yellow>exit</yellow> to finish."
+  checkpoint-selection-ended: "<green>Checkpoint selection finished."
+  checkpoint-order-selected: "<green>The next checkpoint number is <yellow><number></yellow>."
+  checkpoint-added: "<green>Checkpoint <yellow><number></yellow> saved."
+  checkpoint-order-used: "<red>Checkpoint <yellow><number></yellow> already exists. Type exit and start the tool again for the next checkpoint."
   already-exists: "<yellow>This event already has a matching trigger at this block."
   not-found: "<red>No matching trigger for this event is saved here."
 

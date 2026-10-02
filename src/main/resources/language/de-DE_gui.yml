@@ -57,6 +57,7 @@ trigger-editor:
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
+      - "<gray>Auslösung: <trigger_mode>"
   end:
     name: "<red>Ende-Trigger"
     lore:
@@ -83,6 +84,8 @@ trigger-editor:
   tool:
     start:
       name: "<gold>Start-Trigger-Werkzeug"
+    checkpoint:
+      name: "<gold>Checkpoint-Werkzeug"
     end:
       name: "<gold>End-Trigger-Werkzeug"
     redstone:
@@ -131,4 +134,3 @@ buttons:
     name: "<green>Nächste Seite"
   previous-page:
     name: "<green>Vorherige Seite"
-
