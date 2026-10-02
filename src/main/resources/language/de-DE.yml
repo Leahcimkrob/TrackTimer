@@ -34,6 +34,11 @@ trigger:
   removed: "<green>Trigger wurde entfernt."
   invalid-type: "<red>Ungültiger Trigger-Typ. Erlaubt: start, checkpoint, end."
   checkpoint-order-required: "<red>Für Checkpoints muss eine Reihenfolge angegeben werden."
+  selection-started: "<green>Startpunkt-Auswahl aktiv: Links hinzufügen, rechts entfernen, <yellow>exit</yellow> im Chat beendet die Auswahl."
+  selection-ended: "<green>Startpunkt-Auswahl beendet."
+  pressure-plate-not-pressed: "<red>Die Druckplatte muss beim Hinzufügen gedrückt sein."
+  start-added: "<green>Startpunkt gespeichert."
+  not-found: "<red>Hier ist kein Startpunkt für dieses Event gespeichert."
 
 race:
   started: "<green>Dein Lauf für <yellow><event></yellow> hat begonnen!"

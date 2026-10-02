@@ -35,6 +35,11 @@ public final class EditorGuiContext {
         reload();
     }
 
+    public JavaPlugin plugin() { return plugin; }
+    public DatabaseManager database() { return database; }
+    public LanguageManager language() { return language; }
+    public YamlConfiguration triggerSettings() { return triggerSettings; }
+
     public void reload() {
         File guiFolder = new File(plugin.getDataFolder(), "gui");
         if (!guiFolder.exists() && !guiFolder.mkdirs()) {
@@ -117,7 +122,7 @@ public final class EditorGuiContext {
         return configuredItem(config, path, fallback);
     }
 
-    Material material(String name, Material fallback) {
+    public Material material(String name, Material fallback) {
         Material material = name == null ? null : Material.matchMaterial(name);
         return material != null && material.isItem() ? material : fallback;
     }

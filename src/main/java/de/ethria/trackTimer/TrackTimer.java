@@ -8,6 +8,7 @@ import de.ethria.trackTimer.gui.EditorGuiContext;
 import de.ethria.trackTimer.gui.EventEditorGui;
 import de.ethria.trackTimer.gui.EventIconSwapGui;
 import de.ethria.trackTimer.gui.EventTriggerGui;
+import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -47,7 +48,8 @@ public final class TrackTimer extends JavaPlugin {
         EventOverviewGui eventOverviewGui = new EventOverviewGui(editorGuiContext);
         EventIconSwapGui eventIconSwapGui = new EventIconSwapGui(editorGuiContext);
         EventEditorGui eventEditorGui = new EventEditorGui(editorGuiContext, eventOverviewGui);
-        EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui);
+        StartTriggerTool startTriggerTool = new StartTriggerTool(editorGuiContext, eventEditorGui);
+        EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui, startTriggerTool);
         eventOverviewGui.setEventEditorGui(eventEditorGui);
         eventEditorGui.setIconSwapGui(eventIconSwapGui);
         eventEditorGui.setTriggerGui(eventTriggerGui);
@@ -56,6 +58,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(eventEditorGui, this);
         getServer().getPluginManager().registerEvents(eventIconSwapGui, this);
         getServer().getPluginManager().registerEvents(eventTriggerGui, this);
+        getServer().getPluginManager().registerEvents(startTriggerTool, this);
         registerMainCommand(eventOverviewGui);
     }
 

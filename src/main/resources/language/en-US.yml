@@ -34,6 +34,11 @@ trigger:
   removed: "<green>Trigger has been removed."
   invalid-type: "<red>Invalid trigger type. Allowed: start, checkpoint, end."
   checkpoint-order-required: "<red>Checkpoints require an order value."
+  selection-started: "<green>Start selection active: left-click to add, right-click to remove, type <yellow>exit</yellow> to finish."
+  selection-ended: "<green>Start selection finished."
+  pressure-plate-not-pressed: "<red>The pressure plate must be pressed when adding it."
+  start-added: "<green>Start point saved."
+  not-found: "<red>No start point for this event is saved here."
 
 race:
   started: "<green>Your run on <yellow><event></yellow> has started!"

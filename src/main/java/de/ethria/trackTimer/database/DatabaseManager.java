@@ -193,6 +193,39 @@ public final class DatabaseManager {
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
                                int x, int y, int z, String blockType) { }
 
+    public void addStartTrigger(long eventId, String server, String world, int x, int y, int z,
+                                String blockType) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type)
+                VALUES (?, 'start', NULL, ?, ?, ?, ?, ?, ?)
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, server);
+            statement.setString(3, world);
+            statement.setInt(4, x);
+            statement.setInt(5, y);
+            statement.setInt(6, z);
+            statement.setString(7, blockType);
+            statement.executeUpdate();
+        }
+    }
+
+    public boolean removeStartTrigger(long eventId, String server, String world, int x, int y, int z)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                DELETE FROM event_triggers WHERE event_id = ? AND trigger_type = 'start'
+                  AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, server);
+            statement.setString(3, world);
+            statement.setInt(4, x);
+            statement.setInt(5, y);
+            statement.setInt(6, z);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
     public void updateEventLaps(long eventId, int laps) throws SQLException {
         if (laps < 1) throw new IllegalArgumentException("Event laps must be greater than zero.");
         try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET laps = ? WHERE id = ?")) {

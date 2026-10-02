@@ -3,6 +3,7 @@ package de.ethria.trackTimer.gui;
 import de.ethria.trackTimer.database.DatabaseManager.Event;
 import de.ethria.trackTimer.database.DatabaseManager.EventTrigger;
 import de.ethria.trackTimer.language.LanguageManager;
+import de.ethria.trackTimer.tools.StartTriggerTool;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -22,10 +23,12 @@ import java.util.logging.Level;
 public final class EventTriggerGui implements Listener {
     private final EditorGuiContext context;
     private final EventEditorGui eventEditorGui;
+    private final StartTriggerTool startTriggerTool;
 
-    public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui) {
+    public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui, StartTriggerTool startTriggerTool) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
+        this.startTriggerTool = startTriggerTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -55,8 +58,12 @@ public final class EventTriggerGui implements Listener {
         bar.setItemMeta(barMeta);
         for (int buttonSlot = size - 9; buttonSlot < size; buttonSlot++) inventory.setItem(buttonSlot, bar.clone());
 
-        inventory.setItem(slot("items.add-trigger.slot", 47, size), configuredNamed(
-                "guis.trigger-editor.items.add-trigger", Material.PLAYER_HEAD, "trigger-editor.add-trigger"));
+        inventory.setItem(slot("button-bar.start-trigger.slot", 46, size), configuredNamed(
+                "guis.trigger-editor.button-bar.start-trigger", Material.PLAYER_HEAD, "trigger-editor.add-start"));
+        inventory.setItem(slot("button-bar.checkpoint-trigger.slot", 47, size), configuredNamed(
+                "guis.trigger-editor.button-bar.checkpoint-trigger", Material.PLAYER_HEAD, "trigger-editor.add-checkpoint"));
+        inventory.setItem(slot("button-bar.end-trigger.slot", 48, size), configuredNamed(
+                "guis.trigger-editor.button-bar.end-trigger", Material.PLAYER_HEAD, "trigger-editor.add-end"));
         inventory.setItem(slot("button-bar.back.slot", size - 5, size), named(
                 new ItemStack(context.material(context.triggerSettings.getString("guis.trigger-editor.button-bar.back.material"), Material.ARROW)),
                 "buttons.back"));
@@ -121,8 +128,11 @@ public final class EventTriggerGui implements Listener {
         int size = context.inventorySize(context.triggerSettings, "guis.trigger-editor.size", 54, "trigger.yml");
         if (event.getRawSlot() == slot("button-bar.back.slot", size - 5, size)) {
             eventEditorGui.reopen(player, holder.eventId, holder.overviewPage);
+            return;
         }
-        // Trigger creation and interaction behavior will be implemented later.
+        if (event.getRawSlot() == slot("button-bar.start-trigger.slot", 46, size)) {
+            startTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        }
     }
 
     private static final class TriggerHolder implements InventoryHolder {

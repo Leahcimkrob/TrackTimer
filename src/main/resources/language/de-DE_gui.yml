@@ -65,12 +65,18 @@ trigger-editor:
   unknown:
     name: "<gray>Unbekannter Trigger"
     lore: []
-  add-trigger:
-    name: "<gold>Trigger setzen"
+  add-start:
+    name: "<green>Start-Trigger setzen"
+  add-checkpoint:
+    name: "<yellow>Checkpoint setzen"
+  add-end:
+    name: "<red>End-Trigger setzen"
+  tool:
+    name: "<gold>Start-Trigger-Werkzeug"
     lore:
-      - "<green>Linksklick: Start"
-      - "<red>Shift-Linksklick: Stop"
-      - "<yellow>Rechtsklick: Checkpoint"
+      - "<gray>Linksklick: Startpunkt hinzufügen"
+      - "<gray>Rechtsklick: Startpunkt entfernen"
+      - "<yellow>Chat: exit zum Beenden"
 
 event-detail:
   title: "Event: <event>"
