@@ -5,7 +5,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -64,31 +63,8 @@ public final class DatabaseManager {
                 statement.executeUpdate(sql);
             }
         }
-        ensureTriggerModeColumn();
         createIndexes();
         plugin.getLogger().info("Database tables are ready.");
-    }
-
-    private void ensureTriggerModeColumn() throws SQLException {
-        boolean present = false;
-        DatabaseMetaData metadata = connection.getMetaData();
-        try (ResultSet columns = metadata.getColumns(null, null, "event_triggers", null)) {
-            while (columns.next()) {
-                if ("trigger_mode".equalsIgnoreCase(columns.getString("COLUMN_NAME"))) {
-                    present = true;
-                    break;
-                }
-            }
-        }
-        if (!present) {
-            try (Statement statement = connection.createStatement()) {
-                statement.executeUpdate("ALTER TABLE event_triggers ADD COLUMN trigger_mode VARCHAR(32) NOT NULL DEFAULT 'BLOCK'");
-            }
-        }
-        try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("UPDATE event_triggers SET trigger_mode = 'PRESSURE_PLATE' "
-                    + "WHERE trigger_mode = 'BLOCK' AND block_type LIKE '%PRESSURE_PLATE'");
-        }
     }
 
     /**
