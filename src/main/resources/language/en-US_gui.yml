@@ -94,7 +94,10 @@ trigger-editor:
       lore: []
     redstone:
       name: "<gold>Redstone trigger tool"
-      lore: []
+      lore:
+        - "If you want to trigger the start signal using Redstone,"
+        - "you also need to place standard start triggers, since Redstone "
+        - "only triggers the start signal."
     lore:
       - "<gray>Left-click: add trigger"
       - "<gray>Right-click: remove trigger"
