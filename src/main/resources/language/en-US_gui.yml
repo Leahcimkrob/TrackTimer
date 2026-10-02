@@ -71,9 +71,6 @@ trigger-editor:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
-  unknown:
-    name: "<gray>Unknown trigger"
-    lore: []
   add-start:
     name: "<green>Set start trigger"
   add-redstone:
