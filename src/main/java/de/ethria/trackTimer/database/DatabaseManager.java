@@ -193,18 +193,19 @@ public final class DatabaseManager {
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
                                int x, int y, int z, String blockType) { }
 
-    public void addStartTrigger(long eventId, String server, String world, int x, int y, int z,
-                                String blockType) throws SQLException {
-        addBlockTrigger(eventId, "start", server, world, x, y, z, blockType);
+    public boolean addStartTrigger(long eventId, String server, String world, int x, int y, int z,
+                                   String blockType) throws SQLException {
+        return addBlockTrigger(eventId, "start", server, world, x, y, z, blockType);
     }
 
-    public void addEndTrigger(long eventId, String server, String world, int x, int y, int z,
-                              String blockType) throws SQLException {
-        addBlockTrigger(eventId, "end", server, world, x, y, z, blockType);
-    }
-
-    private void addBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z,
+    public boolean addEndTrigger(long eventId, String server, String world, int x, int y, int z,
                                  String blockType) throws SQLException {
+        return addBlockTrigger(eventId, "end", server, world, x, y, z, blockType);
+    }
+
+    private boolean addBlockTrigger(long eventId, String type, String server, String world, int x, int y, int z,
+                                    String blockType) throws SQLException {
+        if (hasBlockTrigger(eventId, type, server, world, x, y, z)) return false;
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO event_triggers (event_id, trigger_type, checkpoint_order, server, world, x, y, z, block_type)
                 VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)
@@ -217,7 +218,28 @@ public final class DatabaseManager {
             statement.setInt(6, y);
             statement.setInt(7, z);
             statement.setString(8, blockType);
-            statement.executeUpdate();
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    private boolean hasBlockTrigger(long eventId, String type, String server, String world,
+                                    int x, int y, int z) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT 1 FROM event_triggers
+                WHERE event_id = ? AND trigger_type = ? AND server = ? AND world = ?
+                  AND x = ? AND y = ? AND z = ?
+                LIMIT 1
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, type);
+            statement.setString(3, server);
+            statement.setString(4, world);
+            statement.setInt(5, x);
+            statement.setInt(6, y);
+            statement.setInt(7, z);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next();
+            }
         }
     }
 

@@ -111,9 +111,10 @@ public class StartTriggerTool implements Listener {
             return;
         }
         try {
-            addTriggerToDatabase(selection.eventId, context.plugin().getServer().getName(),
+            boolean added = addTriggerToDatabase(selection.eventId, context.plugin().getServer().getName(),
                     block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name());
-            player.sendMessage(context.language().chat("trigger." + triggerType + "-added"));
+            player.sendMessage(context.language().chat(added
+                    ? "trigger." + triggerType + "-added" : "trigger.already-exists"));
         } catch (SQLException exception) {
             context.plugin().getLogger().log(Level.SEVERE, "Could not save " + triggerType + " trigger.", exception);
             player.sendMessage(context.language().chat("event.list-failed"));
@@ -160,10 +161,10 @@ public class StartTriggerTool implements Listener {
         return block.getType().name().endsWith("_PRESSURE_PLATE");
     }
 
-    private void addTriggerToDatabase(long eventId, String server, String world, int x, int y, int z, String blockType)
+    private boolean addTriggerToDatabase(long eventId, String server, String world, int x, int y, int z, String blockType)
             throws SQLException {
-        if ("end".equals(triggerType)) context.database().addEndTrigger(eventId, server, world, x, y, z, blockType);
-        else context.database().addStartTrigger(eventId, server, world, x, y, z, blockType);
+        if ("end".equals(triggerType)) return context.database().addEndTrigger(eventId, server, world, x, y, z, blockType);
+        return context.database().addStartTrigger(eventId, server, world, x, y, z, blockType);
     }
 
     private boolean removeTriggerFromDatabase(long eventId, String server, String world, int x, int y, int z)

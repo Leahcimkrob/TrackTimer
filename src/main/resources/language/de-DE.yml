@@ -41,6 +41,7 @@ trigger:
   pressure-plate-not-pressed: "<red>Die Druckplatte muss beim Hinzufügen gedrückt sein."
   start-added: "<green>Startpunkt gespeichert."
   end-added: "<green>Endpunkt gespeichert."
+  already-exists: "<yellow>Für diesen Event ist an diesem Block bereits ein entsprechender Trigger gesetzt."
   not-found: "<red>Hier ist kein passender Trigger für dieses Event gespeichert."
 
 race:

@@ -41,6 +41,7 @@ trigger:
   pressure-plate-not-pressed: "<red>The pressure plate must be pressed when adding it."
   start-added: "<green>Start point saved."
   end-added: "<green>End point saved."
+  already-exists: "<yellow>This event already has a matching trigger at this block."
   not-found: "<red>No matching trigger for this event is saved here."
 
 race:
