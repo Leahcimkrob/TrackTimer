@@ -15,6 +15,11 @@ event-editor:
     name: "<yellow><event>"
     lore:
       - "<gray>Left-click to change the name"
+  name-dialog:
+    title: "Change event name: <event>"
+    input-label: "New event name"
+    save: "Save"
+    cancel: "Cancel"
   laps:
     name: "<gold>Lap count"
     lore:

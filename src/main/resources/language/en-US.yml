@@ -17,7 +17,6 @@ event:
   created: "<green>Event <yellow><event></yellow> has been created (<yellow><laps></yellow> laps, mode <yellow><mode></yellow>)."
   already-exists: "<red>An event named <yellow><event></yellow> already exists."
   name-updated: "<green>The event name was changed to <yellow><event></yellow>."
-  name-sign-unavailable: "<red>No free space was found for the name sign."
   invalid-name: "<red>Invalid event name. Use 1 to 128 letters, digits, underscores, or hyphens."
   create-failed: "<red>Event <yellow><event></yellow> could not be created because of a database error."
   not-found: "<red>Event <yellow><event></yellow> was not found."

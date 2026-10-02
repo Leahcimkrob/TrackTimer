@@ -17,7 +17,6 @@ event:
   created: "<green>Event <yellow><event></yellow> wurde erstellt (<yellow><laps></yellow> Runden, Modus <yellow><mode></yellow>)."
   already-exists: "<red>Ein Event mit dem Namen <yellow><event></yellow> existiert bereits."
   name-updated: "<green>Der Eventname wurde zu <yellow><event></yellow> geändert."
-  name-sign-unavailable: "<red>Es konnte kein freier Platz für das Namensschild gefunden werden."
   invalid-name: "<red>Ungültiger Eventname. Erlaubt sind 1 bis 128 Buchstaben, Zahlen, Unterstriche und Bindestriche."
   create-failed: "<red>Event <yellow><event></yellow> konnte wegen eines Datenbankfehlers nicht erstellt werden."
   not-found: "<red>Event <yellow><event></yellow> wurde nicht gefunden."

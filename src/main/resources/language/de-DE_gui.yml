@@ -15,6 +15,11 @@ event-editor:
     name: "<yellow><event>"
     lore:
       - "<gray>Linksklick zum Namen ändern"
+  name-dialog:
+    title: "Eventnamen ändern: <event>"
+    input-label: "Neuer Eventname"
+    save: "Speichern"
+    cancel: "Abbrechen"
   laps:
     name: "<gold>Rundenanzahl"
     lore:

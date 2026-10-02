@@ -3,32 +3,30 @@ package de.ethria.trackTimer.gui;
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.database.DatabaseManager.Event;
 import de.ethria.trackTimer.language.LanguageManager;
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.body.DialogBody;
+import io.papermc.paper.registry.data.dialog.input.DialogInput;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Location;
-import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
-import org.bukkit.block.sign.Side;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.logging.Level;
 
 /** The per-event editing GUI. */
@@ -37,7 +35,6 @@ public final class EventEditorGui implements Listener {
     private final EventOverviewGui overviewGui;
     private EventIconSwapGui iconSwapGui;
     private EventTriggerGui triggerGui;
-    private final Map<UUID, NameEditSession> nameEditSessions = new HashMap<>();
 
     public EventEditorGui(EditorGuiContext context, EventOverviewGui overviewGui) {
         this.context = context;
@@ -127,7 +124,7 @@ public final class EventEditorGui implements Listener {
         int rawSlot = event.getRawSlot();
         Event selected = holder.event;
         if (rawSlot == slot("items.event-name.slot", 13, size)) {
-            if (event.getClick() == ClickType.LEFT) openNameSign(player, selected, holder.overviewPage);
+            if (event.getClick() == ClickType.LEFT) openNameDialog(player, selected, holder.overviewPage);
         } else if (rawSlot == slot("items.laps.slot", 21, size)) {
             int laps = selected.laps();
             if (event.getClick().isRightClick()) laps = Math.min(9999, laps + 1);
@@ -162,109 +159,56 @@ public final class EventEditorGui implements Listener {
         }
     }
 
-    private void openNameSign(Player player, Event event, int overviewPage) {
-        cancelNameEdit(player.getUniqueId());
-        Block signBlock = findTemporarySignLocation(player);
-        if (signBlock == null) {
-            player.sendMessage(context.language.chat("event.name-sign-unavailable"));
-            return;
-        }
+    private void openNameDialog(Player player, Event event, int overviewPage) {
+        Component title = context.language.gui("event-editor.name-dialog.title",
+                LanguageManager.placeholders("event", event.name()));
+        Component inputLabel = context.language.gui("event-editor.name-dialog.input-label");
+        ItemStack eventIcon = context.icon(event.icon());
 
-        BlockData originalData = signBlock.getBlockData().clone();
-        NameEditSession session = new NameEditSession(event.id(), overviewPage, signBlock.getLocation(), originalData);
-        nameEditSessions.put(player.getUniqueId(), session);
-        signBlock.setType(Material.OAK_SIGN, false);
-        if (!(signBlock.getState() instanceof Sign sign)) {
-            cancelNameEdit(player.getUniqueId());
-            player.sendMessage(context.language.chat("event.name-sign-unavailable"));
-            return;
-        }
-        sign.setWaxed(false);
-        sign.setAllowedEditorUniqueId(player.getUniqueId());
-        sign.getSide(Side.FRONT).line(0, Component.text(event.name()));
-        sign.update(true, false);
-
-        Bukkit.getScheduler().runTask(context.plugin, () -> {
-            if (nameEditSessions.get(player.getUniqueId()) == session && player.isOnline()) {
-                player.openSign(sign, Side.FRONT);
-            }
-        });
-        // If the player escapes the sign editor without submitting, clean up the temporary block.
-        Bukkit.getScheduler().runTaskLater(context.plugin, () -> {
-            if (nameEditSessions.get(player.getUniqueId()) == session) {
-                cancelNameEdit(player.getUniqueId());
-                if (player.isOnline()) reopen(player, event.id(), overviewPage);
-            }
-        }, 1200L);
+        Dialog dialog = Dialog.create(builder -> builder.empty()
+                .base(DialogBase.builder(title)
+                        .body(List.of(DialogBody.item(eventIcon, null, true, true, 32, 32)))
+                        .inputs(List.of(DialogInput.text("event_name", 300, inputLabel, true,
+                                event.name(), 128, null)))
+                        .canCloseWithEscape(true)
+                        .build())
+                .type(DialogType.confirmation(
+                        ActionButton.create(
+                                context.language.gui("event-editor.name-dialog.save"),
+                                null,
+                                150,
+                                DialogAction.customClick((response, audience) -> {
+                                    if (!(audience instanceof Player clicker)) return;
+                                    String newName = response.getText("event_name");
+                                    saveEventName(clicker, event.id(), overviewPage, newName);
+                                }, ClickCallback.Options.builder().uses(1).build())
+                        ),
+                        ActionButton.create(context.language.gui("event-editor.name-dialog.cancel"), null, 150, null)
+                )));
+        player.showDialog(dialog);
     }
 
-    private Block findTemporarySignLocation(Player player) {
-        Location base = player.getLocation();
-        for (int radius = 0; radius <= 3; radius++) {
-            for (int yOffset = 0; yOffset >= -2; yOffset--) {
-                for (int x = -radius; x <= radius; x++) {
-                    for (int z = -radius; z <= radius; z++) {
-                        if (radius > 0 && Math.max(Math.abs(x), Math.abs(z)) != radius) continue;
-                        Block candidate = base.getWorld().getBlockAt(base.getBlockX() + x,
-                                base.getBlockY() + yOffset, base.getBlockZ() + z);
-                        if (candidate.getType().isAir()
-                                && candidate.getRelative(0, -1, 0).getType().isSolid()) return candidate;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    @EventHandler
-    public void onSignChange(SignChangeEvent event) {
-        UUID playerId = event.getPlayer().getUniqueId();
-        NameEditSession session = nameEditSessions.get(playerId);
-        if (session == null || !session.location.equals(event.getBlock().getLocation())) return;
-
-        event.setCancelled(true);
-        nameEditSessions.remove(playerId);
-        restoreTemporarySign(session);
-        String newName = PlainTextComponentSerializer.plainText().serialize(event.line(0)).trim();
-        Player player = event.getPlayer();
-        Bukkit.getScheduler().runTask(context.plugin, () -> saveEventName(player, session, newName));
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        cancelNameEdit(event.getPlayer().getUniqueId());
-    }
-
-    private void saveEventName(Player player, NameEditSession session, String newName) {
+    private void saveEventName(Player player, long eventId, int overviewPage, String submittedName) {
+        String newName = submittedName == null ? "" : submittedName.trim();
         if (!DatabaseManager.isValidEventName(newName)) {
             player.sendMessage(context.language.chat("event.invalid-name"));
-            reopen(player, session.eventId, session.overviewPage);
+            reopen(player, eventId, overviewPage);
             return;
         }
         try {
-            if (!context.database.updateEventName(session.eventId, newName)) {
+            if (!context.database.updateEventName(eventId, newName)) {
                 player.sendMessage(context.language.chat("event.already-exists",
                         LanguageManager.placeholders("event", newName)));
-                reopen(player, session.eventId, session.overviewPage);
+                reopen(player, eventId, overviewPage);
                 return;
             }
             player.sendMessage(context.language.chat("event.name-updated",
                     LanguageManager.placeholders("event", newName)));
-            reopen(player, session.eventId, session.overviewPage);
+            reopen(player, eventId, overviewPage);
         } catch (SQLException exception) {
             reportDatabaseError(player, exception);
-            reopen(player, session.eventId, session.overviewPage);
+            reopen(player, eventId, overviewPage);
         }
-    }
-
-    private void cancelNameEdit(UUID playerId) {
-        NameEditSession session = nameEditSessions.remove(playerId);
-        if (session != null) restoreTemporarySign(session);
-    }
-
-    private void restoreTemporarySign(NameEditSession session) {
-        Block block = session.location.getBlock();
-        if (block.getType() == Material.OAK_SIGN) block.setBlockData(session.originalData, false);
     }
 
     private void deleteEvent(Player player, Event event, int overviewPage) {
@@ -309,6 +253,4 @@ public final class EventEditorGui implements Listener {
         }
         @Override public Inventory getInventory() { return inventory; }
     }
-
-    private record NameEditSession(long eventId, int overviewPage, Location location, BlockData originalData) { }
 }
