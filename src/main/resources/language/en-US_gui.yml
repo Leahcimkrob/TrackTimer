@@ -53,24 +53,28 @@ trigger-editor:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
+      - "<yellow>Shift-left-click: teleport to block"
   checkpoint:
     name: "<yellow>Checkpoint <number>"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
+      - "<yellow>Shift-left-click: teleport to block"
   end:
     name: "<red>Finish trigger"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
+      - "<yellow>Shift-left-click: teleport to block"
   redstone:
     name: "<blue>Redstone start signal"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
+      - "<yellow>Shift-left-click: teleport to block"
   add-start:
     name: "<green>Set start trigger"
   add-redstone:

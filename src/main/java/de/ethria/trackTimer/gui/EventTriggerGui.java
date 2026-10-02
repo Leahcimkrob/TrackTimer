@@ -8,6 +8,7 @@ import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -51,6 +53,7 @@ public final class EventTriggerGui implements Listener {
 
         try {
             List<EventTrigger> triggers = context.database.listEventTriggerDetails(event.id());
+            holder.triggers = List.copyOf(triggers);
             int contentSlots = size - 9;
             for (int index = 0; index < Math.min(triggers.size(), contentSlots); index++) {
                 EventTrigger trigger = triggers.get(index);
@@ -107,6 +110,7 @@ public final class EventTriggerGui implements Listener {
         ItemStack item = context.configuredIcon(context.triggerSettings, iconPath, Material.PLAYER_HEAD);
         ItemMeta meta = item.getItemMeta();
         if (trigger.checkpointOrder() != null) {
+            item.setAmount(Math.max(1, Math.min(64, trigger.checkpointOrder())));
             meta.displayName(context.language.gui(key + ".name",
                     LanguageManager.placeholders("number", trigger.checkpointOrder())));
         } else {
@@ -150,6 +154,12 @@ public final class EventTriggerGui implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int size = context.inventorySize(context.triggerSettings, "guis.trigger-editor.size", 54, "trigger.yml");
+        if (event.getClick().isShiftClick() && event.getClick().isLeftClick()
+                && event.getRawSlot() >= 0 && event.getRawSlot() < size - 9
+                && event.getRawSlot() < holder.triggers.size()) {
+            teleportToTrigger(player, holder.triggers.get(event.getRawSlot()));
+            return;
+        }
         if (event.getRawSlot() == slot("button-bar.back.slot", size - 5, size)) {
             eventEditorGui.reopen(player, holder.eventId, holder.overviewPage);
             return;
@@ -165,9 +175,26 @@ public final class EventTriggerGui implements Listener {
         }
     }
 
+    private void teleportToTrigger(Player player, EventTrigger trigger) {
+        if (!context.plugin.getServer().getName().equalsIgnoreCase(trigger.server())) {
+            player.sendMessage(context.language.chat("trigger.server-unavailable"));
+            return;
+        }
+        org.bukkit.World world = Bukkit.getWorld(trigger.world());
+        if (world == null) {
+            player.sendMessage(context.language.chat("trigger.world-unavailable"));
+            return;
+        }
+        Location current = player.getLocation();
+        Location destination = new Location(world, trigger.x() + .5, trigger.y() + 1.0, trigger.z() + .5,
+                current.getYaw(), current.getPitch());
+        player.teleport(destination);
+    }
+
     private static final class TriggerHolder implements InventoryHolder {
         private final long eventId;
         private final int overviewPage;
+        private List<EventTrigger> triggers = new ArrayList<>();
         private Inventory inventory;
 
         private TriggerHolder(long eventId, int overviewPage) {

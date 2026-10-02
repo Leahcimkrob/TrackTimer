@@ -47,6 +47,8 @@ trigger:
   checkpoint-selection-started: "<green>Checkpoint-Auswahl aktiv: Links hinzufügen, rechts entfernen, <yellow>exit</yellow> im Chat beendet die Auswahl."
   checkpoint-selection-ended: "<green>Checkpoint-Auswahl beendet."
   checkpoint-order-selected: "<green>Die nächste Checkpoint-Nummer ist <yellow><number></yellow>."
+  server-unavailable: "<red>Dieser Trigger befindet sich auf einem anderen Server."
+  world-unavailable: "<red>Die Welt dieses Triggers ist auf diesem Server nicht geladen."
   checkpoint-added: "<green>Checkpoint <yellow><number></yellow> gespeichert."
   checkpoint-order-used: "<red>Checkpoint <yellow><number></yellow> existiert bereits. Beende die Auswahl mit exit und starte das Werkzeug erneut für den nächsten Checkpoint."
   already-exists: "<yellow>Für diesen Event ist an diesem Block bereits ein entsprechender Trigger gesetzt."
