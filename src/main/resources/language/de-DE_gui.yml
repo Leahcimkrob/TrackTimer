@@ -84,10 +84,13 @@ trigger-editor:
   tool:
     start:
       name: "<gold>Start-Trigger-Werkzeug"
+      lore: []
     checkpoint:
       name: "<gold>Checkpoint-Werkzeug"
+      lore: []
     end:
       name: "<gold>End-Trigger-Werkzeug"
+      lore: []
     redstone:
       name: "<gold>Redstone-Trigger-Werkzeug"
       lore:

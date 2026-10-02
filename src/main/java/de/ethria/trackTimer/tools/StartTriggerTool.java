@@ -23,9 +23,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
 
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -71,7 +74,9 @@ public class StartTriggerTool implements Listener {
                 context.triggerSettings().getString("guis.trigger-editor.items.tool.material"), Material.STICK));
         ItemMeta meta = tool.getItemMeta();
         meta.displayName(context.language().gui("trigger-editor.tool." + toolVariant + ".name"));
-        meta.lore(context.language().guiList("trigger-editor.tool.lore"));
+        List<Component> lore = new ArrayList<>(context.language().guiList("trigger-editor.tool.lore"));
+        lore.addAll(context.language().guiList("trigger-editor.tool." + toolVariant + ".lore"));
+        meta.lore(lore);
         meta.setEnchantmentGlintOverride(true);
         meta.getPersistentDataContainer().set(toolKey, PersistentDataType.BYTE, (byte) 1);
         tool.setItemMeta(meta);

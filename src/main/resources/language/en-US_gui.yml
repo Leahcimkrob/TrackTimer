@@ -85,12 +85,16 @@ trigger-editor:
   tool:
     start:
       name: "<gold>Start trigger tool"
+      lore: []
     checkpoint:
       name: "<gold>Checkpoint tool"
+      lore: []
     end:
       name: "<gold>End trigger tool"
+      lore: []
     redstone:
       name: "<gold>Redstone trigger tool"
+      lore: []
     lore:
       - "<gray>Left-click: add trigger"
       - "<gray>Right-click: remove trigger"
