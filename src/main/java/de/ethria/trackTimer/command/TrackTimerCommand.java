@@ -37,9 +37,10 @@ public final class TrackTimerCommand {
     public LiteralCommandNode<CommandSourceStack> build(String label) {
         ReloadSubCommand reload = new ReloadSubCommand(plugin, language);
         CreateSubCommand create = new CreateSubCommand(plugin, database, language);
+        DeleteSubCommand delete = new DeleteSubCommand(plugin, database, language);
         EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, editor));
-        List<SubCommand> subCommands = List.of(help, reload, create, editor);
+        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, editor));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, editor);
 
         var root = Commands.literal(label)
                 .executes(context -> {

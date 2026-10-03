@@ -31,6 +31,7 @@ permissions:
       tracktimer.command.help: true
       tracktimer.command.reload: true
       tracktimer.command.create: true
+      tracktimer.command.delete: true
       tracktimer.command.editor: true
 
   tracktimer.command.reload:
@@ -43,6 +44,10 @@ permissions:
 
   tracktimer.command.create:
     description: Allows creating TrackTimer events.
+    default: op
+
+  tracktimer.command.delete:
+    description: Allows deleting TrackTimer events.
     default: op
 
   tracktimer.command.editor:
