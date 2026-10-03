@@ -86,6 +86,8 @@ race:
   checkpoint: "<yellow>Checkpoint <white><order></white> <gray>| Zwischenzeit <white><time> <gray>| Runde <white><lap>/<laps>"
   lap-completed: "<green>Runde <white><lap></white>/<white><laps></white> abgeschlossen."
   finished: "<gold>Ziel erreicht! Deine Zeit: <yellow><time>"
+  redstone-start-title: "<green>!!! Go Go Go !!!"
+  redstone-session-finished: "<red>Rennen beendet!\n1:<winner> | 2: <second> | 3: <third>"
   already-running: "<red>Du fährst bereits auf <yellow><event></yellow>."
   not-running: "<red>Du fährst aktuell keine Strecke."
   cancelled: "<yellow>Dein Lauf wurde abgebrochen und die aktuellen Renndaten wurden gelöscht."

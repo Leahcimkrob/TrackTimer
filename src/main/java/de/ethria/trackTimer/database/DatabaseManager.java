@@ -85,7 +85,8 @@ public final class DatabaseManager {
             createIndexes(target);
             target.setAutoCommit(false);
             try {
-                for (String table : List.of("players", "events", "event_triggers", "race_results", "race_checkpoint_times")) {
+                for (String table : List.of("players", "events", "event_triggers", "race_sessions",
+                        "race_results", "race_checkpoint_times", "race_session_results")) {
                     copyTable(source, target, table);
                 }
                 target.commit();
@@ -266,16 +267,16 @@ public final class DatabaseManager {
                                int x, int y, int z, String blockType, String triggerMode) { }
 
     /** Returns normal (non-redstone) start triggers in a vertical band at a block column. */
-    public List<StartPoint> findPlayerStartPoints(String server, String world, int x, int z,
-                                                  int minY, int maxY) throws SQLException {
+    public List<StartPoint> findStartPoints(String server, String world, int x, int z,
+                                            int minY, int maxY) throws SQLException {
         List<StartPoint> points = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT e.id, e.event_name, e.laps, t.y,
+                SELECT e.id, e.event_name, e.start_mode, e.laps, t.y,
                        (SELECT COALESCE(MAX(cp.checkpoint_order), 0) FROM event_triggers cp
                         WHERE cp.event_id = e.id AND cp.trigger_type = 'checkpoint') AS max_checkpoint_order
                 FROM event_triggers t JOIN events e ON e.id = t.event_id
                 WHERE t.trigger_type = 'start' AND t.trigger_mode <> 'REDSTONE_SIGNAL'
-                  AND e.start_mode = 'player' AND t.server = ? AND t.world = ?
+                  AND e.start_mode IN ('player', 'signal') AND t.server = ? AND t.world = ?
                   AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
                 """)) {
             statement.setString(1, server);
@@ -286,18 +287,53 @@ public final class DatabaseManager {
             statement.setInt(6, maxY);
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) points.add(new StartPoint(rows.getLong("id"), rows.getString("event_name"),
-                        rows.getInt("y"), rows.getInt("laps"), rows.getInt("max_checkpoint_order")));
+                        rows.getString("start_mode"), rows.getInt("y"), rows.getInt("laps"),
+                        rows.getInt("max_checkpoint_order")));
             }
         }
         return points;
     }
 
-    /** Registers the player once and creates an in-progress race result. */
+    /** Registers the player once and creates a normal in-progress race result. */
     public RaceResult beginRace(long eventId, String playerUuid, String playerName) throws SQLException {
-        long now = System.currentTimeMillis();
+        return beginRace(eventId, playerUuid, playerName, null, System.currentTimeMillis());
+    }
+
+    public RaceResult beginSessionRace(long eventId, String playerUuid, String playerName,
+                                       RedstoneSession session) throws SQLException {
+        if (session.eventId() != eventId) throw new IllegalArgumentException("Session belongs to a different event.");
+        return beginRace(eventId, playerUuid, playerName, session.id(), session.startTime());
+    }
+
+    private RaceResult beginRace(long eventId, String playerUuid, String playerName,
+                                 Long sessionId, long startTime) throws SQLException {
         boolean originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
         try {
+            if (sessionId != null) {
+                try (PreparedStatement existing = connection.prepareStatement(
+                        "SELECT 1 FROM race_session_results WHERE session_id = ? AND player_uuid = ?")) {
+                    existing.setLong(1, sessionId);
+                    existing.setString(2, playerUuid);
+                    try (ResultSet rows = existing.executeQuery()) {
+                        if (rows.next()) {
+                            connection.rollback();
+                            return null;
+                        }
+                    }
+                }
+                try (PreparedStatement session = connection.prepareStatement(
+                        "SELECT id FROM race_sessions WHERE id = ? AND event_id = ?")) {
+                    session.setLong(1, sessionId);
+                    session.setLong(2, eventId);
+                    try (ResultSet rows = session.executeQuery()) {
+                        if (!rows.next()) {
+                            connection.rollback();
+                            return null;
+                        }
+                    }
+                }
+            }
             try (PreparedStatement find = connection.prepareStatement("SELECT 1 FROM players WHERE uuid = ?")) {
                 find.setString(1, playerUuid);
                 try (ResultSet rows = find.executeQuery()) {
@@ -305,7 +341,7 @@ public final class DatabaseManager {
                         try (PreparedStatement update = connection.prepareStatement(
                                 "UPDATE players SET last_name = ?, last_seen = ? WHERE uuid = ?")) {
                             update.setString(1, playerName);
-                            update.setLong(2, now);
+                            update.setLong(2, System.currentTimeMillis());
                             update.setString(3, playerUuid);
                             update.executeUpdate();
                         }
@@ -314,7 +350,7 @@ public final class DatabaseManager {
                                 "INSERT INTO players (uuid, last_name, last_seen) VALUES (?, ?, ?)")) {
                             insert.setString(1, playerUuid);
                             insert.setString(2, playerName);
-                            insert.setLong(3, now);
+                            insert.setLong(3, System.currentTimeMillis());
                             insert.executeUpdate();
                         }
                     }
@@ -326,15 +362,31 @@ public final class DatabaseManager {
                     Statement.RETURN_GENERATED_KEYS)) {
                 insert.setLong(1, eventId);
                 insert.setString(2, playerUuid);
-                insert.setLong(3, now);
+                insert.setLong(3, startTime);
                 insert.executeUpdate();
                 try (ResultSet keys = insert.getGeneratedKeys()) {
                     if (!keys.next()) throw new SQLException("Could not retrieve the new race result ID.");
                     resultId = keys.getLong(1);
                 }
             }
+            if (sessionId != null) {
+                try (PreparedStatement link = connection.prepareStatement("""
+                        INSERT INTO race_session_results (session_id, race_result_id, player_uuid)
+                        VALUES (?, ?, ?)
+                        """)) {
+                    link.setLong(1, sessionId);
+                    link.setLong(2, resultId);
+                    link.setString(3, playerUuid);
+                    link.executeUpdate();
+                }
+                try (PreparedStatement update = connection.prepareStatement(
+                        "UPDATE race_sessions SET started_count = started_count + 1 WHERE id = ?")) {
+                    update.setLong(1, sessionId);
+                    if (update.executeUpdate() != 1) throw new SQLException("The redstone session is no longer active.");
+                }
+            }
             connection.commit();
-            return new RaceResult(resultId, now);
+            return new RaceResult(resultId, startTime, sessionId);
         } catch (SQLException exception) {
             connection.rollback();
             throw exception;
@@ -343,8 +395,168 @@ public final class DatabaseManager {
         }
     }
 
-    public record StartPoint(long eventId, String eventName, int triggerY, int laps, int maxCheckpointOrder) { }
-    public record RaceResult(long id, long startTime) { }
+    public record StartPoint(long eventId, String eventName, String startMode, int triggerY,
+                             int laps, int maxCheckpointOrder) { }
+    public record RaceResult(long id, long startTime, Long sessionId) { }
+
+    public List<RedstoneStartPoint> findRedstoneStartTriggers(String server, String world, int x, int y, int z)
+            throws SQLException {
+        List<RedstoneStartPoint> triggers = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT e.id, e.event_name FROM event_triggers t JOIN events e ON e.id = t.event_id
+                WHERE t.trigger_type = 'start' AND t.trigger_mode = 'REDSTONE_SIGNAL'
+                  AND e.start_mode = 'signal' AND t.server = ? AND t.world = ?
+                  AND t.x = ? AND t.y = ? AND t.z = ?
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, y);
+            statement.setInt(5, z);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) triggers.add(new RedstoneStartPoint(rows.getLong("id"), rows.getString("event_name")));
+            }
+        }
+        return triggers;
+    }
+
+    public record RedstoneStartPoint(long eventId, String eventName) { }
+
+    public RedstoneSession activateRedstoneSession(long eventId, long startTime) throws SQLException {
+        RedstoneSession current = getActiveRedstoneSession(eventId);
+        if (current != null) return refreshArmedSession(current, startTime);
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            current = getActiveRedstoneSession(eventId);
+            if (current != null) {
+                if (current.startedCount() == 0) {
+                    try (PreparedStatement update = connection.prepareStatement(
+                            "UPDATE race_sessions SET start_time = ? WHERE id = ? AND started_count = 0")) {
+                        update.setLong(1, startTime);
+                        update.setLong(2, current.id());
+                        if (update.executeUpdate() == 1) {
+                            current = new RedstoneSession(current.id(), eventId, startTime, 0);
+                        } else {
+                            current = getActiveRedstoneSession(eventId);
+                        }
+                    }
+                }
+                connection.commit();
+                return current;
+            }
+            long id;
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO race_sessions (event_id, start_time) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                insert.setLong(1, eventId);
+                insert.setLong(2, startTime);
+                insert.executeUpdate();
+                try (ResultSet keys = insert.getGeneratedKeys()) {
+                    if (!keys.next()) throw new SQLException("Could not retrieve the new redstone session ID.");
+                    id = keys.getLong(1);
+                }
+            }
+            connection.commit();
+            return new RedstoneSession(id, eventId, startTime, 0);
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
+    }
+
+    private RedstoneSession refreshArmedSession(RedstoneSession session, long startTime) throws SQLException {
+        if (session.startedCount() > 0) return session;
+        try (PreparedStatement update = connection.prepareStatement(
+                "UPDATE race_sessions SET start_time = ? WHERE id = ? AND started_count = 0")) {
+            update.setLong(1, startTime);
+            update.setLong(2, session.id());
+            if (update.executeUpdate() == 1) {
+                return new RedstoneSession(session.id(), session.eventId(), startTime, 0);
+            }
+        }
+        return getActiveRedstoneSession(session.eventId());
+    }
+
+    public RedstoneSession getActiveRedstoneSession(long eventId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT id, start_time, started_count FROM race_sessions WHERE event_id = ? ORDER BY id DESC LIMIT 1")) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next() ? new RedstoneSession(rows.getLong("id"), eventId,
+                        rows.getLong("start_time"), rows.getInt("started_count")) : null;
+            }
+        }
+    }
+
+    /** Removes a redstone session if its first driver did not join before its timeout. */
+    public void expireUnjoinedRedstoneSession(long sessionId, long expectedStartTime) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                DELETE FROM race_sessions
+                WHERE id = ? AND start_time = ? AND started_count = 0
+                """)) {
+            statement.setLong(1, sessionId);
+            statement.setLong(2, expectedStartTime);
+            statement.executeUpdate();
+        }
+    }
+
+    public record RedstoneSession(long id, long eventId, long startTime, int startedCount) { }
+
+    public RedstoneSessionSummary finishRedstoneSessionIfIdle(Long sessionId) throws SQLException {
+        if (sessionId == null) return null;
+        long eventId;
+        List<String> podium = new ArrayList<>(List.of("—", "—", "—"));
+        List<String> participants = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT rs.event_id, sr.player_uuid, p.last_name, rr.race_time_ms
+                FROM race_sessions rs
+                JOIN race_session_results sr ON sr.session_id = rs.id
+                JOIN race_results rr ON rr.id = sr.race_result_id
+                JOIN players p ON p.uuid = sr.player_uuid
+                WHERE rs.id = ? AND rs.started_count > 0
+                ORDER BY rr.race_time_ms ASC
+                """)) {
+            statement.setLong(1, sessionId);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) return null;
+                eventId = rows.getLong("event_id");
+                int place = 0;
+                do {
+                    participants.add(rows.getString("player_uuid"));
+                    if (rows.getObject("race_time_ms") != null && place < podium.size()) {
+                        podium.set(place++, rows.getString("last_name"));
+                    }
+                } while (rows.next());
+            }
+        }
+        try (PreparedStatement statement = connection.prepareStatement("""
+                DELETE FROM race_sessions
+                WHERE id = ? AND started_count > 0 AND NOT EXISTS (
+                    SELECT 1 FROM race_session_results sr JOIN race_results rr ON rr.id = sr.race_result_id
+                    WHERE sr.session_id = race_sessions.id AND rr.end_time IS NULL
+                )
+                """)) {
+            statement.setLong(1, sessionId);
+            if (statement.executeUpdate() == 0 || "—".equals(podium.get(0))) return null;
+        }
+        return new RedstoneSessionSummary(eventId, List.copyOf(podium), List.copyOf(participants));
+    }
+
+    public record RedstoneSessionSummary(long eventId, List<String> podium, List<String> participantUuids) { }
+
+    private void deleteIdleRedstoneSessions() throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    DELETE FROM race_sessions
+                    WHERE started_count > 0 AND NOT EXISTS (
+                        SELECT 1 FROM race_session_results sr JOIN race_results rr ON rr.id = sr.race_result_id
+                        WHERE sr.session_id = race_sessions.id AND rr.end_time IS NULL
+                    )
+                    """);
+        }
+    }
 
     public List<CheckpointPoint> findCheckpointTriggers(String server, String world, int x, int z,
                                                          int minY, int maxY) throws SQLException {
@@ -450,6 +662,7 @@ public final class DatabaseManager {
                 races.setString(1, playerUuid);
                 deleted = races.executeUpdate();
             }
+            deleteIdleRedstoneSessions();
             connection.commit();
             return deleted;
         } catch (SQLException exception) {
@@ -645,6 +858,7 @@ public final class DatabaseManager {
         try {
             executeDelete("DELETE FROM race_checkpoint_times WHERE race_result_id IN (SELECT id FROM race_results WHERE event_id = ?)", eventId);
             executeDelete("DELETE FROM race_results WHERE event_id = ?", eventId);
+            executeDelete("DELETE FROM race_sessions WHERE event_id = ?", eventId);
             connection.commit();
         } catch (SQLException exception) {
             connection.rollback();
@@ -735,6 +949,16 @@ public final class DatabaseManager {
                 )
                 """.formatted(autoIncrement),
                 """
+                CREATE TABLE IF NOT EXISTS race_sessions (
+                    id %s,
+                    event_id BIGINT NOT NULL,
+                    start_time BIGINT NOT NULL,
+                    started_count INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                    CHECK (started_count >= 0)
+                )
+                """.formatted(autoIncrement),
+                """
                 CREATE TABLE IF NOT EXISTS race_results (
                     id %s,
                     event_id BIGINT NOT NULL,
@@ -748,6 +972,17 @@ public final class DatabaseManager {
                     CHECK (laps_completed >= 0)
                 )
                 """.formatted(autoIncrement),
+                """
+                CREATE TABLE IF NOT EXISTS race_session_results (
+                    session_id BIGINT NOT NULL,
+                    race_result_id BIGINT NOT NULL,
+                    player_uuid VARCHAR(36) NOT NULL,
+                    PRIMARY KEY (session_id, race_result_id),
+                    UNIQUE (session_id, player_uuid),
+                    FOREIGN KEY (session_id) REFERENCES race_sessions(id) ON DELETE CASCADE,
+                    FOREIGN KEY (race_result_id) REFERENCES race_results(id) ON DELETE CASCADE
+                )
+                """,
                 """
                 CREATE TABLE IF NOT EXISTS race_checkpoint_times (
                     id %s,
@@ -771,6 +1006,7 @@ public final class DatabaseManager {
     private void createIndexes(Connection database) throws SQLException {
         List<IndexDefinition> indexes = List.of(
                 new IndexDefinition("event_triggers", "idx_event_triggers_event", "event_id"),
+                new IndexDefinition("race_sessions", "idx_race_sessions_event", "event_id"),
                 new IndexDefinition("race_results", "idx_race_results_leaderboard", "event_id, race_time_ms"),
                 new IndexDefinition("race_results", "idx_race_results_player", "player_uuid"),
                 new IndexDefinition("race_checkpoint_times", "idx_checkpoint_times_result", "race_result_id")

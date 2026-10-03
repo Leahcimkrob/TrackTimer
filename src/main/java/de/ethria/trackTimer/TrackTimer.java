@@ -16,6 +16,7 @@ import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceCheckpointListener;
 import de.ethria.trackTimer.race.RaceTriggerMonitor;
 import de.ethria.trackTimer.race.RaceEndListener;
+import de.ethria.trackTimer.race.RedstoneStartListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -76,6 +77,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
+        RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
                 this, databaseManager, languageManager, raceStartListener);
         RaceEndListener raceEndListener = new RaceEndListener(
@@ -85,6 +87,7 @@ public final class TrackTimer extends JavaPlugin {
         raceTriggerMonitor.addHandler(raceCheckpointListener::onRacePosition);
         raceTriggerMonitor.addHandler(raceEndListener::onRacePosition);
         getServer().getPluginManager().registerEvents(raceStartListener, this);
+        getServer().getPluginManager().registerEvents(redstoneStartListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
         registerMainCommand(eventOverviewGui, raceStartListener);
     }

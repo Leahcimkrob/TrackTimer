@@ -2,6 +2,7 @@ package de.ethria.trackTimer.race;
 
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.database.DatabaseManager.RaceResult;
+import de.ethria.trackTimer.database.DatabaseManager.RedstoneSession;
 import de.ethria.trackTimer.database.DatabaseManager.StartPoint;
 import de.ethria.trackTimer.language.LanguageManager;
 import net.kyori.adventure.bossbar.BossBar;
@@ -46,11 +47,20 @@ public final class RaceStartListener implements Listener {
         int minY = TriggerPositionMatcher.minY(position, tolerance);
         int maxY = TriggerPositionMatcher.maxY(position, tolerance);
         try {
-            for (StartPoint point : database.findPlayerStartPoints(plugin.getServer().getName(),
+            for (StartPoint point : database.findStartPoints(plugin.getServer().getName(),
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 if (!TriggerPositionMatcher.isWithinHeight(position, point.triggerY(), tolerance)
                         || isRunning(player, point.eventId())) continue;
-                RaceResult result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
+                RaceResult result;
+                if ("signal".equals(point.startMode())) {
+                    RedstoneSession session = database.getActiveRedstoneSession(point.eventId());
+                    if (session == null) continue;
+                    result = database.beginSessionRace(point.eventId(), player.getUniqueId().toString(),
+                            player.getName(), session);
+                    if (result == null) continue;
+                } else {
+                    result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
+                }
                 beginDisplay(player, point, result);
             }
         } catch (SQLException exception) {
@@ -79,7 +89,7 @@ public final class RaceStartListener implements Listener {
         }, 0L, 2L);
         running.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>())
                 .put(eventId, new RunningRace(player, eventId, eventName, result.id(), startTime,
-                        point.laps(), point.maxCheckpointOrder(), bar, task));
+                        result.sessionId(), point.laps(), point.maxCheckpointOrder(), bar, task));
     }
 
     public List<RunningRace> activeRaces(Player player) {
@@ -152,6 +162,7 @@ public final class RaceStartListener implements Listener {
         private final String eventName;
         private final long raceResultId;
         private final long startTime;
+        private final Long sessionId;
         private final int laps;
         private final int maxCheckpointOrder;
         private final BossBar bar;
@@ -160,12 +171,14 @@ public final class RaceStartListener implements Listener {
         private int nextCheckpoint = 1;
 
         private RunningRace(Player player, long eventId, String eventName, long raceResultId, long startTime,
+                            Long sessionId,
                             int laps, int maxCheckpointOrder, BossBar bar, BukkitTask task) {
             this.player = player;
             this.eventId = eventId;
             this.eventName = eventName;
             this.raceResultId = raceResultId;
             this.startTime = startTime;
+            this.sessionId = sessionId;
             this.laps = laps;
             this.maxCheckpointOrder = maxCheckpointOrder;
             this.bar = bar;
@@ -176,6 +189,7 @@ public final class RaceStartListener implements Listener {
         public String eventName() { return eventName; }
         public long raceResultId() { return raceResultId; }
         public long startTime() { return startTime; }
+        public Long sessionId() { return sessionId; }
         public int laps() { return laps; }
         public int maxCheckpointOrder() { return maxCheckpointOrder; }
         public int lap() { return lap; }

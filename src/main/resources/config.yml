@@ -7,6 +7,13 @@ race:
   # Increase this for elevated custom vehicles; lower it to avoid triggering tracks above/below.
   start-trigger-height-tolerance: 2.0
 
+  # Seconds to wait for the first driver after a redstone start signal.
+  # Set to 0 to keep the start armed until someone joins.
+  redstone-start-join-timeout-seconds: 30
+
+  # Distance in blocks for the redstone start title broadcast.
+  redstone-start-title-radius-blocks: 50
+
 command:
   # Additional aliases for the /tracktimer command (e.g. "tt").
   # Can only be changed by restarting.

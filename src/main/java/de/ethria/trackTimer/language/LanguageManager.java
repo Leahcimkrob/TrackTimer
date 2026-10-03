@@ -97,6 +97,14 @@ public final class LanguageManager {
         return miniMessage.deserialize(message, resolvers);
     }
 
+    /** Resolves a chat message into independently formatted lines, useful for title and subtitle text. */
+    public List<Component> chatLines(String key, TagResolver... resolvers) {
+        String message = resolveRaw(chatMessages, fallbackChatMessages, key, key);
+        return java.util.Arrays.stream(message.split("\\R", -1))
+                .map(line -> (Component) miniMessage.deserialize(line, resolvers))
+                .toList();
+    }
+
     /**
      * Resolves a GUI message by key without the chat prefix, e.g. for
      * inventory titles and item display names.
