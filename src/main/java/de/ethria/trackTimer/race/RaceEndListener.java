@@ -19,12 +19,14 @@ public final class RaceEndListener {
     private final DatabaseManager database;
     private final LanguageManager language;
     private final RaceStartListener races;
+    private final RaceStatisticsHologramManager holograms;
     public RaceEndListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language,
-                           RaceStartListener races) {
+                           RaceStartListener races, RaceStatisticsHologramManager holograms) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
         this.races = races;
+        this.holograms = holograms;
     }
 
     public void onRacePosition(Player player, Location position) {
@@ -53,6 +55,7 @@ public final class RaceEndListener {
 
                 if (finished) {
                     races.finishRace(player, end.eventId());
+                    holograms.updateEvent(end.eventId());
                     var finishLines = language.chatLines("race.finished", LanguageManager.placeholders(
                             "event", race.eventName(), "time", races.formatDuration(elapsedMillis)));
                     Component finishTitle = finishLines.isEmpty() ? Component.empty() : finishLines.get(0);

@@ -17,6 +17,14 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    DecentHolograms:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    CMI:
+      load: BEFORE
+      required: false
+      join-classpath: true
 
 # Note: Paper plugins (paper-plugin.yml) do not support a "commands:" YAML
 # section. /tracktimer is registered in code via the lifecycle COMMANDS

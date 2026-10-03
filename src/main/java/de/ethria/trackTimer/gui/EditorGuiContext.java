@@ -104,7 +104,7 @@ public final class EditorGuiContext {
         return configuredIcon(settings, path, fallback);
     }
 
-    ItemStack configuredIcon(FileConfiguration config, String path, Material fallback) {
+    public ItemStack configuredIcon(FileConfiguration config, String path, Material fallback) {
         String materialName = config.getString(path + ".material");
         Material configuredMaterial = materialName == null ? null : Material.matchMaterial(materialName);
         // A regular material explicitly configured by the server owner takes

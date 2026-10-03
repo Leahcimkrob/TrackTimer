@@ -21,7 +21,8 @@ overview:
     name: "<gray>Keine Events vorhanden"
 
 topten:
-  title: "TopTen Rennen - <event>"
+  title: "Einzelrennen - <event>"
+  redstone-title: "Ampel-Rennen - <event>"
   entry-item:
     name: "<gold>Platz <rank>"
     lore:
@@ -191,6 +192,12 @@ leaderboard:
     name: "<gray>Noch keine Ergebnisse"
 
 buttons:
+  hologram:
+    name: "<gold>Ergebnis-Hologramm setzen"
+    lore:
+      - "<gray>Gibt das Werkzeug zum Auswählen des Bereichs."
+      - "<yellow>Linksklick: obere linke Ecke"
+      - "<yellow>Rechtsklick: untere rechte Ecke"
   close:
     name: "<red>Schließen"
   back:

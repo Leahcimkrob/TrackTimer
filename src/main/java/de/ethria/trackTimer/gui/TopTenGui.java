@@ -4,6 +4,7 @@ import de.ethria.trackTimer.database.DatabaseManager.Event;
 import de.ethria.trackTimer.database.DatabaseManager.RaceStatisticsEntry;
 import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
+import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -41,6 +42,7 @@ public final class TopTenGui implements Listener {
     private final EventOverviewGui overviewGui;
     private RedstoneRaceSelectionGui redstoneRaceSelectionGui;
     private PlayerDetailsGui playerDetailsGui;
+    private RaceStatisticsHologramTool hologramTool;
 
     public TopTenGui(EditorGuiContext context, RaceStatisticsEvaluator statistics, EventOverviewGui overviewGui) {
         this.context = context;
@@ -54,6 +56,10 @@ public final class TopTenGui implements Listener {
 
     public void setPlayerDetailsGui(PlayerDetailsGui playerDetailsGui) {
         this.playerDetailsGui = playerDetailsGui;
+    }
+
+    public void setHologramTool(RaceStatisticsHologramTool hologramTool) {
+        this.hologramTool = hologramTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -77,7 +83,8 @@ public final class TopTenGui implements Listener {
             var results = evaluation.get();
             TopTenHolder holder = new TopTenHolder(event, overviewPage, results.redstone(), dateFilter, timeFilter);
             Inventory inventory = Bukkit.createInventory(holder, INVENTORY_SIZE,
-                    context.language.gui("topten.title", LanguageManager.placeholders("event", event.name())));
+                    context.language.gui(results.redstone() ? "topten.redstone-title" : "topten.title",
+                            LanguageManager.placeholders("event", event.name())));
             holder.inventory = inventory;
 
             int rows = boundedDimension("rows", 3, 1, 5);
@@ -136,6 +143,10 @@ public final class TopTenGui implements Listener {
             ItemStack backButton = context.configuredIcon(context.topTenSettings,
                     "guis.topten.button-bar.back", Material.ARROW);
             inventory.setItem(backSlot, named(backButton, "buttons.back"));
+            int hologramSlot = hologramSlot(backSlot);
+            ItemStack hologramButton = context.configuredIcon(context.topTenSettings,
+                    "guis.topten.button-bar.hologram", Material.PLAYER_HEAD);
+            inventory.setItem(hologramSlot, named(hologramButton, "buttons.hologram"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE,
@@ -152,6 +163,11 @@ public final class TopTenGui implements Listener {
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int backSlot = context.topTenSettings.getInt("guis.topten.button-bar.back.slot", 49);
         if (backSlot < BUTTON_ROW_START || backSlot >= INVENTORY_SIZE) backSlot = 49;
+        if (event.getRawSlot() == hologramSlot(backSlot)) {
+            if (hologramTool != null) hologramTool.giveTool(player, holder.event, holder.redstoneRace);
+            player.closeInventory();
+            return;
+        }
         if (event.getRawSlot() == backSlot) {
             if (holder.redstoneRace && redstoneRaceSelectionGui != null) {
                 redstoneRaceSelectionGui.open(player, holder.event, holder.overviewPage);
@@ -206,6 +222,14 @@ public final class TopTenGui implements Listener {
         context.plugin.getLogger().warning("Invalid TopTen GUI " + key + " value " + value
                 + "; using " + fallback + ".");
         return fallback;
+    }
+
+    private int hologramSlot(int backSlot) {
+        int slot = context.topTenSettings.getInt("guis.topten.button-bar.hologram.slot", 45);
+        if (slot < BUTTON_ROW_START || slot >= INVENTORY_SIZE || slot == backSlot) {
+            return backSlot == 45 ? 46 : 45;
+        }
+        return slot;
     }
 
     private static final class TopTenHolder implements InventoryHolder {

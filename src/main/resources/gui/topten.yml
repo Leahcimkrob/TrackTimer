@@ -16,6 +16,11 @@ guis:
         material: PLAYER_HEAD
         head-database-id: '94681'
         fallback-material: Arrow
+      hologram:
+        slot: 45
+        material: PLAYER_HEAD
+        head-database-id: '1627'
+        fallback-material: STICK
     redstone-selection:
       rows: 3
       columns: 5

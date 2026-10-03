@@ -107,6 +107,15 @@ race-statistics:
   redstone-filter-only: "<red>You can only select a date or time for redstone races."
   invalid-date-or-time: "<red>Invalid date or time. Use a value from tab completion."
   command-failed: "<red>Could not load race statistics."
+  hologram-plugin-missing: "<red>DecentHolograms is not installed or enabled."
+  hologram-tool-started: "<yellow>Hologram tool for <event>: left-click the upper-left corner. Type exit to cancel."
+  hologram-event-missing: "<red>The selected event no longer exists."
+  hologram-first-corner: "<green>First corner selected (<x>, <y>, <z>). Right-click the lower-right corner."
+  hologram-select-first-corner: "<red>Left-click the upper-left corner first."
+  hologram-same-world: "<red>Both corners must be in the same world."
+  hologram-invalid-area: "<red>Invalid area. Select two corners on the same wall plane."
+  hologram-created: "<green>Results hologram for <yellow><event></yellow> created. It updates after completed races."
+  hologram-tool-cancelled: "<yellow>Hologram selection cancelled."
 
 leaderboard:
   header: "<gold>Leaderboard - <event>"

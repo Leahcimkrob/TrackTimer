@@ -21,13 +21,16 @@ race-statistics:
     recent-races-limit: 5
   gui:
     normal-races: 10
-    redstone-races: 20
+    redstone-races: 15
   hologram:
+    # Provider: auto (prefer CMI, otherwise DecentHolograms), cmi, or decentholograms.
+    provider: auto
+    # Number of race results/sessions shown on each race statistics hologram.
     normal-races: 10
-    redstone-races: 20
+    redstone-races: 10
   chat:
     normal-races: 10
-    redstone-races: 20
+    redstone-races: 10
     # Chronological display order for redstone race sessions: ascending or descending.
     redstone-sort-order: descending
 

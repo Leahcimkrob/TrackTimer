@@ -15,11 +15,13 @@ import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
+import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
 import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceCheckpointListener;
 import de.ethria.trackTimer.race.RaceTriggerMonitor;
 import de.ethria.trackTimer.race.RaceEndListener;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
+import de.ethria.trackTimer.race.RaceStatisticsHologramManager;
 import de.ethria.trackTimer.race.RedstoneStartListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
@@ -87,19 +89,25 @@ public final class TrackTimer extends JavaPlugin {
                 this, databaseManager, languageManager, raceStartListener);
         raceStatisticsEvaluator = new RaceStatisticsEvaluator(
                 this, databaseManager);
+        RaceStatisticsHologramManager hologramManager = new RaceStatisticsHologramManager(
+                this, databaseManager, languageManager, raceStatisticsEvaluator);
+        hologramManager.load();
         TopTenGui topTenGui = new TopTenGui(editorGuiContext, raceStatisticsEvaluator, eventOverviewGui);
         PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
         topTenGui.setPlayerDetailsGui(playerDetailsGui);
+        RaceStatisticsHologramTool hologramTool = new RaceStatisticsHologramTool(editorGuiContext, hologramManager);
+        topTenGui.setHologramTool(hologramTool);
         RedstoneRaceSelectionGui redstoneRaceSelectionGui = new RedstoneRaceSelectionGui(
                 editorGuiContext, raceStatisticsEvaluator, eventOverviewGui, topTenGui);
         topTenGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         eventOverviewGui.setTopTenGui(topTenGui);
         eventOverviewGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         getServer().getPluginManager().registerEvents(topTenGui, this);
+        getServer().getPluginManager().registerEvents(hologramTool, this);
         getServer().getPluginManager().registerEvents(playerDetailsGui, this);
         getServer().getPluginManager().registerEvents(redstoneRaceSelectionGui, this);
         RaceEndListener raceEndListener = new RaceEndListener(
-                this, databaseManager, languageManager, raceStartListener);
+                this, databaseManager, languageManager, raceStartListener, hologramManager);
         raceTriggerMonitor = new RaceTriggerMonitor(this);
         raceTriggerMonitor.addHandler(raceStartListener::onRacePosition);
         raceTriggerMonitor.addHandler(raceCheckpointListener::onRacePosition);

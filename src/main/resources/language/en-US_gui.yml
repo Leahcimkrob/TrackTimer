@@ -21,7 +21,8 @@ overview:
     name: "<gray>No events available"
 
 topten:
-  title: "TopTen Races - <event>"
+  title: "Single Race - <event>"
+  redstone-title: "Redstone Race - <event>"
   entry-item:
     name: "<gold>Rank <rank>"
     lore:
@@ -191,6 +192,12 @@ leaderboard:
     name: "<gray>No results yet"
 
 buttons:
+  hologram:
+    name: "<gold>Place results hologram"
+    lore:
+      - "<gray>Gives you the tool to select the area."
+      - "<yellow>Left-click: upper-left corner"
+      - "<yellow>Right-click: lower-right corner"
   close:
     name: "<red>Close"
   back:

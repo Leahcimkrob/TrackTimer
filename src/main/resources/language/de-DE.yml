@@ -107,6 +107,15 @@ race-statistics:
   redstone-filter-only: "<red>Datum oder Uhrzeit kann nur für Redstone-Rennen ausgewählt werden."
   invalid-date-or-time: "<red>Ungültiges Datum oder Uhrzeit. Nutze einen Wert aus der Tab-Vervollständigung."
   command-failed: "<red>Die Rennauswertung konnte nicht geladen werden."
+  hologram-plugin-missing: "<red>DecentHolograms ist nicht installiert oder aktiviert."
+  hologram-tool-started: "<yellow>Hologramm-Werkzeug für <event>: Linksklick auf die obere linke Ecke. Schreibe exit zum Abbrechen."
+  hologram-event-missing: "<red>Das ausgewählte Event existiert nicht mehr."
+  hologram-first-corner: "<green>Erste Ecke gesetzt (<x>, <y>, <z>). Rechtsklick auf die untere rechte Ecke."
+  hologram-select-first-corner: "<red>Setze zuerst mit Linksklick die obere linke Ecke."
+  hologram-same-world: "<red>Beide Ecken müssen in derselben Welt liegen."
+  hologram-invalid-area: "<red>Ungültiger Bereich. Wähle zwei Ecken an derselben Wandfläche."
+  hologram-created: "<green>Ergebnis-Hologramm für <yellow><event></yellow> erstellt. Es aktualisiert sich nach abgeschlossenen Rennen."
+  hologram-tool-cancelled: "<yellow>Hologramm-Auswahl abgebrochen."
 
 leaderboard:
   header: "<gold>Bestenliste - <event>"

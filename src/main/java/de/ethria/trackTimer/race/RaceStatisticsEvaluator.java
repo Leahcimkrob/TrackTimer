@@ -90,7 +90,7 @@ public final class RaceStatisticsEvaluator {
             }
             Comparator<RaceStatisticsEntry> sessionOrder =
                     Comparator.comparingLong(RaceStatisticsEntry::startTimeMillis);
-            if (!redstoneChatAscending(output)) sessionOrder = sessionOrder.reversed();
+            if (!redstoneSessionsAscending(output)) sessionOrder = sessionOrder.reversed();
             Comparator<RaceStatisticsEntry> redstoneOrder = sessionOrder
                     .thenComparingLong(RaceStatisticsEntry::raceTimeMillis)
                     .thenComparingLong(RaceStatisticsEntry::resultId);
@@ -141,8 +141,9 @@ public final class RaceStatisticsEvaluator {
         return 10;
     }
 
-    private boolean redstoneChatAscending(Output output) {
-        return output == Output.CHAT && "ascending".equalsIgnoreCase(
+    private boolean redstoneSessionsAscending(Output output) {
+        return (output == Output.CHAT || output == Output.HOLOGRAM)
+                && "ascending".equalsIgnoreCase(
                 plugin.getConfig().getString("race-statistics.chat.redstone-sort-order", "descending"));
     }
 }
