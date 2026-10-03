@@ -84,7 +84,7 @@ public final class EventOverviewGui implements Listener {
     }
 
     private ItemStack button(Material material, String key) {
-        return named(new ItemStack(material), key);
+        return named(new ItemStack(material), key + ".name");
     }
 
     private ItemStack named(ItemStack item, String key) {

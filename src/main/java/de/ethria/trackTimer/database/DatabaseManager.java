@@ -371,6 +371,21 @@ public final class DatabaseManager {
         }
     }
 
+    /** Removes every race result and checkpoint time for an event while keeping the event and its triggers. */
+    public void resetEventResults(long eventId) throws SQLException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            executeDelete("DELETE FROM race_checkpoint_times WHERE race_result_id IN (SELECT id FROM race_results WHERE event_id = ?)", eventId);
+            executeDelete("DELETE FROM race_results WHERE event_id = ?", eventId);
+            connection.commit();
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
+    }
     private void executeDelete(String sql, long eventId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, eventId);

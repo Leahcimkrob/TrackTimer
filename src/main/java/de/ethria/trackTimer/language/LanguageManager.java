@@ -87,6 +87,12 @@ public final class LanguageManager {
         return miniMessage.deserialize(prefix + message, resolvers);
     }
 
+    /** Resolves a chat message without the configured prefix, for inline chat components. */
+    public Component chatFragment(String key, TagResolver... resolvers) {
+        String message = resolveRaw(chatMessages, fallbackChatMessages, key, key);
+        return miniMessage.deserialize(message, resolvers);
+    }
+
     /**
      * Resolves a GUI message by key without the chat prefix, e.g. for
      * inventory titles and item display names.

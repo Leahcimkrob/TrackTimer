@@ -32,6 +32,7 @@ permissions:
       tracktimer.command.reload: true
       tracktimer.command.create: true
       tracktimer.command.delete: true
+      tracktimer.command.reset: true
       tracktimer.command.editor: true
 
   tracktimer.command.reload:
@@ -48,6 +49,10 @@ permissions:
 
   tracktimer.command.delete:
     description: Allows deleting TrackTimer events.
+    default: op
+
+  tracktimer.command.reset:
+    description: Allows resetting TrackTimer race results.
     default: op
 
   tracktimer.command.editor:
