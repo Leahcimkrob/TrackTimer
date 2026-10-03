@@ -56,7 +56,7 @@ public final class EventEditorGui implements Listener {
                 context.language.gui("event-editor.title", LanguageManager.placeholders("event", event.name())));
         holder.inventory = inventory;
 
-        ItemStack name = context.configuredItem("guis.event-editor.items.event-name", Material.CRAFTING_TABLE);
+        ItemStack name = context.configuredIcon("guis.event-editor.items.event-name", Material.CRAFTING_TABLE);
         ItemMeta nameMeta = name.getItemMeta();
         nameMeta.displayName(context.language.gui("event-editor.event-name.name",
                 LanguageManager.placeholders("event", event.name())));
@@ -64,7 +64,7 @@ public final class EventEditorGui implements Listener {
         name.setItemMeta(nameMeta);
         inventory.setItem(slot("items.event-name.slot", 13, size), name);
 
-        ItemStack laps = context.configuredItem("guis.event-editor.items.laps", Material.STRUCTURE_VOID);
+        ItemStack laps = context.configuredIcon("guis.event-editor.items.laps", Material.STRUCTURE_VOID);
         laps.setAmount(Math.max(1, Math.min(64, event.laps())));
         ItemMeta lapsMeta = laps.getItemMeta();
         lapsMeta.displayName(context.language.gui("event-editor.laps.name"));
@@ -85,9 +85,9 @@ public final class EventEditorGui implements Listener {
         inventory.setItem(slot("items.start-mode.slot", 23, size), startMode);
 
         inventory.setItem(slot("items.change-icon.slot", 29, size), named(
-                context.configuredItem("guis.event-editor.items.change-icon", Material.CHEST), "event-editor.change-icon"));
+                context.configuredIcon("guis.event-editor.items.change-icon", Material.CHEST), "event-editor.change-icon"));
         inventory.setItem(slot("items.delete.slot", 31, size), named(
-                context.configuredItem("guis.event-editor.items.delete", Material.BARRIER), "event-editor.delete"));
+                context.configuredIcon("guis.event-editor.items.delete", Material.BARRIER), "event-editor.delete"));
         inventory.setItem(slot("items.trigger-editor.slot", 33, size), named(
                 context.configuredIcon("guis.event-editor.items.trigger-editor", Material.REDSTONE_LAMP), "event-editor.trigger-editor"));
 
@@ -96,8 +96,8 @@ public final class EventEditorGui implements Listener {
         barMeta.displayName(net.kyori.adventure.text.Component.empty());
         bar.setItemMeta(barMeta);
         for (int buttonSlot = size - 9; buttonSlot < size; buttonSlot++) inventory.setItem(buttonSlot, bar.clone());
-        inventory.setItem(slot("button-bar.back.slot", size - 5, size), button(
-                context.material(context.settings.getString("guis.event-editor.button-bar.back.material"), Material.ARROW), "buttons.back"));
+        inventory.setItem(slot("button-bar.back.slot", size - 5, size), named(
+                context.configuredIcon("guis.event-editor.button-bar.back", Material.ARROW), "buttons.back"));
         player.openInventory(inventory);
     }
 
@@ -219,10 +219,6 @@ public final class EventEditorGui implements Listener {
         } catch (SQLException exception) {
             reportDatabaseError(player, exception);
         }
-    }
-
-    private ItemStack button(Material material, String key) {
-        return named(new ItemStack(material), key);
     }
 
     private ItemStack named(ItemStack item, String key) {

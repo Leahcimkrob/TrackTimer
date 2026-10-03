@@ -116,9 +116,9 @@ public final class TopTenGui implements Listener {
             }
             int backSlot = context.topTenSettings.getInt("guis.topten.button-bar.back.slot", 49);
             if (backSlot < BUTTON_ROW_START || backSlot >= INVENTORY_SIZE) backSlot = 49;
-            Material backMaterial = context.material(context.topTenSettings.getString(
-                    "guis.topten.button-bar.back.material"), Material.ARROW);
-            inventory.setItem(backSlot, named(new ItemStack(backMaterial), "buttons.back"));
+            ItemStack backButton = context.configuredIcon(context.topTenSettings,
+                    "guis.topten.button-bar.back", Material.ARROW);
+            inventory.setItem(backSlot, named(backButton, "buttons.back"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE,

@@ -90,7 +90,7 @@ public final class RedstoneRaceSelectionGui implements Listener {
                                 .thenComparing(RaceStatisticsEntry::playerName, String.CASE_INSENSITIVE_ORDER)
                                 .thenComparingLong(RaceStatisticsEntry::resultId))
                         .toList();
-                ItemStack watch = context.configuredItem(context.topTenSettings,
+                ItemStack watch = context.configuredIcon(context.topTenSettings,
                         "guis.topten.redstone-selection.item", Material.CLOCK);
                 watch.setAmount(Math.min(index + 1, watch.getMaxStackSize()));
                 ItemMeta meta = watch.getItemMeta();
@@ -121,9 +121,9 @@ public final class RedstoneRaceSelectionGui implements Listener {
                     "guis.topten.redstone-selection.button-bar.material"), Material.GRAY_STAINED_GLASS_PANE);
             for (int slot = BUTTON_ROW_START; slot < INVENTORY_SIZE; slot++) inventory.setItem(slot, new ItemStack(filler));
             int backSlot = backSlot();
-            Material backMaterial = context.material(context.topTenSettings.getString(
-                    "guis.topten.redstone-selection.button-bar.back.material"), Material.ARROW);
-            inventory.setItem(backSlot, named(new ItemStack(backMaterial), "buttons.back"));
+            ItemStack backButton = context.configuredIcon(context.topTenSettings,
+                    "guis.topten.redstone-selection.button-bar.back", Material.ARROW);
+            inventory.setItem(backSlot, named(backButton, "buttons.back"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE,

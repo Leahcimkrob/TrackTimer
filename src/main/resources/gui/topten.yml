@@ -7,14 +7,18 @@ guis:
       material: GRAY_STAINED_GLASS_PANE
       back:
         slot: 49
-        material: ARROW
+        material: PLAYER_HEAD
+        head-database-id: '94681'
+        fallback-material: Arrow
     redstone-selection:
-      rows: 5
-      columns: 9
+      rows: 3
+      columns: 5
       item:
         material: CLOCK
       button-bar:
         material: GRAY_STAINED_GLASS_PANE
         back:
           slot: 49
-          material: ARROW
+          material: PLAYER_HEAD
+          head-database-id: '94681'
+          fallback-material: Arrow

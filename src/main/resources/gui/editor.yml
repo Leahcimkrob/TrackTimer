@@ -8,20 +8,36 @@
 guis:
   event-overview:
     size: 54 # inkl. Buttons
+    button-bar:
+      previous-page:
+        slot: 45
+        material: PLAYER_HEAD
+        fallback-material: ARROW
+      close:
+        slot: 49
+        material: PLAYER_HEAD
+        fallback-material: BARRIER
+      next-page:
+        slot: 53
+        material: PLAYER_HEAD
+        fallback-material: ARROW
   event-editor:
     size: 54
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
       back:
         slot: 49
-        material: ARROW
+        material: PLAYER_HEAD
+        fallback-material: ARROW
     items:
       event-name:
         slot: 13
-        material: CRAFTING_TABLE
+        material: PLAYER_HEAD
+        fallback-material: CRAFTING_TABLE
       laps:
         slot: 21
-        material: STRUCTURE_VOID
+        material: PLAYER_HEAD
+        fallback-material: STRUCTURE_VOID
       start-mode:
         slot: 23
         material: PLAYER_HEAD
@@ -29,10 +45,12 @@ guis:
         fallback-material: REDSTONE
       change-icon:
         slot: 29
-        material: CHEST
+        material: PLAYER_HEAD
+        fallback-material: CHEST
       delete:
         slot: 31
-        material: BARRIER
+        material: PLAYER_HEAD
+        fallback-material: BARRIER
       trigger-editor:
         slot: 33
         material: PLAYER_HEAD
@@ -46,4 +64,5 @@ guis:
       material: GRAY_STAINED_GLASS_PANE
       back:
         slot: 31
-        material: ARROW
+        material: PLAYER_HEAD
+        fallback-material: ARROW

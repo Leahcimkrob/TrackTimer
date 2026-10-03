@@ -81,7 +81,7 @@ public final class EventTriggerGui implements Listener {
         inventory.setItem(slot("button-bar.end-trigger.slot", 48, size), configuredNamed(
                 "guis.trigger-editor.button-bar.end-trigger", Material.PLAYER_HEAD, "trigger-editor.add-end"));
         inventory.setItem(slot("button-bar.back.slot", size - 5, size), named(
-                new ItemStack(context.material(context.triggerSettings.getString("guis.trigger-editor.button-bar.back.material"), Material.ARROW)),
+                context.configuredIcon(context.triggerSettings, "guis.trigger-editor.button-bar.back", Material.ARROW),
                 "buttons.back"));
         player.openInventory(inventory);
     }

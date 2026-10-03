@@ -72,9 +72,15 @@ public final class EventOverviewGui implements Listener {
                 inventory.setItem(index - start, item);
             }
             if (events.isEmpty()) inventory.setItem(22, named(new ItemStack(Material.BARRIER), "overview.empty-item.name"));
-            if (page > 0) inventory.setItem(45, button(Material.ARROW, "buttons.previous-page"));
-            inventory.setItem(49, button(Material.BARRIER, "buttons.close"));
-            if (page + 1 < pages) inventory.setItem(53, button(Material.ARROW, "buttons.next-page"));
+            if (page > 0) inventory.setItem(context.slot(context.settings,
+                    "guis.event-overview.button-bar.previous-page.slot", 45, size),
+                    button("guis.event-overview.button-bar.previous-page", Material.ARROW, "buttons.previous-page"));
+            inventory.setItem(context.slot(context.settings,
+                    "guis.event-overview.button-bar.close.slot", 49, size),
+                    button("guis.event-overview.button-bar.close", Material.BARRIER, "buttons.close"));
+            if (page + 1 < pages) inventory.setItem(context.slot(context.settings,
+                    "guis.event-overview.button-bar.next-page.slot", 53, size),
+                    button("guis.event-overview.button-bar.next-page", Material.ARROW, "buttons.next-page"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             reportDatabaseError(player, exception);
@@ -87,9 +93,16 @@ public final class EventOverviewGui implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int slot = event.getRawSlot();
-        if (slot == 45) open(player, holder.page - 1);
-        else if (slot == 53) open(player, holder.page + 1);
-        else if (slot == 49) player.closeInventory();
+        int size = event.getView().getTopInventory().getSize();
+        int previousPageSlot = context.slot(context.settings,
+                "guis.event-overview.button-bar.previous-page.slot", 45, size);
+        int closeSlot = context.slot(context.settings,
+                "guis.event-overview.button-bar.close.slot", 49, size);
+        int nextPageSlot = context.slot(context.settings,
+                "guis.event-overview.button-bar.next-page.slot", 53, size);
+        if (slot == previousPageSlot) open(player, holder.page - 1);
+        else if (slot == nextPageSlot) open(player, holder.page + 1);
+        else if (slot == closeSlot) player.closeInventory();
         else if (slot >= 0 && slot < PAGE_SIZE) {
             int index = holder.page * PAGE_SIZE + slot;
             if (index < holder.events.size()) {
@@ -109,8 +122,8 @@ public final class EventOverviewGui implements Listener {
         }
     }
 
-    private ItemStack button(Material material, String key) {
-        return named(new ItemStack(material), key + ".name");
+    private ItemStack button(String configPath, Material fallback, String key) {
+        return named(context.configuredIcon(context.settings, configPath, fallback), key + ".name");
     }
 
     private ItemStack named(ItemStack item, String key) {

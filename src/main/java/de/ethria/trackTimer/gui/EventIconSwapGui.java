@@ -115,9 +115,7 @@ public final class EventIconSwapGui implements Listener {
     }
 
     private ItemStack backButton() {
-        Material material = context.material(context.settings.getString("guis.event-icon-swap.button-bar.back.material"),
-                Material.ARROW);
-        ItemStack item = new ItemStack(material);
+        ItemStack item = context.configuredIcon("guis.event-icon-swap.button-bar.back", Material.ARROW);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(context.language.gui("buttons.back.name"));
         item.setItemMeta(meta);

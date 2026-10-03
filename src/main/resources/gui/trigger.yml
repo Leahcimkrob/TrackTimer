@@ -32,7 +32,8 @@ guis:
         fallback-material: RED_WOOL
       back:
         slot: 45
-        material: ARROW
+        material: PLAYER_HEAD
+        fallback-material: ARROW
     items:
       tool:
         material: STICK
