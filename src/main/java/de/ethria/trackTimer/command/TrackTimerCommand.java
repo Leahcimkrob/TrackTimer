@@ -6,6 +6,7 @@ import de.ethria.trackTimer.TrackTimer;
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.gui.EventOverviewGui;
+import de.ethria.trackTimer.race.RaceStartListener;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
@@ -26,12 +27,15 @@ public final class TrackTimerCommand {
     private final DatabaseManager database;
     private final LanguageManager language;
     private final EventOverviewGui eventOverviewGui;
+    private final RaceStartListener raceStartListener;
 
-    public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language, EventOverviewGui eventOverviewGui) {
+    public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language,
+                             EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
         this.eventOverviewGui = eventOverviewGui;
+        this.raceStartListener = raceStartListener;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
@@ -41,8 +45,9 @@ public final class TrackTimerCommand {
         ResetSubCommand reset = new ResetSubCommand(plugin, database, language);
         EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
         ConvertSubCommand convert = new ConvertSubCommand(database, language);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, reset, editor, convert));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert);
+        LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
+        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, reset, editor, convert, leave));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert, leave);
 
         var root = Commands.literal(label)
                 .executes(context -> {

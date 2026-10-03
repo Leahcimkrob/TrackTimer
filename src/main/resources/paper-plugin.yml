@@ -35,6 +35,7 @@ permissions:
       tracktimer.command.reset: true
       tracktimer.command.editor: true
       tracktimer.command.convert: true
+      tracktimer.command.leave: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -63,3 +64,7 @@ permissions:
   tracktimer.command.convert:
     description: Allows copying TrackTimer data between SQLite and MySQL.
     default: op
+
+  tracktimer.command.leave:
+    description: Allows cancelling the player's active race.
+    default: true

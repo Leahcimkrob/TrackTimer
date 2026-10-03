@@ -2,6 +2,11 @@
 # e.g. "de-DE" (language/de-DE.yml + language/de-DE_gui.yml) or "en-US".
 language: de-DE
 
+race:
+  # Maximum vertical distance, in blocks, between a player/vehicle and a start trigger.
+  # Increase this for elevated custom vehicles; lower it to avoid triggering tracks above/below.
+  start-trigger-height-tolerance: 2.0
+
 command:
   # Additional aliases for the /tracktimer command (e.g. "tt").
   # Can only be changed by restarting.

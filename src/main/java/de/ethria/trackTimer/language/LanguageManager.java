@@ -55,8 +55,12 @@ public final class LanguageManager {
         TagResolver.Builder builder = TagResolver.builder();
         for (int i = 0; i < pairs.length; i += 2) {
             String key = String.valueOf(pairs[i]);
-            String value = String.valueOf(pairs[i + 1]);
-            builder.resolver(Placeholder.unparsed(key, value));
+            Object value = pairs[i + 1];
+            if (value instanceof Component component) {
+                builder.resolver(Placeholder.component(key, component));
+            } else {
+                builder.resolver(Placeholder.unparsed(key, String.valueOf(value)));
+            }
         }
         return builder.build();
     }

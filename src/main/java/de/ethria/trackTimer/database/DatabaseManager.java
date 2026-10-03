@@ -265,6 +265,107 @@ public final class DatabaseManager {
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
                                int x, int y, int z, String blockType, String triggerMode) { }
 
+    /** Returns normal (non-redstone) start triggers in a vertical band at a block column. */
+    public List<StartPoint> findPlayerStartPoints(String server, String world, int x, int z,
+                                                  int minY, int maxY) throws SQLException {
+        List<StartPoint> points = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT e.id, e.event_name, t.y FROM event_triggers t JOIN events e ON e.id = t.event_id
+                WHERE t.trigger_type = 'start' AND t.trigger_mode <> 'REDSTONE_SIGNAL'
+                  AND e.start_mode = 'player' AND t.server = ? AND t.world = ?
+                  AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, z);
+            statement.setInt(5, minY);
+            statement.setInt(6, maxY);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) points.add(new StartPoint(rows.getLong("id"), rows.getString("event_name"),
+                        rows.getInt("y")));
+            }
+        }
+        return points;
+    }
+
+    /** Registers the player once and creates an in-progress race result, returning its start timestamp. */
+    public long beginRace(long eventId, String playerUuid, String playerName) throws SQLException {
+        long now = System.currentTimeMillis();
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (PreparedStatement find = connection.prepareStatement("SELECT 1 FROM players WHERE uuid = ?")) {
+                find.setString(1, playerUuid);
+                try (ResultSet rows = find.executeQuery()) {
+                    if (rows.next()) {
+                        try (PreparedStatement update = connection.prepareStatement(
+                                "UPDATE players SET last_name = ?, last_seen = ? WHERE uuid = ?")) {
+                            update.setString(1, playerName);
+                            update.setLong(2, now);
+                            update.setString(3, playerUuid);
+                            update.executeUpdate();
+                        }
+                    } else {
+                        try (PreparedStatement insert = connection.prepareStatement(
+                                "INSERT INTO players (uuid, last_name, last_seen) VALUES (?, ?, ?)")) {
+                            insert.setString(1, playerUuid);
+                            insert.setString(2, playerName);
+                            insert.setLong(3, now);
+                            insert.executeUpdate();
+                        }
+                    }
+                }
+            }
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO race_results (event_id, player_uuid, start_time) VALUES (?, ?, ?)")) {
+                insert.setLong(1, eventId);
+                insert.setString(2, playerUuid);
+                insert.setLong(3, now);
+                insert.executeUpdate();
+            }
+            connection.commit();
+            return now;
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
+    }
+
+    public record StartPoint(long eventId, String eventName, int triggerY) { }
+
+    /** Deletes unfinished race results and their checkpoint data for a player. */
+    public int cancelActiveRaces(String playerUuid) throws SQLException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (PreparedStatement checkpoints = connection.prepareStatement("""
+                    DELETE FROM race_checkpoint_times
+                    WHERE race_result_id IN (
+                        SELECT id FROM race_results WHERE player_uuid = ? AND end_time IS NULL
+                    )
+                    """)) {
+                checkpoints.setString(1, playerUuid);
+                checkpoints.executeUpdate();
+            }
+            int deleted;
+            try (PreparedStatement races = connection.prepareStatement(
+                    "DELETE FROM race_results WHERE player_uuid = ? AND end_time IS NULL")) {
+                races.setString(1, playerUuid);
+                deleted = races.executeUpdate();
+            }
+            connection.commit();
+            return deleted;
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
+        }
+    }
+
     public int nextCheckpointOrder(long eventId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT COALESCE(MAX(checkpoint_order), 0) + 1 FROM event_triggers WHERE event_id = ? AND trigger_type = 'checkpoint'")) {

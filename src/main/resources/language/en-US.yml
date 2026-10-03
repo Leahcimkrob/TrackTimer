@@ -14,6 +14,7 @@ help:
   reset: "<yellow>/<command> reset <eventname> [confirm|cancel] <gray>- Clears race results and checkpoint times."
   editor: "<yellow>/<command> editor <gray>- Opens the event overview."
   convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
+  leave: "<yellow>/<command> leave <gray>- Cancels your current run."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:
@@ -76,12 +77,18 @@ trigger:
   not-found: "<red>No matching trigger for this event is saved here."
 
 race:
+  bossbar:
+    text: "<yellow><event></yellow> <white><time>"
+    # Available time placeholders: <hours>, <minutes>, <seconds>, <ms>.
+    # Example: "<hours>:<minutes>:<seconds>:<ms>" displays 00:00:00:00.
+    time-format: "<hours>:<minutes>:<seconds>:<ms>"
   started: "<green>Your run on <yellow><event></yellow> has started!"
   checkpoint: "<yellow>Checkpoint <white><order></white> reached. Split time: <white><time>"
   lap-completed: "<green>Lap <white><lap></white>/<white><laps></white> completed."
   finished: "<gold>Finish reached! Your time: <yellow><time>"
   already-running: "<red>You are already racing on <yellow><event></yellow>."
   not-running: "<red>You are not currently racing."
+  cancelled: "<yellow>Your run was cancelled and its current race data was deleted."
   new-record: "<gold><bold>New record on <event>! </bold><gold>Time: <white><time>"
 
 leaderboard:

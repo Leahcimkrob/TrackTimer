@@ -12,6 +12,7 @@ import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
+import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,6 +27,7 @@ public final class TrackTimer extends JavaPlugin {
     private LanguageManager languageManager;
     private HeadDatabaseService headDatabaseService;
     private EditorGuiContext editorGuiContext;
+    private RaceStartListener raceStartListener;
 
     @Override
     public void onEnable() {
@@ -69,7 +71,9 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(endTriggerTool, this);
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
-        registerMainCommand(eventOverviewGui);
+        raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
+        getServer().getPluginManager().registerEvents(raceStartListener, this);
+        registerMainCommand(eventOverviewGui, raceStartListener);
     }
 
     /**
@@ -101,8 +105,9 @@ public final class TrackTimer extends JavaPlugin {
      * plugin.yml command declarations and JavaPlugin#getCommand are not
      * supported for this plugin format.
      */
-    private void registerMainCommand(EventOverviewGui eventOverviewGui) {
-        TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager, eventOverviewGui);
+    private void registerMainCommand(EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener) {
+        TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager,
+                eventOverviewGui, raceStartListener);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
@@ -116,6 +121,7 @@ public final class TrackTimer extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (raceStartListener != null) raceStartListener.shutdown();
         if (databaseManager != null) {
             databaseManager.close();
         }
