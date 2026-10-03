@@ -373,6 +373,50 @@ public final class DatabaseManager {
     public record CheckpointPoint(long triggerId, long eventId, String eventName,
                                   int checkpointOrder, int triggerY) { }
 
+    public List<EndPoint> findEndTriggers(String server, String world, int x, int z,
+                                          int minY, int maxY) throws SQLException {
+        List<EndPoint> points = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT t.id AS trigger_id, t.event_id, e.event_name, t.y
+                FROM event_triggers t JOIN events e ON e.id = t.event_id
+                WHERE t.trigger_type = 'end' AND t.server = ? AND t.world = ?
+                  AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, z);
+            statement.setInt(5, minY);
+            statement.setInt(6, maxY);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) points.add(new EndPoint(rows.getLong("trigger_id"),
+                        rows.getLong("event_id"), rows.getString("event_name"), rows.getInt("y")));
+            }
+        }
+        return points;
+    }
+
+    public record EndPoint(long triggerId, long eventId, String eventName, int triggerY) { }
+
+    /** Stores a completed lap, and final timing fields when the event has ended. */
+    public void recordCompletedLap(long raceResultId, int completedLaps, Long endTime, Long raceTimeMillis)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE race_results SET laps_completed = ?, end_time = ?, race_time_ms = ?
+                WHERE id = ? AND end_time IS NULL
+                """)) {
+            statement.setInt(1, completedLaps);
+            if (endTime == null) statement.setNull(2, java.sql.Types.BIGINT);
+            else statement.setLong(2, endTime);
+            if (raceTimeMillis == null) statement.setNull(3, java.sql.Types.BIGINT);
+            else statement.setLong(3, raceTimeMillis);
+            statement.setLong(4, raceResultId);
+            if (statement.executeUpdate() != 1) {
+                throw new SQLException("The race result was already completed or no longer exists.");
+            }
+        }
+    }
+
     public void recordCheckpoint(long raceResultId, long triggerId, int lap, long elapsedMillis) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO race_checkpoint_times (race_result_id, trigger_id, lap, checkpoint_time_ms)

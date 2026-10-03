@@ -90,6 +90,10 @@ public final class RaceStartListener implements Listener {
         return running.getOrDefault(player.getUniqueId(), Map.of()).get(eventId);
     }
 
+    public void finishRace(Player player, long eventId) {
+        stopDisplay(player.getUniqueId(), eventId);
+    }
+
     public Component formatDuration(long elapsedMillis) {
         elapsedMillis = Math.max(0, elapsedMillis);
         long hours = elapsedMillis / 3_600_000;

@@ -15,6 +15,7 @@ import de.ethria.trackTimer.tools.CheckpointTriggerTool;
 import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceCheckpointListener;
 import de.ethria.trackTimer.race.RaceTriggerMonitor;
+import de.ethria.trackTimer.race.RaceEndListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -77,9 +78,12 @@ public final class TrackTimer extends JavaPlugin {
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
                 this, databaseManager, languageManager, raceStartListener);
+        RaceEndListener raceEndListener = new RaceEndListener(
+                this, databaseManager, languageManager, raceStartListener);
         raceTriggerMonitor = new RaceTriggerMonitor(this);
         raceTriggerMonitor.addHandler(raceStartListener::onRacePosition);
         raceTriggerMonitor.addHandler(raceCheckpointListener::onRacePosition);
+        raceTriggerMonitor.addHandler(raceEndListener::onRacePosition);
         getServer().getPluginManager().registerEvents(raceStartListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
         registerMainCommand(eventOverviewGui, raceStartListener);
