@@ -1,4 +1,10 @@
 # Placeholders are replaced by the MiniMessage system using the <placeholder> format.
+
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+
 overview:
   title: "TrackTimer - Overview"
   event-item:
@@ -26,12 +32,11 @@ topten:
       - "<gray>Name: <white><player>"
       - "<gray>Time: <white><race_time>"
       - "<gray>Laps: <white><laps>"
-      - "<gray>Races driven: <white><races>"
       - "<gray>Race started: <white><date> <time_of_day>"
   redstone-selection:
-    title: "Redstone Races - <event>"
+    title: "Traffic Light Races - <event>"
     empty-item:
-      name: "<gray>No completed redstone races yet"
+      name: "<gray>No completed traffic light races yet"
   redstone-race:
     name: "<gold>Race <rank>"
     lore:
@@ -103,7 +108,7 @@ trigger-editor:
       - "<gray>Trigger mode: <trigger_mode>"
       - "<yellow>Shift-left-click: teleport to block"
   redstone:
-    name: "<blue>Redstone start signal"
+    name: "<blue>Redsstone start signal"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"

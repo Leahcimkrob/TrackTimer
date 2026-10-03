@@ -1,4 +1,10 @@
 # Platzhalter werden vom MiniMessage-System im Format <placeholder> ersetzt.
+
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+
 overview:
   title: "TrackTimer - Übersicht"
   event-item:
@@ -26,12 +32,11 @@ topten:
       - "<gray>Name: <white><player>"
       - "<gray>Zeit: <white><race_time>"
       - "<gray>Runden: <white><laps>"
-      - "<gray>Gefahrene Rennen: <white><races>"
       - "<gray>Rennstart: <white><date> <time_of_day>"
   redstone-selection:
-    title: "Redstone-Rennen - <event>"
+    title: "Ampel-Rennen - <event>"
     empty-item:
-      name: "<gray>Noch keine abgeschlossenen Redstone-Rennen"
+      name: "<gray>Noch keine abgeschlossenen Ampel-Rennen"
   redstone-race:
     name: "<gold><rank>. Rennen"
     lore:

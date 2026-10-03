@@ -1,4 +1,10 @@
 # Layout for the six-row TopTen results GUI.
+
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+
 guis:
   topten:
     rows: 3
