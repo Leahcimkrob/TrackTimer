@@ -187,7 +187,49 @@ public final class DatabaseManager {
         return List.copyOf(events);
     }
 
+    public Event getEvent(long eventId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
+                       (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
+                FROM events e WHERE e.id = ?
+                """)) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) return null;
+                return new Event(rows.getLong("id"), rows.getString("event_name"),
+                        rows.getInt("laps"), rows.getString("start_mode"), rows.getString("icon"),
+                        rows.getInt("trigger_count"), rows.getString("created_at"));
+            }
+        }
+    }
+
+    public List<RaceStatisticsEntry> listCompletedRaceStatistics(long eventId) throws SQLException {
+        List<RaceStatisticsEntry> entries = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT rr.id, e.event_name, rr.player_uuid, p.last_name, rr.race_time_ms,
+                       rr.laps_completed, rr.start_time
+                FROM race_results rr
+                JOIN events e ON e.id = rr.event_id
+                JOIN players p ON p.uuid = rr.player_uuid
+                WHERE rr.event_id = ? AND rr.end_time IS NOT NULL AND rr.race_time_ms IS NOT NULL
+                """)) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    entries.add(new RaceStatisticsEntry(rows.getLong("id"), eventId,
+                            rows.getString("event_name"), rows.getString("player_uuid"),
+                            rows.getString("last_name"), rows.getLong("race_time_ms"),
+                            rows.getInt("laps_completed"), rows.getLong("start_time")));
+                }
+            }
+        }
+        return List.copyOf(entries);
+    }
+
     public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount, String created) { }
+    public record RaceStatisticsEntry(long resultId, long eventId, String eventName, String playerUuid,
+                                      String playerName, long raceTimeMillis, int lapsCompleted,
+                                      long startTimeMillis) { }
 
     public void updateEventStartMode(long eventId, String startMode) throws SQLException {
         if (!List.of("player", "signal").contains(startMode)) {

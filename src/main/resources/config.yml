@@ -14,6 +14,20 @@ race:
   # Distance in blocks for the redstone start title broadcast.
   redstone-start-title-radius-blocks: 50
 
+# Normal races use each player's best time; redstone races list all players from the latest sessions.
+race-statistics:
+  gui:
+    normal-races: 10
+    redstone-races: 20
+  hologram:
+    normal-races: 10
+    redstone-races: 20
+  chat:
+    normal-races: 10
+    redstone-races: 20
+    # Chronological display order for redstone race sessions: ascending or descending.
+    redstone-sort-order: descending
+
 command:
   # Additional aliases for the /tracktimer command (e.g. "tt").
   # Can only be changed by restarting.
@@ -27,6 +41,7 @@ database:
 
   sqlite:
     # Relative paths are resolved from the plugin data folder.
+    # Can only be changed by restarting.
     file: tracktimer.db
 
   mysql:

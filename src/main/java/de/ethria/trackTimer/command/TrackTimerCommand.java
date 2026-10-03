@@ -7,6 +7,7 @@ import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.gui.EventOverviewGui;
 import de.ethria.trackTimer.race.RaceStartListener;
+import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
@@ -28,14 +29,17 @@ public final class TrackTimerCommand {
     private final LanguageManager language;
     private final EventOverviewGui eventOverviewGui;
     private final RaceStartListener raceStartListener;
+    private final RaceStatisticsEvaluator raceStatisticsEvaluator;
 
     public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language,
-                             EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener) {
+                             EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
+                             RaceStatisticsEvaluator raceStatisticsEvaluator) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
         this.eventOverviewGui = eventOverviewGui;
         this.raceStartListener = raceStartListener;
+        this.raceStatisticsEvaluator = raceStatisticsEvaluator;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
@@ -46,8 +50,10 @@ public final class TrackTimerCommand {
         EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
         ConvertSubCommand convert = new ConvertSubCommand(database, language);
         LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, reset, editor, convert, leave));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert, leave);
+        TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
+        HelpSubCommand help = new HelpSubCommand(language, label,
+                List.of(reload, create, delete, reset, editor, convert, leave, topTen));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert, leave, topTen);
 
         var root = Commands.literal(label)
                 .executes(context -> {

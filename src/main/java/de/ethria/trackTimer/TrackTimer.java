@@ -16,6 +16,7 @@ import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceCheckpointListener;
 import de.ethria.trackTimer.race.RaceTriggerMonitor;
 import de.ethria.trackTimer.race.RaceEndListener;
+import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
 import de.ethria.trackTimer.race.RedstoneStartListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
@@ -33,6 +34,7 @@ public final class TrackTimer extends JavaPlugin {
     private EditorGuiContext editorGuiContext;
     private RaceStartListener raceStartListener;
     private RaceTriggerMonitor raceTriggerMonitor;
+    private RaceStatisticsEvaluator raceStatisticsEvaluator;
 
     @Override
     public void onEnable() {
@@ -80,6 +82,8 @@ public final class TrackTimer extends JavaPlugin {
         RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
                 this, databaseManager, languageManager, raceStartListener);
+        raceStatisticsEvaluator = new RaceStatisticsEvaluator(
+                this, databaseManager);
         RaceEndListener raceEndListener = new RaceEndListener(
                 this, databaseManager, languageManager, raceStartListener);
         raceTriggerMonitor = new RaceTriggerMonitor(this);
@@ -89,7 +93,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(raceStartListener, this);
         getServer().getPluginManager().registerEvents(redstoneStartListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
-        registerMainCommand(eventOverviewGui, raceStartListener);
+        registerMainCommand(eventOverviewGui, raceStartListener, raceStatisticsEvaluator);
     }
 
     /**
@@ -121,9 +125,10 @@ public final class TrackTimer extends JavaPlugin {
      * plugin.yml command declarations and JavaPlugin#getCommand are not
      * supported for this plugin format.
      */
-    private void registerMainCommand(EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener) {
+    private void registerMainCommand(EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
+                                     RaceStatisticsEvaluator raceStatisticsEvaluator) {
         TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager,
-                eventOverviewGui, raceStartListener);
+                eventOverviewGui, raceStartListener, raceStatisticsEvaluator);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->

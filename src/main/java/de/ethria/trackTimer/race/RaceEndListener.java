@@ -19,7 +19,6 @@ public final class RaceEndListener {
     private final DatabaseManager database;
     private final LanguageManager language;
     private final RaceStartListener races;
-
     public RaceEndListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language,
                            RaceStartListener races) {
         this.plugin = plugin;
@@ -78,4 +77,5 @@ public final class RaceEndListener {
             plugin.getLogger().log(Level.SEVERE, "Could not record lap end for " + player.getName(), exception);
         }
     }
+
 }

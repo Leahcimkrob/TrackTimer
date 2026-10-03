@@ -36,6 +36,7 @@ permissions:
       tracktimer.command.editor: true
       tracktimer.command.convert: true
       tracktimer.command.leave: true
+      tracktimer.command.topten: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -68,3 +69,7 @@ permissions:
   tracktimer.command.leave:
     description: Allows cancelling the player's active race.
     default: true
+
+  tracktimer.command.topten:
+    description: Allows displaying TrackTimer race statistics in chat.
+    default: op

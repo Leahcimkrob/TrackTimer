@@ -16,6 +16,7 @@ help:
   editor: "<yellow>/<command> editor <gray>- Öffnet die Event-Übersicht."
   convert: "<yellow>/<command> convert <from> <to> <gray>- Überträgt Daten zwischen SQLite und MySQL."
   leave: "<yellow>/<command> leave <gray>- Bricht deinen aktuellen Lauf ab."
+  topten: "<yellow>/<command> topten <event> [datum|uhrzeit] <gray>- Zeigt die Rennauswertung im Chat."
   help: "<yellow>/<command> help <gray>- Zeigt diese Hilfe an."
 
 event:
@@ -93,6 +94,18 @@ race:
   not-running: "<red>Du fährst aktuell keine Strecke."
   cancelled: "<yellow>Dein Lauf wurde abgebrochen und die aktuellen Renndaten wurden gelöscht."
   new-record: "<gold><bold>Neuer Rekord auf <event>! </bold><gold>Zeit: <white><time>"
+
+race-statistics:
+  chat-title: "<gold>Rennergebnisse für <yellow><event>"
+  redstone-chat-title: "<gold>Rennen für <yellow><event> <dark_gray>| <white><date> <time_of_day>"
+  chat-empty: "<gray>Für dieses Event liegen noch keine abgeschlossenen Rennen vor."
+  chat-filter-empty: "<gray>Für diese Datum-/Uhrzeitauswahl gibt es keine Rennen."
+  normal-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> Runden <dark_gray>| <white><races> Rennen gefahren"
+  redstone-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> Runden"
+  duration-format: "<hours>:<minutes>:<seconds>.<centiseconds>"
+  redstone-filter-only: "<red>Datum oder Uhrzeit kann nur für Redstone-Rennen ausgewählt werden."
+  invalid-date-or-time: "<red>Ungültiges Datum oder Uhrzeit. Nutze einen Wert aus der Tab-Vervollständigung."
+  command-failed: "<red>Die Rennauswertung konnte nicht geladen werden."
 
 leaderboard:
   header: "<gold>Bestenliste - <event>"
