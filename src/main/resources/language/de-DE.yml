@@ -1,3 +1,4 @@
+# Platzhalter werden vom MiniMessage-System im Format <placeholder> ersetzt.
 prefix: "<dark_gray>[<gold>TrackTimer</gold>]</dark_gray> <reset>"
 
 general:

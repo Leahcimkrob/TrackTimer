@@ -1,3 +1,4 @@
+# Placeholders are replaced by the MiniMessage system using the <placeholder> format.
 overview:
   title: "TrackTimer - Overview"
   event-item:
