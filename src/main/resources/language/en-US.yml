@@ -89,7 +89,7 @@ race:
   checkpoint: "<yellow>Checkpoint <white><order></white> <gray>| Split time <white><time> <gray>| Lap <white><lap>/<laps>"
   lap-completed: "<green>Lap <white><lap></white>/<white><laps></white> completed."
   finished: "<gold>Finish reached! Your time: <yellow><time>"
-  redstone-start-title: "<green>!!! Go Go Go !!!"
+  start-title: "<green>!!! Go Go Go !!!"
   redstone-session-finished: "<red>Race finished!\n1: <winner> | 2: <second> | 3: <third>"
   already-running: "<red>You are already racing on <yellow><event></yellow>."
   not-running: "<red>You are not currently racing."

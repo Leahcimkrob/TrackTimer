@@ -45,15 +45,20 @@ public final class RaceStatisticsEvaluator {
 
     /** Returns best per-player results for normal races or all participants for selected redstone races. */
     public Optional<Evaluation> evaluate(long eventId, Output output) throws SQLException {
-        return evaluate(eventId, output, null, null);
+        return evaluate(eventId, output, null, null, null);
     }
 
     public Optional<Evaluation> evaluate(long eventId, Output output, LocalDate dateFilter,
                                          LocalTime timeFilter) throws SQLException {
+        return evaluate(eventId, output, dateFilter, timeFilter, null);
+    }
+
+    public Optional<Evaluation> evaluate(long eventId, Output output, LocalDate dateFilter,
+                                         LocalTime timeFilter, Boolean redstoneView) throws SQLException {
         Event event = database.getEvent(eventId);
         if (event == null) return Optional.empty();
 
-        boolean redstone = "signal".equals(event.startMode());
+        boolean redstone = redstoneView != null ? redstoneView : "signal".equals(event.startMode());
         String countKey = redstone ? "redstone-races" : "normal-races";
         int defaultCount = defaultCount(output, redstone);
         int limit = Math.max(0, plugin.getConfig().getInt(
@@ -66,11 +71,13 @@ public final class RaceStatisticsEvaluator {
 
         List<RaceStatisticsEntry> completedRaces = database.listCompletedRaceStatistics(eventId);
         Map<String, Integer> racesPerPlayer = new LinkedHashMap<>();
-        completedRaces.forEach(entry -> racesPerPlayer.merge(entry.playerUuid(), 1, Integer::sum));
+        completedRaces.stream().filter(entry -> !redstone || entry.redstoneStart())
+                .forEach(entry -> racesPerPlayer.merge(entry.playerUuid(), 1, Integer::sum));
         ZoneId zone = ZoneId.systemDefault();
         List<RaceStatisticsEntry> selected;
         if (redstone) {
             List<RaceStatisticsEntry> filtered = completedRaces.stream()
+                    .filter(RaceStatisticsEntry::redstoneStart)
                     .filter(entry -> matchesDateTime(entry, dateFilter, timeFilter, zone))
                     .toList();
             var selectedStarts = new java.util.LinkedHashSet<Long>();
@@ -111,6 +118,7 @@ public final class RaceStatisticsEvaluator {
         if (limit == 0) return List.of();
 
         return database.listCompletedRaceStatistics(eventId).stream()
+                .filter(RaceStatisticsEntry::redstoneStart)
                 .map(RaceStatisticsEntry::startTimeMillis)
                 .map(timestamp -> Math.floorDiv(timestamp, 1000))
                 .distinct()

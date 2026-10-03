@@ -41,7 +41,7 @@ public final class RedstoneStartListener implements Listener {
                     block.getX(), block.getY(), block.getZ())) {
                 var session = database.activateRedstoneSession(trigger.eventId(), System.currentTimeMillis());
                 scheduleJoinTimeout(session);
-                Title title = Title.title(language.chatFragment("race.redstone-start-title"), Component.empty());
+                Title title = Title.title(language.chatFragment("race.start-title"), Component.empty());
                 var center = block.getLocation().add(0.5, 0.5, 0.5);
                 double radius = Math.max(0,
                         plugin.getConfig().getDouble("race.redstone-start-title-radius-blocks", 50));

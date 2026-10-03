@@ -28,6 +28,7 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -39,6 +40,7 @@ public final class TopTenGui implements Listener {
     private final RaceStatisticsEvaluator statistics;
     private final EventOverviewGui overviewGui;
     private RedstoneRaceSelectionGui redstoneRaceSelectionGui;
+    private PlayerDetailsGui playerDetailsGui;
 
     public TopTenGui(EditorGuiContext context, RaceStatisticsEvaluator statistics, EventOverviewGui overviewGui) {
         this.context = context;
@@ -50,17 +52,30 @@ public final class TopTenGui implements Listener {
         this.redstoneRaceSelectionGui = redstoneRaceSelectionGui;
     }
 
+    public void setPlayerDetailsGui(PlayerDetailsGui playerDetailsGui) {
+        this.playerDetailsGui = playerDetailsGui;
+    }
+
     public void open(Player player, Event event, int overviewPage) {
-        open(player, event, overviewPage, null, null);
+        open(player, event, overviewPage, null, null, "signal".equals(event.startMode()));
+    }
+
+    public void openStandard(Player player, Event event, int overviewPage) {
+        open(player, event, overviewPage, null, null, false);
     }
 
     public void open(Player player, Event event, int overviewPage, LocalDate dateFilter, LocalTime timeFilter) {
+        open(player, event, overviewPage, dateFilter, timeFilter, "signal".equals(event.startMode()));
+    }
+
+    private void open(Player player, Event event, int overviewPage, LocalDate dateFilter,
+                      LocalTime timeFilter, boolean redstoneView) {
         try {
             var evaluation = statistics.evaluate(event.id(), RaceStatisticsEvaluator.Output.GUI,
-                    dateFilter, timeFilter);
+                    dateFilter, timeFilter, redstoneView);
             if (evaluation.isEmpty()) return;
             var results = evaluation.get();
-            TopTenHolder holder = new TopTenHolder(event, overviewPage);
+            TopTenHolder holder = new TopTenHolder(event, overviewPage, results.redstone(), dateFilter, timeFilter);
             Inventory inventory = Bukkit.createInventory(holder, INVENTORY_SIZE,
                     context.language.gui("topten.title", LanguageManager.placeholders("event", event.name())));
             holder.inventory = inventory;
@@ -98,7 +113,9 @@ public final class TopTenGui implements Listener {
                 String loreKey = results.redstone() ? "topten.redstone-entry.lore" : "topten.entry-item.lore";
                 meta.lore(context.language.guiList(loreKey, placeholders));
                 head.setItemMeta(meta);
-                inventory.setItem(resultSlots.get(index), head);
+                int resultSlot = resultSlots.get(index);
+                inventory.setItem(resultSlot, head);
+                holder.entries.put(resultSlot, entry);
             }
 
             if (results.entries().isEmpty()) {
@@ -141,6 +158,13 @@ public final class TopTenGui implements Listener {
             } else {
                 overviewGui.open(player, holder.overviewPage);
             }
+            return;
+        }
+        RaceStatisticsEntry entry = holder.entries.get(event.getRawSlot());
+        if (entry != null && playerDetailsGui != null) {
+            playerDetailsGui.open(player, holder.event, entry, holder.overviewPage,
+                    () -> open(player, holder.event, holder.overviewPage,
+                            holder.dateFilter, holder.timeFilter, holder.redstoneRace));
         }
     }
 
@@ -187,14 +211,20 @@ public final class TopTenGui implements Listener {
     private static final class TopTenHolder implements InventoryHolder {
         private final int overviewPage;
         private Inventory inventory;
+        private final Map<Integer, RaceStatisticsEntry> entries = new java.util.HashMap<>();
 
         private final Event event;
         private final boolean redstoneRace;
+        private final LocalDate dateFilter;
+        private final LocalTime timeFilter;
 
-        private TopTenHolder(Event event, int overviewPage) {
+        private TopTenHolder(Event event, int overviewPage, boolean redstoneRace,
+                             LocalDate dateFilter, LocalTime timeFilter) {
             this.event = event;
             this.overviewPage = overviewPage;
-            this.redstoneRace = "signal".equals(event.startMode());
+            this.redstoneRace = redstoneRace;
+            this.dateFilter = dateFilter;
+            this.timeFilter = timeFilter;
         }
 
         @Override public Inventory getInventory() { return inventory; }

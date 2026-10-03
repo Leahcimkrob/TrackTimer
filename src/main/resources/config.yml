@@ -16,6 +16,9 @@ race:
 
 # Normal races use each player's best time; redstone races list all players from the latest sessions.
 race-statistics:
+  player-details:
+    # Maximum number of recent races besides the pinned fastest-lap race; 0 includes all races.
+    recent-races-limit: 5
   gui:
     normal-races: 10
     redstone-races: 20

@@ -10,6 +10,7 @@ import de.ethria.trackTimer.gui.EventIconSwapGui;
 import de.ethria.trackTimer.gui.EventTriggerGui;
 import de.ethria.trackTimer.gui.TopTenGui;
 import de.ethria.trackTimer.gui.RedstoneRaceSelectionGui;
+import de.ethria.trackTimer.gui.PlayerDetailsGui;
 import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
@@ -87,12 +88,15 @@ public final class TrackTimer extends JavaPlugin {
         raceStatisticsEvaluator = new RaceStatisticsEvaluator(
                 this, databaseManager);
         TopTenGui topTenGui = new TopTenGui(editorGuiContext, raceStatisticsEvaluator, eventOverviewGui);
+        PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
+        topTenGui.setPlayerDetailsGui(playerDetailsGui);
         RedstoneRaceSelectionGui redstoneRaceSelectionGui = new RedstoneRaceSelectionGui(
                 editorGuiContext, raceStatisticsEvaluator, eventOverviewGui, topTenGui);
         topTenGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         eventOverviewGui.setTopTenGui(topTenGui);
         eventOverviewGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         getServer().getPluginManager().registerEvents(topTenGui, this);
+        getServer().getPluginManager().registerEvents(playerDetailsGui, this);
         getServer().getPluginManager().registerEvents(redstoneRaceSelectionGui, this);
         RaceEndListener raceEndListener = new RaceEndListener(
                 this, databaseManager, languageManager, raceStartListener);

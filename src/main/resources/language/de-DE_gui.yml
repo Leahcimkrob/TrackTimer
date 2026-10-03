@@ -13,7 +13,9 @@ overview:
       - "<gray>Runden: <white><laps>"
       - "<gray>Startmodus: <white><start_mode>"
       - "<gray>Erstellt: <white><created>"
-    topten-click: "<yellow>Linksklick: TopTen öffnen"
+    topten-click: "<yellow>Linksklick oder Shift-Linksklick: TopTen öffnen"
+    redstone-click: "<yellow>Linksklick: Redstone-Rennen auswählen"
+    redstone-standard-click: "<yellow>Shift-Linksklick: normale TopTen öffnen"
     edit-click: "<yellow>Rechtsklick: Event bearbeiten"
   empty-item:
     name: "<gray>Keine Events vorhanden"
@@ -27,12 +29,30 @@ topten:
       - "<gray>Zeit: <white><race_time>"
       - "<gray>Runden: <white><laps>"
       - "<gray>Gefahrene Rennen: <white><races>"
+      - "<yellow>Klick: Runden-Details anzeigen"
   redstone-entry:
     lore:
       - "<gray>Name: <white><player>"
       - "<gray>Zeit: <white><race_time>"
       - "<gray>Runden: <white><laps>"
       - "<gray>Rennstart: <white><date> <time_of_day>"
+      - "<yellow>Klick: Runden-Details anzeigen"
+  player-details:
+    title: "Renntage: <player> - <event>"
+    fastest-lap:
+      name: "<gold>Schnellste Runde"
+      lore:
+        - "<gray>Gesamtzeit: <white><total_time>"
+        - "<gray>Rundenzeit: <green><lap_time>"
+        - "<gray>Runde: <white><lap>"
+        - "<gray>Renntag: <white><date> <time_of_day>"
+    checkpoint-line: "<dark_gray>CP <order>: <white><time>"
+    lap:
+      name: "<yellow>Runde <lap>"
+      lore:
+        - "<gray>Rundenzeit: <white><lap_time>"
+    empty-item:
+      name: "<gray>Keine Rundenzeiten gespeichert"
   redstone-selection:
     title: "Ampel-Rennen - <event>"
     empty-item:

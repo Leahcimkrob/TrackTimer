@@ -13,7 +13,9 @@ overview:
       - "<gray>Laps: <white><laps>"
       - "<gray>Start mode: <white><start_mode>"
       - "<gray>Created: <white><created>"
-    topten-click: "<yellow>Left-click: open TopTen"
+    topten-click: "<yellow>Left-click or Shift-left-click: open TopTen"
+    redstone-click: "<yellow>Left-click: select a redstone race"
+    redstone-standard-click: "<yellow>Shift-left-click: open standard TopTen"
     edit-click: "<yellow>Right-click: edit event"
   empty-item:
     name: "<gray>No events available"
@@ -27,12 +29,30 @@ topten:
       - "<gray>Time: <white><race_time>"
       - "<gray>Laps: <white><laps>"
       - "<gray>Races driven: <white><races>"
+      - "<yellow>Click: view lap details"
   redstone-entry:
     lore:
       - "<gray>Name: <white><player>"
       - "<gray>Time: <white><race_time>"
       - "<gray>Laps: <white><laps>"
       - "<gray>Race started: <white><date> <time_of_day>"
+      - "<yellow>Click: view lap details"
+  player-details:
+    title: "Race days: <player> - <event>"
+    fastest-lap:
+      name: "<gold>Fastest lap"
+      lore:
+        - "<gray>Total time: <white><total_time>"
+        - "<gray>Lap time: <green><lap_time>"
+        - "<gray>Lap: <white><lap>"
+        - "<gray>Race day: <white><date> <time_of_day>"
+    checkpoint-line: "<dark_gray>CP <order>: <white><time>"
+    lap:
+      name: "<yellow>Lap <lap>"
+      lore:
+        - "<gray>Lap time: <white><lap_time>"
+    empty-item:
+      name: "<gray>No lap times stored"
   redstone-selection:
     title: "Traffic Light Races - <event>"
     empty-item:

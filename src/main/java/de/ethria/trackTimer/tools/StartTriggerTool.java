@@ -15,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -162,11 +163,13 @@ public class StartTriggerTool implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onSelectionChat(AsyncChatEvent event) {
-        if (!"exit".equalsIgnoreCase(PlainTextComponentSerializer.plainText().serialize(event.message()).trim())) return;
+        if (!"exit".equalsIgnoreCase(
+                PlainTextComponentSerializer.plainText().serialize(event.message()).trim())) return;
         Selection selection = selections.get(event.getPlayer().getUniqueId());
         if (selection == null || ACTIVE_TOOLS.get(event.getPlayer().getUniqueId()) != this) return;
+        // Cancel at HIGHEST priority so exit is consumed even if another listener handles chat.
         event.setCancelled(true);
         Bukkit.getScheduler().runTask(context.plugin(), () -> {
             Player player = event.getPlayer();

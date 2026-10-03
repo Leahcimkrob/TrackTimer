@@ -1,6 +1,6 @@
 name: TrackTimer
 description: $description
-prefix: vm_gui
+prefix: TrackTimer
 version: '${version}'
 
 main: de.ethria.trackTimer.TrackTimer
@@ -77,4 +77,4 @@ permissions:
 
   tracktimer.command.topten:
     description: Allows displaying TrackTimer race statistics in chat.
-    default: op
+    default: true

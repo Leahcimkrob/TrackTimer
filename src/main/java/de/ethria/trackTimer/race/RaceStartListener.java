@@ -9,6 +9,7 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.bossbar.BossBar.Overlay;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -76,6 +77,9 @@ public final class RaceStartListener implements Listener {
         long eventId = point.eventId();
         String eventName = point.eventName();
         long startTime = result.startTime();
+        if (result.sessionId() == null) {
+            player.showTitle(Title.title(language.chatFragment("race.start-title"), Component.empty()));
+        }
         BossBar bar = BossBar.bossBar(language.chatFragment("race.bossbar.text", LanguageManager.placeholders(
                 "event", eventName, "time", format(startTime, startTime))), 1.0f, Color.GREEN, Overlay.PROGRESS);
         player.showBossBar(bar);
@@ -169,6 +173,7 @@ public final class RaceStartListener implements Listener {
         private final BukkitTask task;
         private int lap = 1;
         private int nextCheckpoint = 1;
+        private long lapStartTime;
 
         private RunningRace(Player player, long eventId, String eventName, long raceResultId, long startTime,
                             Long sessionId,
@@ -183,6 +188,7 @@ public final class RaceStartListener implements Listener {
             this.maxCheckpointOrder = maxCheckpointOrder;
             this.bar = bar;
             this.task = task;
+            this.lapStartTime = startTime;
         }
 
         public long eventId() { return eventId; }
@@ -193,6 +199,7 @@ public final class RaceStartListener implements Listener {
         public int laps() { return laps; }
         public int maxCheckpointOrder() { return maxCheckpointOrder; }
         public int lap() { return lap; }
+        public long lapStartTime() { return lapStartTime; }
         public int nextCheckpoint() { return nextCheckpoint; }
         public boolean checkpointsComplete() {
             return maxCheckpointOrder == 0 || nextCheckpoint == 0;
@@ -203,9 +210,10 @@ public final class RaceStartListener implements Listener {
         }
 
         /** Called by the end-trigger logic after the current lap has ended. */
-        public int completeLap() {
+        public int completeLap(long completedAt) {
             if (!checkpointsComplete()) return -1;
             int completedLap = lap;
+            lapStartTime = completedAt;
             if (lap < laps) {
                 lap++;
                 nextCheckpoint = maxCheckpointOrder > 0 ? 1 : 0;

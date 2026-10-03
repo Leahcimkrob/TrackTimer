@@ -43,17 +43,21 @@ public final class RaceEndListener {
                 int completedLap = race.lap();
                 long now = System.currentTimeMillis();
                 long elapsedMillis = Math.max(0, now - race.startTime());
+                long lapTimeMillis = Math.max(0, now - race.lapStartTime());
                 boolean finished = completedLap >= race.laps();
-                database.recordCompletedLap(race.raceResultId(), completedLap,
+                database.recordCompletedLap(race.raceResultId(), completedLap, lapTimeMillis,
                         finished ? now : null, finished ? elapsedMillis : null);
                 RedstoneSessionSummary sessionSummary = finished
                         ? database.finishRedstoneSessionIfIdle(race.sessionId()) : null;
-                race.completeLap();
+                race.completeLap(now);
 
                 if (finished) {
                     races.finishRace(player, end.eventId());
-                    player.sendMessage(language.chat("race.finished", LanguageManager.placeholders(
-                            "event", race.eventName(), "time", races.formatDuration(elapsedMillis))));
+                    var finishLines = language.chatLines("race.finished", LanguageManager.placeholders(
+                            "event", race.eventName(), "time", races.formatDuration(elapsedMillis)));
+                    Component finishTitle = finishLines.isEmpty() ? Component.empty() : finishLines.get(0);
+                    Component finishSubtitle = finishLines.size() < 2 ? Component.empty() : finishLines.get(1);
+                    player.showTitle(Title.title(finishTitle, finishSubtitle));
                     if (sessionSummary != null) {
                         var podium = sessionSummary.podium();
                         var lines = language.chatLines("race.redstone-session-finished", LanguageManager.placeholders(

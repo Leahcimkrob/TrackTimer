@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -63,7 +64,12 @@ public final class EventOverviewGui implements Listener {
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>(context.language.guiList(
                         "overview.event-item.lore", LanguageManager.placeholders("event", event.name(),
                                 "laps", event.laps(), "start_mode", startModeLabel, "created", event.created())));
-                lore.add(context.language.gui("overview.event-item.topten-click"));
+                if ("signal".equals(event.startMode())) {
+                    lore.add(context.language.gui("overview.event-item.redstone-click"));
+                    lore.add(context.language.gui("overview.event-item.redstone-standard-click"));
+                } else {
+                    lore.add(context.language.gui("overview.event-item.topten-click"));
+                }
                 if (player.hasPermission("tracktimer.command.editor")) {
                     lore.add(context.language.gui("overview.event-item.edit-click"));
                 }
@@ -113,10 +119,14 @@ public final class EventOverviewGui implements Listener {
                     } else {
                         player.sendMessage(context.language.chat("general.no-permission"));
                     }
-                } else if ("signal".equals(selected.startMode()) && redstoneRaceSelectionGui != null) {
+                } else if ("signal".equals(selected.startMode())
+                        && event.getClick().isShiftClick() && event.getClick().isLeftClick()) {
+                    if (topTenGui != null) topTenGui.openStandard(player, selected, holder.page);
+                } else if ("signal".equals(selected.startMode())
+                        && event.getClick() == ClickType.LEFT && redstoneRaceSelectionGui != null) {
                     redstoneRaceSelectionGui.open(player, selected, holder.page);
                 } else if (topTenGui != null) {
-                    topTenGui.open(player, selected, holder.page);
+                    topTenGui.openStandard(player, selected, holder.page);
                 }
             }
         }

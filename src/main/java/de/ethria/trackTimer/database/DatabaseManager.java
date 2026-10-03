@@ -64,8 +64,29 @@ public final class DatabaseManager {
                 statement.executeUpdate(sql);
             }
         }
+        ensureRaceResultsRedstoneColumn();
         createIndexes();
         plugin.getLogger().info("Database tables are ready.");
+    }
+
+    /** Adds the redstone marker to race_results on databases created by earlier plugin versions. */
+    private void ensureRaceResultsRedstoneColumn() throws SQLException {
+        boolean columnExists = false;
+        try (Statement statement = connection.createStatement();
+             ResultSet columns = statement.executeQuery("SELECT * FROM race_results LIMIT 0")) {
+            ResultSetMetaData metadata = columns.getMetaData();
+            for (int index = 1; index <= metadata.getColumnCount(); index++) {
+                if ("is_redstone".equalsIgnoreCase(metadata.getColumnLabel(index))) {
+                    columnExists = true;
+                    break;
+                }
+            }
+        }
+        if (!columnExists) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE race_results ADD COLUMN is_redstone BOOLEAN NOT NULL DEFAULT FALSE");
+            }
+        }
     }
 
     /** Copies all TrackTimer data between the configured SQLite and MySQL databases. */
@@ -86,7 +107,7 @@ public final class DatabaseManager {
             target.setAutoCommit(false);
             try {
                 for (String table : List.of("players", "events", "event_triggers", "race_sessions",
-                        "race_results", "race_checkpoint_times", "race_session_results")) {
+                        "race_results", "race_checkpoint_times", "race_lap_times", "race_session_results")) {
                     copyTable(source, target, table);
                 }
                 target.commit();
@@ -207,7 +228,7 @@ public final class DatabaseManager {
         List<RaceStatisticsEntry> entries = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT rr.id, e.event_name, rr.player_uuid, p.last_name, rr.race_time_ms,
-                       rr.laps_completed, rr.start_time
+                       rr.laps_completed, rr.start_time, rr.is_redstone
                 FROM race_results rr
                 JOIN events e ON e.id = rr.event_id
                 JOIN players p ON p.uuid = rr.player_uuid
@@ -219,7 +240,35 @@ public final class DatabaseManager {
                     entries.add(new RaceStatisticsEntry(rows.getLong("id"), eventId,
                             rows.getString("event_name"), rows.getString("player_uuid"),
                             rows.getString("last_name"), rows.getLong("race_time_ms"),
-                            rows.getInt("laps_completed"), rows.getLong("start_time")));
+                            rows.getInt("laps_completed"), rows.getLong("start_time"),
+                            rows.getBoolean("is_redstone")));
+                }
+            }
+        }
+        return List.copyOf(entries);
+    }
+
+    public List<RaceStatisticsEntry> listPlayerRaceStatistics(long eventId, String playerUuid) throws SQLException {
+        List<RaceStatisticsEntry> entries = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT rr.id, e.event_name, rr.player_uuid, p.last_name, rr.race_time_ms,
+                       rr.laps_completed, rr.start_time, rr.is_redstone
+                FROM race_results rr
+                JOIN events e ON e.id = rr.event_id
+                JOIN players p ON p.uuid = rr.player_uuid
+                WHERE rr.event_id = ? AND rr.player_uuid = ?
+                  AND rr.end_time IS NOT NULL AND rr.race_time_ms IS NOT NULL
+                ORDER BY rr.start_time DESC, rr.id DESC
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, playerUuid);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    entries.add(new RaceStatisticsEntry(rows.getLong("id"), eventId,
+                            rows.getString("event_name"), rows.getString("player_uuid"),
+                            rows.getString("last_name"), rows.getLong("race_time_ms"),
+                            rows.getInt("laps_completed"), rows.getLong("start_time"),
+                            rows.getBoolean("is_redstone")));
                 }
             }
         }
@@ -229,7 +278,60 @@ public final class DatabaseManager {
     public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount, String created) { }
     public record RaceStatisticsEntry(long resultId, long eventId, String eventName, String playerUuid,
                                       String playerName, long raceTimeMillis, int lapsCompleted,
-                                      long startTimeMillis) { }
+                                      long startTimeMillis, boolean redstoneStart) { }
+
+    public record RaceLapTime(int lap, long lapTimeMillis) { }
+    public record PlayerRaceLapTime(long raceResultId, int lap, long lapTimeMillis) { }
+    public record RaceCheckpointSplit(int lap, int checkpointOrder, long elapsedMillis) { }
+
+    public List<RaceLapTime> listRaceLapTimes(long raceResultId) throws SQLException {
+        List<RaceLapTime> lapTimes = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT lap, lap_time_ms FROM race_lap_times
+                WHERE race_result_id = ? ORDER BY lap
+                """)) {
+            statement.setLong(1, raceResultId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) lapTimes.add(new RaceLapTime(rows.getInt("lap"), rows.getLong("lap_time_ms")));
+            }
+        }
+        return List.copyOf(lapTimes);
+    }
+
+    public List<PlayerRaceLapTime> listPlayerRaceLapTimes(long eventId, String playerUuid) throws SQLException {
+        List<PlayerRaceLapTime> lapTimes = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT lt.race_result_id, lt.lap, lt.lap_time_ms
+                FROM race_lap_times lt JOIN race_results rr ON rr.id = lt.race_result_id
+                WHERE rr.event_id = ? AND rr.player_uuid = ? AND rr.end_time IS NOT NULL
+                ORDER BY rr.start_time DESC, rr.id DESC, lt.lap
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, playerUuid);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) lapTimes.add(new PlayerRaceLapTime(rows.getLong("race_result_id"),
+                        rows.getInt("lap"), rows.getLong("lap_time_ms")));
+            }
+        }
+        return List.copyOf(lapTimes);
+    }
+
+    public List<RaceCheckpointSplit> listRaceCheckpointSplits(long raceResultId) throws SQLException {
+        List<RaceCheckpointSplit> splits = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT t.checkpoint_order, c.lap, c.checkpoint_time_ms
+                FROM race_checkpoint_times c JOIN event_triggers t ON t.id = c.trigger_id
+                WHERE c.race_result_id = ? AND t.trigger_type = 'checkpoint'
+                ORDER BY c.lap, t.checkpoint_order
+                """)) {
+            statement.setLong(1, raceResultId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) splits.add(new RaceCheckpointSplit(rows.getInt("lap"),
+                        rows.getInt("checkpoint_order"), rows.getLong("checkpoint_time_ms")));
+            }
+        }
+        return List.copyOf(splits);
+    }
 
     public void updateEventStartMode(long eventId, String startMode) throws SQLException {
         if (!List.of("player", "signal").contains(startMode)) {
@@ -400,11 +502,12 @@ public final class DatabaseManager {
             }
             long resultId;
             try (PreparedStatement insert = connection.prepareStatement(
-                    "INSERT INTO race_results (event_id, player_uuid, start_time) VALUES (?, ?, ?)",
+                    "INSERT INTO race_results (event_id, player_uuid, start_time, is_redstone) VALUES (?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS)) {
                 insert.setLong(1, eventId);
                 insert.setString(2, playerUuid);
                 insert.setLong(3, startTime);
+                insert.setBoolean(4, sessionId != null);
                 insert.executeUpdate();
                 try (ResultSet keys = insert.getGeneratedKeys()) {
                     if (!keys.next()) throw new SQLException("Could not retrieve the new race result ID.");
@@ -653,21 +756,39 @@ public final class DatabaseManager {
     public record EndPoint(long triggerId, long eventId, String eventName, int triggerY) { }
 
     /** Stores a completed lap, and final timing fields when the event has ended. */
-    public void recordCompletedLap(long raceResultId, int completedLaps, Long endTime, Long raceTimeMillis)
-            throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("""
-                UPDATE race_results SET laps_completed = ?, end_time = ?, race_time_ms = ?
-                WHERE id = ? AND end_time IS NULL
-                """)) {
-            statement.setInt(1, completedLaps);
-            if (endTime == null) statement.setNull(2, java.sql.Types.BIGINT);
-            else statement.setLong(2, endTime);
-            if (raceTimeMillis == null) statement.setNull(3, java.sql.Types.BIGINT);
-            else statement.setLong(3, raceTimeMillis);
-            statement.setLong(4, raceResultId);
-            if (statement.executeUpdate() != 1) {
-                throw new SQLException("The race result was already completed or no longer exists.");
+    public void recordCompletedLap(long raceResultId, int completedLaps, long lapTimeMillis,
+                                   Long endTime, Long raceTimeMillis) throws SQLException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (PreparedStatement lap = connection.prepareStatement("""
+                    INSERT INTO race_lap_times (race_result_id, lap, lap_time_ms) VALUES (?, ?, ?)
+                    """)) {
+                lap.setLong(1, raceResultId);
+                lap.setInt(2, completedLaps);
+                lap.setLong(3, lapTimeMillis);
+                lap.executeUpdate();
             }
+            try (PreparedStatement statement = connection.prepareStatement("""
+                    UPDATE race_results SET laps_completed = ?, end_time = ?, race_time_ms = ?
+                    WHERE id = ? AND end_time IS NULL
+                    """)) {
+                statement.setInt(1, completedLaps);
+                if (endTime == null) statement.setNull(2, java.sql.Types.BIGINT);
+                else statement.setLong(2, endTime);
+                if (raceTimeMillis == null) statement.setNull(3, java.sql.Types.BIGINT);
+                else statement.setLong(3, raceTimeMillis);
+                statement.setLong(4, raceResultId);
+                if (statement.executeUpdate() != 1) {
+                    throw new SQLException("The race result was already completed or no longer exists.");
+                }
+            }
+            connection.commit();
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(originalAutoCommit);
         }
     }
 
@@ -1008,10 +1129,23 @@ public final class DatabaseManager {
                     start_time BIGINT NOT NULL,
                     end_time BIGINT,
                     race_time_ms BIGINT,
+                    is_redstone BOOLEAN NOT NULL DEFAULT FALSE,
                     laps_completed INTEGER NOT NULL DEFAULT 0,
                     FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
                     FOREIGN KEY (player_uuid) REFERENCES players(uuid),
                     CHECK (laps_completed >= 0)
+                )
+                """.formatted(autoIncrement),
+                """
+                CREATE TABLE IF NOT EXISTS race_lap_times (
+                    id %s,
+                    race_result_id BIGINT NOT NULL,
+                    lap INTEGER NOT NULL,
+                    lap_time_ms BIGINT NOT NULL,
+                    FOREIGN KEY (race_result_id) REFERENCES race_results(id) ON DELETE CASCADE,
+                    CHECK (lap > 0),
+                    CHECK (lap_time_ms >= 0),
+                    UNIQUE (race_result_id, lap)
                 )
                 """.formatted(autoIncrement),
                 """
@@ -1051,6 +1185,7 @@ public final class DatabaseManager {
                 new IndexDefinition("race_sessions", "idx_race_sessions_event", "event_id"),
                 new IndexDefinition("race_results", "idx_race_results_leaderboard", "event_id, race_time_ms"),
                 new IndexDefinition("race_results", "idx_race_results_player", "player_uuid"),
+                new IndexDefinition("race_lap_times", "idx_race_lap_times_result", "race_result_id"),
                 new IndexDefinition("race_checkpoint_times", "idx_checkpoint_times_result", "race_result_id")
         );
 
