@@ -40,8 +40,9 @@ public final class TrackTimerCommand {
         DeleteSubCommand delete = new DeleteSubCommand(plugin, database, language);
         ResetSubCommand reset = new ResetSubCommand(plugin, database, language);
         EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
-        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, reset, editor));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor);
+        ConvertSubCommand convert = new ConvertSubCommand(database, language);
+        HelpSubCommand help = new HelpSubCommand(language, label, List.of(reload, create, delete, reset, editor, convert));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert);
 
         var root = Commands.literal(label)
                 .executes(context -> {

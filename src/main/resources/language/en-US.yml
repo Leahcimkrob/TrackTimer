@@ -13,6 +13,7 @@ help:
   delete: "<yellow>/<command> delete <eventname> [confirm|cancel] <gray>- Deletes an event after chat confirmation."
   reset: "<yellow>/<command> reset <eventname> [confirm|cancel] <gray>- Clears race results and checkpoint times."
   editor: "<yellow>/<command> editor <gray>- Opens the event overview."
+  convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:
@@ -91,3 +92,6 @@ leaderboard:
 database:
   connected: "<green>Database (<yellow><type></yellow>) connected successfully."
   error: "<red>Database error: <message>"
+  converted: "<green>Data copied from <yellow><from></yellow> to <yellow><to></yellow>."
+  convert-invalid: "<red>Invalid database types. Allowed: sqlite and mysql; source and target must differ."
+  convert-failed: "<red>Data conversion failed: <message>"

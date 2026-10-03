@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.ResultSetMetaData;
 import java.util.List;
 import java.util.Locale;
 import java.util.ArrayList;
@@ -65,6 +66,77 @@ public final class DatabaseManager {
         }
         createIndexes();
         plugin.getLogger().info("Database tables are ready.");
+    }
+
+    /** Copies all TrackTimer data between the configured SQLite and MySQL databases. */
+    public void convert(String from, String to) throws SQLException {
+        String sourceType = normalizeDatabaseType(from);
+        String targetType = normalizeDatabaseType(to);
+        if (sourceType.equals(targetType)) throw new IllegalArgumentException("Source and target databases must differ.");
+
+        try (Connection source = openConnection(sourceType);
+             Connection target = openConnection(targetType)) {
+            String targetAutoIncrement = "sqlite".equals(targetType)
+                    ? "INTEGER PRIMARY KEY AUTOINCREMENT" : "BIGINT PRIMARY KEY AUTO_INCREMENT";
+            try (Statement statement = target.createStatement()) {
+                for (String sql : tableStatements(targetAutoIncrement)) statement.executeUpdate(sql);
+                if ("sqlite".equals(targetType)) statement.execute("PRAGMA foreign_keys = ON");
+            }
+            createIndexes(target);
+            target.setAutoCommit(false);
+            try {
+                for (String table : List.of("players", "events", "event_triggers", "race_results", "race_checkpoint_times")) {
+                    copyTable(source, target, table);
+                }
+                target.commit();
+            } catch (SQLException exception) {
+                target.rollback();
+                throw exception;
+            } finally {
+                target.setAutoCommit(true);
+            }
+        }
+    }
+
+    private Connection openConnection(String type) throws SQLException {
+        FileConfiguration config = plugin.getConfig();
+        if ("sqlite".equals(type)) {
+            File file = new File(plugin.getDataFolder(), config.getString("database.sqlite.file", "tracktimer.db"));
+            File parent = file.getParentFile();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs())
+                throw new SQLException("Could not create SQLite database directory: " + parent);
+            return DriverManager.getConnection("jdbc:sqlite:" + file.getAbsolutePath());
+        }
+        String url = "jdbc:mysql://" + config.getString("database.mysql.host", "localhost") + ":"
+                + config.getInt("database.mysql.port", 3306) + "/" + config.getString("database.mysql.database", "tracktimer")
+                + "?useSSL=" + config.getBoolean("database.mysql.useSSL", true) + "&serverTimezone=UTC";
+        return DriverManager.getConnection(url, config.getString("database.mysql.username", "root"),
+                config.getString("database.mysql.password", ""));
+    }
+
+    private String normalizeDatabaseType(String type) {
+        String normalized = type == null ? "" : type.trim().toLowerCase(Locale.ROOT);
+        if (!List.of("sqlite", "mysql").contains(normalized))
+            throw new IllegalArgumentException("Database type must be sqlite or mysql.");
+        return normalized;
+    }
+
+    private void copyTable(Connection source, Connection target, String table) throws SQLException {
+        try (Statement query = source.createStatement(); ResultSet rows = query.executeQuery("SELECT * FROM " + table)) {
+            ResultSetMetaData metadata = rows.getMetaData();
+            int columns = metadata.getColumnCount();
+            List<String> columnNames = new ArrayList<>();
+            for (int i = 1; i <= columns; i++) columnNames.add(metadata.getColumnName(i));
+            String names = String.join(", ", columnNames);
+            String placeholders = String.join(", ", java.util.Collections.nCopies(columns, "?"));
+            try (PreparedStatement insert = target.prepareStatement("INSERT INTO " + table + " (" + names + ") VALUES (" + placeholders + ")")) {
+                while (rows.next()) {
+                    for (int i = 1; i <= columns; i++) insert.setObject(i, rows.getObject(i));
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+            }
+        }
     }
 
     /**
@@ -386,6 +458,7 @@ public final class DatabaseManager {
             connection.setAutoCommit(originalAutoCommit);
         }
     }
+
     private void executeDelete(String sql, long eventId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, eventId);
@@ -420,6 +493,10 @@ public final class DatabaseManager {
     }
 
     private List<String> tableStatements() {
+        return tableStatements(autoIncrement);
+    }
+
+    private List<String> tableStatements(String autoIncrement) {
         return List.of(
                 """
                 CREATE TABLE IF NOT EXISTS players (
@@ -493,6 +570,10 @@ public final class DatabaseManager {
     }
 
     private void createIndexes() throws SQLException {
+        createIndexes(connection);
+    }
+
+    private void createIndexes(Connection database) throws SQLException {
         List<IndexDefinition> indexes = List.of(
                 new IndexDefinition("event_triggers", "idx_event_triggers_event", "event_id"),
                 new IndexDefinition("race_results", "idx_race_results_leaderboard", "event_id, race_time_ms"),
@@ -501,19 +582,19 @@ public final class DatabaseManager {
         );
 
         for (IndexDefinition index : indexes) {
-            if (indexExists(index.table(), index.name())) {
+            if (indexExists(database, index.table(), index.name())) {
                 continue;
             }
-            try (Statement statement = connection.createStatement()) {
+            try (Statement statement = database.createStatement()) {
                 statement.executeUpdate("CREATE INDEX " + index.name() + " ON "
                         + index.table() + "(" + index.columns() + ")");
             }
         }
     }
 
-    private boolean indexExists(String tableName, String indexName) throws SQLException {
-        try (ResultSet indexes = connection.getMetaData().getIndexInfo(
-                connection.getCatalog(), null, tableName, false, false)) {
+    private boolean indexExists(Connection database, String tableName, String indexName) throws SQLException {
+        try (ResultSet indexes = database.getMetaData().getIndexInfo(
+                database.getCatalog(), null, tableName, false, false)) {
             while (indexes.next()) {
                 if (indexName.equalsIgnoreCase(indexes.getString("INDEX_NAME"))) {
                     return true;
