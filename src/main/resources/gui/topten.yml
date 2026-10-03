@@ -1,0 +1,20 @@
+# Layout for the six-row TopTen results GUI.
+guis:
+  topten:
+    rows: 3
+    columns: 5
+    button-bar:
+      material: GRAY_STAINED_GLASS_PANE
+      back:
+        slot: 49
+        material: ARROW
+    redstone-selection:
+      rows: 5
+      columns: 9
+      item:
+        material: CLOCK
+      button-bar:
+        material: GRAY_STAINED_GLASS_PANE
+        back:
+          slot: 49
+          material: ARROW

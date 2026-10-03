@@ -34,6 +34,7 @@ permissions:
       tracktimer.command.delete: true
       tracktimer.command.reset: true
       tracktimer.command.editor: true
+      tracktimer.command.overview: true
       tracktimer.command.convert: true
       tracktimer.command.leave: true
       tracktimer.command.topten: true
@@ -61,6 +62,10 @@ permissions:
   tracktimer.command.editor:
     description: Allows opening the TrackTimer event editor.
     default: op
+
+  tracktimer.command.overview:
+    description: Allows browsing events and race results.
+    default: true
 
   tracktimer.command.convert:
     description: Allows copying TrackTimer data between SQLite and MySQL.

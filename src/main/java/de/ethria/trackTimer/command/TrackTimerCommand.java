@@ -48,12 +48,13 @@ public final class TrackTimerCommand {
         DeleteSubCommand delete = new DeleteSubCommand(plugin, database, language);
         ResetSubCommand reset = new ResetSubCommand(plugin, database, language);
         EditorSubCommand editor = new EditorSubCommand(eventOverviewGui, language);
+        OverviewSubCommand overview = new OverviewSubCommand(eventOverviewGui, language);
         ConvertSubCommand convert = new ConvertSubCommand(database, language);
         LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
         TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
         HelpSubCommand help = new HelpSubCommand(language, label,
-                List.of(reload, create, delete, reset, editor, convert, leave, topTen));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, convert, leave, topTen);
+                List.of(reload, create, delete, reset, editor, overview, convert, leave, topTen));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, overview, convert, leave, topTen);
 
         var root = Commands.literal(label)
                 .executes(context -> {

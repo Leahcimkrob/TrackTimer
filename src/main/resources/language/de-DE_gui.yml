@@ -7,8 +7,41 @@ overview:
       - "<gray>Runden: <white><laps>"
       - "<gray>Startmodus: <white><start_mode>"
       - "<gray>Erstellt: <white><created>"
+    topten-click: "<yellow>Linksklick: TopTen öffnen"
+    edit-click: "<yellow>Rechtsklick: Event bearbeiten"
   empty-item:
     name: "<gray>Keine Events vorhanden"
+
+topten:
+  title: "TopTen Rennen - <event>"
+  entry-item:
+    name: "<gold>Platz <rank>"
+    lore:
+      - "<gray>Name: <white><player>"
+      - "<gray>Zeit: <white><race_time>"
+      - "<gray>Runden: <white><laps>"
+      - "<gray>Gefahrene Rennen: <white><races>"
+  redstone-entry:
+    lore:
+      - "<gray>Name: <white><player>"
+      - "<gray>Zeit: <white><race_time>"
+      - "<gray>Runden: <white><laps>"
+      - "<gray>Gefahrene Rennen: <white><races>"
+      - "<gray>Rennstart: <white><date> <time_of_day>"
+  redstone-selection:
+    title: "Redstone-Rennen - <event>"
+    empty-item:
+      name: "<gray>Noch keine abgeschlossenen Redstone-Rennen"
+  redstone-race:
+    name: "<gold><rank>. Rennen"
+    lore:
+      - "<gray>1. Platz: <white><first>"
+      - "<gray>2. Platz: <white><second>"
+      - "<gray>3. Platz: <white><third>"
+      - "<gray>Datum: <white><date>"
+      - "<gray>Uhrzeit: <white><time_of_day>"
+  empty-item:
+    name: "<gray>Noch keine Ergebnisse"
 
 event-editor:
   title: "Event-Editor: <event>"

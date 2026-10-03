@@ -7,8 +7,41 @@ overview:
       - "<gray>Laps: <white><laps>"
       - "<gray>Start mode: <white><start_mode>"
       - "<gray>Created: <white><created>"
+    topten-click: "<yellow>Left-click: open TopTen"
+    edit-click: "<yellow>Right-click: edit event"
   empty-item:
     name: "<gray>No events available"
+
+topten:
+  title: "TopTen Races - <event>"
+  entry-item:
+    name: "<gold>Rank <rank>"
+    lore:
+      - "<gray>Name: <white><player>"
+      - "<gray>Time: <white><race_time>"
+      - "<gray>Laps: <white><laps>"
+      - "<gray>Races driven: <white><races>"
+  redstone-entry:
+    lore:
+      - "<gray>Name: <white><player>"
+      - "<gray>Time: <white><race_time>"
+      - "<gray>Laps: <white><laps>"
+      - "<gray>Races driven: <white><races>"
+      - "<gray>Race started: <white><date> <time_of_day>"
+  redstone-selection:
+    title: "Redstone Races - <event>"
+    empty-item:
+      name: "<gray>No completed redstone races yet"
+  redstone-race:
+    name: "<gold>Race <rank>"
+    lore:
+      - "<gray>1st place: <white><first>"
+      - "<gray>2nd place: <white><second>"
+      - "<gray>3rd place: <white><third>"
+      - "<gray>Date: <white><date>"
+      - "<gray>Time: <white><time_of_day>"
+  empty-item:
+    name: "<gray>No results yet"
 
 event-editor:
   title: "Event Editor: <event>"

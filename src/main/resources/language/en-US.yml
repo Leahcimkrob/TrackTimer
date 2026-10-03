@@ -14,6 +14,7 @@ help:
   delete: "<yellow>/<command> delete <eventname> [confirm|cancel] <gray>- Deletes an event after chat confirmation."
   reset: "<yellow>/<command> reset <eventname> [confirm|cancel] <gray>- Clears race results and checkpoint times."
   editor: "<yellow>/<command> editor <gray>- Opens the event overview."
+  overview: "<yellow>/<command> overview <gray>- Opens the event overview and TopTen."
   convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
   leave: "<yellow>/<command> leave <gray>- Cancels your current run."
   topten: "<yellow>/<command> topten <event> [date|time] <gray>- Displays race statistics in chat."

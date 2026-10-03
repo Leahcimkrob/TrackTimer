@@ -22,6 +22,8 @@ public final class EventOverviewGui implements Listener {
     private static final int PAGE_SIZE = 45;
     private final EditorGuiContext context;
     private EventEditorGui eventEditorGui;
+    private TopTenGui topTenGui;
+    private RedstoneRaceSelectionGui redstoneRaceSelectionGui;
 
     public EventOverviewGui(EditorGuiContext context) {
         this.context = context;
@@ -29,6 +31,14 @@ public final class EventOverviewGui implements Listener {
 
     public void setEventEditorGui(EventEditorGui eventEditorGui) {
         this.eventEditorGui = eventEditorGui;
+    }
+
+    public void setTopTenGui(TopTenGui topTenGui) {
+        this.topTenGui = topTenGui;
+    }
+
+    public void setRedstoneRaceSelectionGui(RedstoneRaceSelectionGui redstoneRaceSelectionGui) {
+        this.redstoneRaceSelectionGui = redstoneRaceSelectionGui;
     }
 
     public void open(Player player, int requestedPage) {
@@ -50,9 +60,14 @@ public final class EventOverviewGui implements Listener {
                 String startModeLabel = "signal".equals(event.startMode())
                         ? (german ? "Redstone-Signal" : "Redstone signal")
                         : (german ? "Spieler" : "Player");
-                meta.lore(context.language.guiList("overview.event-item.lore",
-                        LanguageManager.placeholders("event", event.name(), "laps", event.laps(),
-                                "start_mode", startModeLabel, "created", event.created())));
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>(context.language.guiList(
+                        "overview.event-item.lore", LanguageManager.placeholders("event", event.name(),
+                                "laps", event.laps(), "start_mode", startModeLabel, "created", event.created())));
+                lore.add(context.language.gui("overview.event-item.topten-click"));
+                if (player.hasPermission("tracktimer.command.editor")) {
+                    lore.add(context.language.gui("overview.event-item.edit-click"));
+                }
+                meta.lore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(index - start, item);
             }
@@ -77,8 +92,19 @@ public final class EventOverviewGui implements Listener {
         else if (slot == 49) player.closeInventory();
         else if (slot >= 0 && slot < PAGE_SIZE) {
             int index = holder.page * PAGE_SIZE + slot;
-            if (index < holder.events.size() && eventEditorGui != null) {
-                eventEditorGui.open(player, holder.events.get(index), holder.page);
+            if (index < holder.events.size()) {
+                Event selected = holder.events.get(index);
+                if (event.getClick().isRightClick()) {
+                    if (player.hasPermission("tracktimer.command.editor") && eventEditorGui != null) {
+                        eventEditorGui.open(player, selected, holder.page);
+                    } else {
+                        player.sendMessage(context.language.chat("general.no-permission"));
+                    }
+                } else if ("signal".equals(selected.startMode()) && redstoneRaceSelectionGui != null) {
+                    redstoneRaceSelectionGui.open(player, selected, holder.page);
+                } else if (topTenGui != null) {
+                    topTenGui.open(player, selected, holder.page);
+                }
             }
         }
     }

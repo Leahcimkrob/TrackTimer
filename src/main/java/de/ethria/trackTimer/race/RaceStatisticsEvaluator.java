@@ -81,10 +81,12 @@ public final class RaceStatisticsEvaluator {
                         .distinct().sorted(Comparator.reverseOrder()).limit(limit)
                         .forEach(selectedStarts::add);
             }
-            Comparator<RaceStatisticsEntry> redstoneOrder = Comparator
-                    .comparingLong(RaceStatisticsEntry::startTimeMillis)
+            Comparator<RaceStatisticsEntry> sessionOrder =
+                    Comparator.comparingLong(RaceStatisticsEntry::startTimeMillis);
+            if (!redstoneChatAscending(output)) sessionOrder = sessionOrder.reversed();
+            Comparator<RaceStatisticsEntry> redstoneOrder = sessionOrder
+                    .thenComparingLong(RaceStatisticsEntry::raceTimeMillis)
                     .thenComparingLong(RaceStatisticsEntry::resultId);
-            if (!redstoneChatAscending(output)) redstoneOrder = redstoneOrder.reversed();
             selected = filtered.stream()
                     .filter(entry -> selectedStarts.contains(Math.floorDiv(entry.startTimeMillis(), 1000)))
                     .sorted(redstoneOrder)

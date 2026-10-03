@@ -26,6 +26,7 @@ public final class EditorGuiContext {
     final HeadDatabaseService heads;
     YamlConfiguration settings;
     YamlConfiguration triggerSettings;
+    YamlConfiguration topTenSettings;
 
     public EditorGuiContext(JavaPlugin plugin, DatabaseManager database, LanguageManager language, HeadDatabaseService heads) {
         this.plugin = plugin;
@@ -39,6 +40,7 @@ public final class EditorGuiContext {
     public DatabaseManager database() { return database; }
     public LanguageManager language() { return language; }
     public YamlConfiguration triggerSettings() { return triggerSettings; }
+    public YamlConfiguration topTenSettings() { return topTenSettings; }
 
     public void reload() {
         File guiFolder = new File(plugin.getDataFolder(), "gui");
@@ -47,6 +49,7 @@ public final class EditorGuiContext {
         }
         settings = loadGuiConfig(guiFolder, "editor.yml");
         triggerSettings = loadGuiConfig(guiFolder, "trigger.yml");
+        topTenSettings = loadGuiConfig(guiFolder, "topten.yml");
     }
 
     private YamlConfiguration loadGuiConfig(File guiFolder, String fileName) {
