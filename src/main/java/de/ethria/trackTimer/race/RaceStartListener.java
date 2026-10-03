@@ -1,6 +1,7 @@
 package de.ethria.trackTimer.race;
 
 import de.ethria.trackTimer.database.DatabaseManager;
+import de.ethria.trackTimer.database.DatabaseManager.RaceResult;
 import de.ethria.trackTimer.database.DatabaseManager.StartPoint;
 import de.ethria.trackTimer.language.LanguageManager;
 import net.kyori.adventure.bossbar.BossBar;
@@ -11,17 +12,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.sql.SQLException;
+import org.bukkit.Location;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.bukkit.Location;
 import java.util.logging.Level;
 
 /** Detects normal player start blocks and displays the elapsed race time. */
@@ -30,69 +30,31 @@ public final class RaceStartListener implements Listener {
     private final DatabaseManager database;
     private final LanguageManager language;
     private final Map<UUID, Map<Long, RunningRace>> running = new HashMap<>();
-    private final Map<UUID, BlockPosition> lastVehiclePositions = new HashMap<>();
-    private final BukkitTask vehicleMonitor;
 
     public RaceStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
-        vehicleMonitor = Bukkit.getScheduler().runTaskTimer(plugin, this::checkRidingPlayers, 1L, 1L);
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onMove(PlayerMoveEvent event) {
-        if (event.getTo() == null || !event.hasChangedBlock()) return;
-        checkStartAt(event.getPlayer(), event.getTo());
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onVehicleMove(VehicleMoveEvent event) {
-        Location from = event.getFrom();
-        Location to = event.getTo();
-        if (from.getBlockX() == to.getBlockX() && from.getBlockY() == to.getBlockY()
-                && from.getBlockZ() == to.getBlockZ()) return;
-        for (var passenger : event.getVehicle().getPassengers()) {
-            if (passenger instanceof Player player) {
-                Location playerPosition = player.getLocation();
-                playerPosition.setX(to.getX());
-                playerPosition.setZ(to.getZ());
-                checkStartAt(player, playerPosition);
-            }
-        }
+    public void onRacePosition(Player player, Location position) {
+        checkStartAt(player, position);
     }
 
     private void checkStartAt(Player player, Location position) {
-        double tolerance = plugin.getConfig().getDouble("race.start-trigger-height-tolerance", 2.0);
-        if (!Double.isFinite(tolerance) || tolerance < 0) tolerance = 2.0;
-        int minY = (int) Math.floor(position.getY() - tolerance) - 1;
-        int maxY = (int) Math.ceil(position.getY() + tolerance);
+        double tolerance = TriggerPositionMatcher.heightTolerance(plugin);
+        int minY = TriggerPositionMatcher.minY(position, tolerance);
+        int maxY = TriggerPositionMatcher.maxY(position, tolerance);
         try {
             for (StartPoint point : database.findPlayerStartPoints(plugin.getServer().getName(),
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
-                double triggerY = point.triggerY();
-                double distanceToSurface = Math.min(Math.abs(position.getY() - triggerY),
-                        Math.abs(position.getY() - (triggerY + 1.0)));
-                if (distanceToSurface > tolerance || isRunning(player, point.eventId())) continue;
-                long started = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
-                beginDisplay(player, point.eventId(), point.eventName(), started);
+                if (!TriggerPositionMatcher.isWithinHeight(position, point.triggerY(), tolerance)
+                        || isRunning(player, point.eventId())) continue;
+                RaceResult result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
+                beginDisplay(player, point, result);
             }
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.SEVERE, "Could not start race for " + player.getName(), exception);
-        }
-    }
-
-    /** Polls only vehicle passengers, including custom vehicles that do not emit VehicleMoveEvent. */
-    private void checkRidingPlayers() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getVehicle() == null) {
-                lastVehiclePositions.remove(player.getUniqueId());
-                continue;
-            }
-            Location position = player.getLocation();
-            BlockPosition current = new BlockPosition(position.getBlockX(), position.getBlockY(), position.getBlockZ());
-            BlockPosition previous = lastVehiclePositions.put(player.getUniqueId(), current);
-            if (!current.equals(previous)) checkStartAt(player, position);
         }
     }
 
@@ -100,7 +62,10 @@ public final class RaceStartListener implements Listener {
         return running.getOrDefault(player.getUniqueId(), Map.of()).containsKey(eventId);
     }
 
-    private void beginDisplay(Player player, long eventId, String eventName, long startTime) {
+    private void beginDisplay(Player player, StartPoint point, RaceResult result) {
+        long eventId = point.eventId();
+        String eventName = point.eventName();
+        long startTime = result.startTime();
         BossBar bar = BossBar.bossBar(language.chatFragment("race.bossbar.text", LanguageManager.placeholders(
                 "event", eventName, "time", format(startTime, startTime))), 1.0f, Color.GREEN, Overlay.PROGRESS);
         player.showBossBar(bar);
@@ -113,11 +78,20 @@ public final class RaceStartListener implements Listener {
                     "event", eventName, "time", format(startTime, System.currentTimeMillis()))));
         }, 0L, 2L);
         running.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>())
-                .put(eventId, new RunningRace(player, bar, task));
+                .put(eventId, new RunningRace(player, eventId, eventName, result.id(), startTime,
+                        point.laps(), point.maxCheckpointOrder(), bar, task));
     }
 
-    private Component format(long startTime, long now) {
-        long elapsedMillis = Math.max(0, now - startTime);
+    public List<RunningRace> activeRaces(Player player) {
+        return List.copyOf(running.getOrDefault(player.getUniqueId(), Map.of()).values());
+    }
+
+    public RunningRace activeRace(Player player, long eventId) {
+        return running.getOrDefault(player.getUniqueId(), Map.of()).get(eventId);
+    }
+
+    public Component formatDuration(long elapsedMillis) {
+        elapsedMillis = Math.max(0, elapsedMillis);
         long hours = elapsedMillis / 3_600_000;
         long minutes = elapsedMillis / 60_000 % 60;
         long seconds = elapsedMillis / 1_000 % 60;
@@ -129,9 +103,12 @@ public final class RaceStartListener implements Listener {
                 "ms", String.format(java.util.Locale.ROOT, "%02d", centiseconds)));
     }
 
+    private Component format(long startTime, long now) {
+        return formatDuration(now - startTime);
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        lastVehiclePositions.remove(event.getPlayer().getUniqueId());
         try {
             cancelPlayerRaces(event.getPlayer());
         } catch (SQLException exception) {
@@ -153,8 +130,6 @@ public final class RaceStartListener implements Listener {
     }
 
     public void shutdown() {
-        vehicleMonitor.cancel();
-        lastVehiclePositions.clear();
         running.values().forEach(races -> races.values().forEach(RunningRace::stop));
         running.clear();
     }
@@ -167,12 +142,62 @@ public final class RaceStartListener implements Listener {
         if (races.isEmpty()) running.remove(playerId);
     }
 
-    private record RunningRace(Player player, BossBar bar, BukkitTask task) {
+    public static final class RunningRace {
+        private final Player player;
+        private final long eventId;
+        private final String eventName;
+        private final long raceResultId;
+        private final long startTime;
+        private final int laps;
+        private final int maxCheckpointOrder;
+        private final BossBar bar;
+        private final BukkitTask task;
+        private int lap = 1;
+        private int nextCheckpoint = 1;
+
+        private RunningRace(Player player, long eventId, String eventName, long raceResultId, long startTime,
+                            int laps, int maxCheckpointOrder, BossBar bar, BukkitTask task) {
+            this.player = player;
+            this.eventId = eventId;
+            this.eventName = eventName;
+            this.raceResultId = raceResultId;
+            this.startTime = startTime;
+            this.laps = laps;
+            this.maxCheckpointOrder = maxCheckpointOrder;
+            this.bar = bar;
+            this.task = task;
+        }
+
+        public long eventId() { return eventId; }
+        public String eventName() { return eventName; }
+        public long raceResultId() { return raceResultId; }
+        public long startTime() { return startTime; }
+        public int laps() { return laps; }
+        public int maxCheckpointOrder() { return maxCheckpointOrder; }
+        public int lap() { return lap; }
+        public int nextCheckpoint() { return nextCheckpoint; }
+        public boolean checkpointsComplete() {
+            return maxCheckpointOrder == 0 || nextCheckpoint == 0;
+        }
+        public void completeCheckpoint() {
+            if (nextCheckpoint < maxCheckpointOrder) nextCheckpoint++;
+            else nextCheckpoint = 0;
+        }
+
+        /** Called by the end-trigger logic after the current lap has ended. */
+        public int completeLap() {
+            if (!checkpointsComplete()) return -1;
+            int completedLap = lap;
+            if (lap < laps) {
+                lap++;
+                nextCheckpoint = maxCheckpointOrder > 0 ? 1 : 0;
+            } else nextCheckpoint = 0;
+            return completedLap;
+        }
+
         private void stop() {
             task.cancel();
             player.hideBossBar(bar);
         }
     }
-
-    private record BlockPosition(int x, int y, int z) { }
 }

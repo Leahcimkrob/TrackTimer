@@ -270,7 +270,10 @@ public final class DatabaseManager {
                                                   int minY, int maxY) throws SQLException {
         List<StartPoint> points = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT e.id, e.event_name, t.y FROM event_triggers t JOIN events e ON e.id = t.event_id
+                SELECT e.id, e.event_name, e.laps, t.y,
+                       (SELECT COALESCE(MAX(cp.checkpoint_order), 0) FROM event_triggers cp
+                        WHERE cp.event_id = e.id AND cp.trigger_type = 'checkpoint') AS max_checkpoint_order
+                FROM event_triggers t JOIN events e ON e.id = t.event_id
                 WHERE t.trigger_type = 'start' AND t.trigger_mode <> 'REDSTONE_SIGNAL'
                   AND e.start_mode = 'player' AND t.server = ? AND t.world = ?
                   AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
@@ -283,14 +286,14 @@ public final class DatabaseManager {
             statement.setInt(6, maxY);
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) points.add(new StartPoint(rows.getLong("id"), rows.getString("event_name"),
-                        rows.getInt("y")));
+                        rows.getInt("y"), rows.getInt("laps"), rows.getInt("max_checkpoint_order")));
             }
         }
         return points;
     }
 
-    /** Registers the player once and creates an in-progress race result, returning its start timestamp. */
-    public long beginRace(long eventId, String playerUuid, String playerName) throws SQLException {
+    /** Registers the player once and creates an in-progress race result. */
+    public RaceResult beginRace(long eventId, String playerUuid, String playerName) throws SQLException {
         long now = System.currentTimeMillis();
         boolean originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
@@ -317,15 +320,21 @@ public final class DatabaseManager {
                     }
                 }
             }
+            long resultId;
             try (PreparedStatement insert = connection.prepareStatement(
-                    "INSERT INTO race_results (event_id, player_uuid, start_time) VALUES (?, ?, ?)")) {
+                    "INSERT INTO race_results (event_id, player_uuid, start_time) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
                 insert.setLong(1, eventId);
                 insert.setString(2, playerUuid);
                 insert.setLong(3, now);
                 insert.executeUpdate();
+                try (ResultSet keys = insert.getGeneratedKeys()) {
+                    if (!keys.next()) throw new SQLException("Could not retrieve the new race result ID.");
+                    resultId = keys.getLong(1);
+                }
             }
             connection.commit();
-            return now;
+            return new RaceResult(resultId, now);
         } catch (SQLException exception) {
             connection.rollback();
             throw exception;
@@ -334,7 +343,48 @@ public final class DatabaseManager {
         }
     }
 
-    public record StartPoint(long eventId, String eventName, int triggerY) { }
+    public record StartPoint(long eventId, String eventName, int triggerY, int laps, int maxCheckpointOrder) { }
+    public record RaceResult(long id, long startTime) { }
+
+    public List<CheckpointPoint> findCheckpointTriggers(String server, String world, int x, int z,
+                                                         int minY, int maxY) throws SQLException {
+        List<CheckpointPoint> points = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT t.id AS trigger_id, t.event_id, e.event_name, t.checkpoint_order, t.y
+                FROM event_triggers t JOIN events e ON e.id = t.event_id
+                WHERE t.trigger_type = 'checkpoint' AND t.server = ? AND t.world = ?
+                  AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, z);
+            statement.setInt(5, minY);
+            statement.setInt(6, maxY);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) points.add(new CheckpointPoint(rows.getLong("trigger_id"),
+                        rows.getLong("event_id"), rows.getString("event_name"),
+                        rows.getInt("checkpoint_order"), rows.getInt("y")));
+            }
+        }
+        return points;
+    }
+
+    public record CheckpointPoint(long triggerId, long eventId, String eventName,
+                                  int checkpointOrder, int triggerY) { }
+
+    public void recordCheckpoint(long raceResultId, long triggerId, int lap, long elapsedMillis) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO race_checkpoint_times (race_result_id, trigger_id, lap, checkpoint_time_ms)
+                VALUES (?, ?, ?, ?)
+                """)) {
+            statement.setLong(1, raceResultId);
+            statement.setLong(2, triggerId);
+            statement.setInt(3, lap);
+            statement.setLong(4, elapsedMillis);
+            statement.executeUpdate();
+        }
+    }
 
     /** Deletes unfinished race results and their checkpoint data for a player. */
     public int cancelActiveRaces(String playerUuid) throws SQLException {

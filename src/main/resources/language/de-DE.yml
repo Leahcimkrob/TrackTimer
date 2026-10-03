@@ -83,7 +83,7 @@ race:
     # Beispiel: "<hours>:<minutes>:<seconds>:<ms>" ergibt 00:00:00:00.
     time-format: "<hours>:<minutes>:<seconds>:<ms>"
   started: "<green>Dein Lauf für <yellow><event></yellow> hat begonnen!"
-  checkpoint: "<yellow>Checkpoint <white><order></white> erreicht. Zwischenzeit: <white><time>"
+  checkpoint: "<yellow>Checkpoint <white><order></white> <gray>| Zwischenzeit <white><time> <gray>| Runde <white><lap>/<laps>"
   lap-completed: "<green>Runde <white><lap></white>/<white><laps></white> abgeschlossen."
   finished: "<gold>Ziel erreicht! Deine Zeit: <yellow><time>"
   already-running: "<red>Du fährst bereits auf <yellow><event></yellow>."

@@ -13,6 +13,8 @@ import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
 import de.ethria.trackTimer.race.RaceStartListener;
+import de.ethria.trackTimer.race.RaceCheckpointListener;
+import de.ethria.trackTimer.race.RaceTriggerMonitor;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,6 +30,7 @@ public final class TrackTimer extends JavaPlugin {
     private HeadDatabaseService headDatabaseService;
     private EditorGuiContext editorGuiContext;
     private RaceStartListener raceStartListener;
+    private RaceTriggerMonitor raceTriggerMonitor;
 
     @Override
     public void onEnable() {
@@ -72,7 +75,13 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
+        RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
+                this, databaseManager, languageManager, raceStartListener);
+        raceTriggerMonitor = new RaceTriggerMonitor(this);
+        raceTriggerMonitor.addHandler(raceStartListener::onRacePosition);
+        raceTriggerMonitor.addHandler(raceCheckpointListener::onRacePosition);
         getServer().getPluginManager().registerEvents(raceStartListener, this);
+        getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
         registerMainCommand(eventOverviewGui, raceStartListener);
     }
 
@@ -121,6 +130,7 @@ public final class TrackTimer extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (raceTriggerMonitor != null) raceTriggerMonitor.shutdown();
         if (raceStartListener != null) raceStartListener.shutdown();
         if (databaseManager != null) {
             databaseManager.close();
