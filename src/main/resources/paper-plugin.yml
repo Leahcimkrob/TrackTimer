@@ -25,6 +25,8 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    # Both hologram providers are optional. Without either, TrackTimer runs
+    # normally and omits the hologram button and renderer.
 
 # Note: Paper plugins (paper-plugin.yml) do not support a "commands:" YAML
 # section. /tracktimer is registered in code via the lifecycle COMMANDS

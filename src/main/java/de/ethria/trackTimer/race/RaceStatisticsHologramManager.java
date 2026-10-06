@@ -2,22 +2,9 @@ package de.ethria.trackTimer.race;
 
 import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.database.DatabaseManager.Event;
+import de.ethria.trackTimer.database.DatabaseManager.RaceHologramBoard;
 import de.ethria.trackTimer.database.DatabaseManager.RaceStatisticsEntry;
 import de.ethria.trackTimer.language.LanguageManager;
-import eu.decentsoftware.holograms.api.DHAPI;
-import eu.decentsoftware.holograms.api.DecentHologramsAPI;
-import eu.decentsoftware.holograms.api.holograms.Hologram;
-import eu.decentsoftware.holograms.display.DisplayBase;
-import eu.decentsoftware.holograms.display.DisplaySettings;
-import eu.decentsoftware.holograms.display.DisplayService;
-import eu.decentsoftware.holograms.display.TextDisplay;
-import eu.decentsoftware.holograms.display.attribute.DisplayAttribute;
-import eu.decentsoftware.holograms.display.attribute.definition.BillboardAttributeDefinition;
-import eu.decentsoftware.holograms.display.attribute.definition.ScaleAttributeDefinition;
-import eu.decentsoftware.holograms.display.attribute.value.display.BillboardConstraintsValue;
-import eu.decentsoftware.holograms.display.attribute.value.primitives.Vector3fValue;
-import eu.decentsoftware.holograms.platform.api.data.DecentLocation;
-import eu.decentsoftware.holograms.platform.api.data.display.DisplayBillboardConstraints;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -26,10 +13,12 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.map.MapFont;
+import org.bukkit.map.MinecraftFont;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -37,24 +26,26 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-/** Persists and updates TrackTimer leaderboards made with DecentHolograms. */
+/** Stores TrackTimer leaderboard locations in its database and renders them through an installed provider. */
 public final class RaceStatisticsHologramManager {
-    private static final String FILE_NAME = "holograms.yml";
+    private static final String LEGACY_FILE_NAME = "holograms.yml";
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final JavaPlugin plugin;
     private final DatabaseManager database;
     private final LanguageManager language;
     private final RaceStatisticsEvaluator statistics;
-    private final File file;
-    private YamlConfiguration configuration;
+    private static final double WALL_GAP = 0.05;
+    private static final double VERTICAL_GAP = 0.25;
     private Provider provider = Provider.NONE;
+    private final Set<String> activeCmiBoards = new HashSet<>();
 
     public RaceStatisticsHologramManager(JavaPlugin plugin, DatabaseManager database,
                                          LanguageManager language, RaceStatisticsEvaluator statistics) {
@@ -62,7 +53,6 @@ public final class RaceStatisticsHologramManager {
         this.database = database;
         this.language = language;
         this.statistics = statistics;
-        this.file = new File(plugin.getDataFolder(), FILE_NAME);
     }
 
     public boolean isAvailable() {
@@ -87,37 +77,35 @@ public final class RaceStatisticsHologramManager {
     }
 
     public void load() {
-        if (!file.exists()) {
-            try {
-                if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
-                    plugin.getLogger().warning("Could not create plugin data folder for race holograms.");
-                    return;
+        try {
+            migrateLegacyFile();
+            List<RaceHologramBoard> boards = new ArrayList<>();
+            for (RaceHologramBoard stored : database.listRaceHologramBoards(plugin.getServer().getName())) {
+                RaceHologramBoard adjusted = adjustPlacement(stored);
+                if (Double.compare(stored.centerX(), adjusted.centerX()) != 0
+                        || Double.compare(stored.topY(), adjusted.topY()) != 0
+                        || Double.compare(stored.centerZ(), adjusted.centerZ()) != 0) {
+                    database.updateRaceHologramPosition(adjusted.id(), adjusted.server(), adjusted.centerX(),
+                            adjusted.topY(), adjusted.centerZ());
                 }
-                if (!file.createNewFile()) return;
-            } catch (IOException exception) {
-                plugin.getLogger().log(Level.SEVERE, "Could not create holograms.yml.", exception);
+                boards.add(adjusted);
+            }
+            if (!isAvailable()) {
+                plugin.getLogger().info("Race hologram definitions remain in the TrackTimer database; no provider is enabled.");
                 return;
             }
-        }
-        configuration = YamlConfiguration.loadConfiguration(file);
-        if (!isAvailable()) {
-            ConfigurationSection savedBoards = configuration.getConfigurationSection("boards");
-            if (savedBoards != null && !savedBoards.getKeys(false).isEmpty()) {
-                plugin.getLogger().warning("DecentHolograms is not installed; saved race holograms will be dormant.");
+            removeDuplicateProviderHolograms(database.duplicateRaceHologramBoards());
+            for (RaceHologramBoard board : boards) {
+                refresh(fromDatabase(board));
             }
-            return;
-        }
-        ConfigurationSection boards = configuration.getConfigurationSection("boards");
-        if (boards == null) return;
-        for (String key : boards.getKeys(false)) {
-            Board board = readBoard(key, boards.getConfigurationSection(key));
-            if (board != null) refresh(board);
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not load race holograms from the database.", exception);
         }
     }
 
     public boolean createBoard(Event event, boolean redstone, Location firstCorner,
-                               Location secondCorner, Location playerLocation) {
-        if (!isAvailable() || configuration == null) return false;
+                               Location secondCorner, Location playerLocation) throws SQLException {
+        if (!isAvailable()) return false;
         if (!firstCorner.getWorld().equals(secondCorner.getWorld())) return false;
         int x1 = firstCorner.getBlockX();
         int y1 = firstCorner.getBlockY();
@@ -141,32 +129,96 @@ public final class RaceStatisticsHologramManager {
         if (xPlane) {
             double planeZ = lowZ + 0.5;
             double towardPlayer = playerLocation.getZ() - planeZ;
-            z = planeZ + (towardPlayer < 0 ? -0.65 : 0.65);
+            z = planeZ + (towardPlayer < 0 ? -1 : 1) * (0.5 + WALL_GAP);
             yaw = towardPlayer < 0 ? 180f : 0f;
         } else {
             double planeX = lowX + 0.5;
             double towardPlayer = playerLocation.getX() - planeX;
-            x = planeX + (towardPlayer < 0 ? -0.65 : 0.65);
+            x = planeX + (towardPlayer < 0 ? -1 : 1) * (0.5 + WALL_GAP);
             yaw = towardPlayer < 0 ? 90f : -90f;
         }
 
-        String key = UUID.randomUUID().toString().replace("-", "");
-        String hologramName = "tracktimer_" + event.id() + "_" + key;
-        Board board = new Board(key, hologramName, event.id(), redstone, world.getName(),
-                lowX, lowY, lowZ, highX, highY, highZ, x, highY + 0.5, z, yaw);
-        configuration.set("boards." + key, board.serialize());
-        save();
-        refresh(board);
+        String key = UUID.randomUUID().toString();
+        String hologramName = "tracktimer_" + event.id() + "_" + key.replace("-", "");
+        Board board = new Board(key, hologramName, event.id(), redstone, plugin.getServer().getName(), world.getName(),
+                lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_GAP, z, yaw);
+        RaceHologramBoard saved = database.saveRaceHologramBoard(toDatabase(board, plugin.getServer().getName()));
+        refresh(fromDatabase(saved));
         return true;
     }
 
+    private RaceHologramBoard adjustPlacement(RaceHologramBoard board) {
+        double centerX;
+        double centerZ;
+        if (board.lowZ() == board.highZ()) {
+            centerX = (board.lowX() + board.highX() + 1) / 2.0;
+            double planeZ = board.lowZ() + 0.5;
+            double direction = board.yaw() == 180f ? -1 : 1;
+            centerZ = planeZ + direction * (0.5 + WALL_GAP);
+        } else {
+            double planeX = board.lowX() + 0.5;
+            double direction = board.yaw() == 90f ? -1 : 1;
+            centerX = planeX + direction * (0.5 + WALL_GAP);
+            centerZ = (board.lowZ() + board.highZ() + 1) / 2.0;
+        }
+        return new RaceHologramBoard(board.id(), board.eventId(), board.redstone(), board.server(), board.world(),
+                board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
+                centerX, board.highY() + VERTICAL_GAP, centerZ, board.yaw());
+    }
+
+    private void removeDuplicateProviderHolograms(List<RaceHologramBoard> duplicates) {
+        for (RaceHologramBoard duplicate : duplicates) {
+            removeProviderHologram(fromDatabase(duplicate));
+        }
+    }
+
+    public int deleteHologramsAt(Location clickedBlock) throws SQLException {
+        if (!isAvailable()) return 0;
+        List<RaceHologramBoard> matches = database.listRaceHologramBoardsAt(plugin.getServer().getName(),
+                clickedBlock.getWorld().getName(), clickedBlock.getBlockX(), clickedBlock.getBlockY(),
+                clickedBlock.getBlockZ());
+        int removed = 0;
+        for (RaceHologramBoard board : matches) {
+            if (!database.deleteRaceHologramBoard(board.id(), plugin.getServer().getName())) continue;
+            removeProviderHologram(fromDatabase(board));
+            removed++;
+        }
+        return removed;
+    }
+
+    private void removeProviderHologram(Board board) {
+        String hologramName = board.hologramName();
+        try {
+            if (provider == Provider.CMI) {
+                Class<?> cmiClass = Class.forName("com.Zrips.CMI.CMI");
+                Object cmi = cmiClass.getMethod("getInstance").invoke(null);
+                Object manager = cmiClass.getMethod("getHologramManager").invoke(cmi);
+                Object hologram = manager.getClass().getMethod("getByName", String.class)
+                        .invoke(manager, hologramName);
+                if (hologram != null) invoke(hologram.getClass(), hologram, "delete", new Class<?>[0]);
+                activeCmiBoards.remove(board.key());
+            } else if (provider == Provider.DECENT_HOLOGRAMS) {
+                Class<?> renderer = Class.forName("de.ethria.trackTimer.race.DecentHologramRenderer");
+                renderer.getMethod("remove", String.class).invoke(null, hologramName);
+            }
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            plugin.getLogger().log(Level.WARNING,
+                    "Could not remove rendered hologram '" + hologramName + "'.", exception);
+        }
+    }
+
+    private void removeProviderHologram(RaceHologramBoard board) {
+        removeProviderHologram(fromDatabase(board));
+    }
+
     public void updateEvent(long eventId) {
-        if (!isAvailable() || configuration == null) return;
-        ConfigurationSection boards = configuration.getConfigurationSection("boards");
-        if (boards == null) return;
-        for (String key : boards.getKeys(false)) {
-            Board board = readBoard(key, boards.getConfigurationSection(key));
-            if (board != null && board.eventId() == eventId) refresh(board);
+        if (!isAvailable()) return;
+        try {
+            for (RaceHologramBoard board : database.listRaceHologramBoards(plugin.getServer().getName())) {
+                if (board.eventId() == eventId) refresh(fromDatabase(board));
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not reload race hologram rows after race completion.", exception);
         }
     }
 
@@ -200,33 +252,16 @@ public final class RaceStatisticsHologramManager {
     }
 
     private void updateDecentHologram(Board board, Location location, List<String> lines) {
-        String displayName = board.hologramName() + "_display";
-        Hologram oldHologram = DHAPI.getHologram(board.hologramName());
-        if (oldHologram != null) DHAPI.removeHologram(board.hologramName());
-
-        DisplayService displayService = DecentHologramsAPI.get().getDisplayModule().getDisplayService();
-        DisplayBase existing = displayService.getDisplay(displayName);
-        TextDisplay display;
-        boolean created = !(existing instanceof TextDisplay);
-        if (existing instanceof TextDisplay textDisplay) {
-            display = textDisplay;
-            display.setLocation(decentLocation(location));
-            display.setLines(lines);
-        } else {
-            if (existing != null) displayService.deleteDisplay(displayName);
-            display = new TextDisplay(displayName, decentLocation(location), new DisplaySettings());
-            display.setLines(lines);
-        }
         float[] scale = calculateScale(board, lines);
-        display.setAttribute(ScaleAttributeDefinition.KEY,
-                new DisplayAttribute<>(ScaleAttributeDefinition.KEY,
-                        new Vector3fValue(scale[0], scale[1], 1f)));
-        display.setAttribute(BillboardAttributeDefinition.KEY,
-                new DisplayAttribute<>(BillboardAttributeDefinition.KEY,
-                        new BillboardConstraintsValue(DisplayBillboardConstraints.FIXED)));
-        if (created) displayService.registerDisplay(display);
-        displayService.updateDisplay(display);
-        displayService.saveDisplay(display);
+        int maximumLineWidth = measureMaximumLineWidthPixels(lines);
+        try {
+            Class<?> renderer = Class.forName("de.ethria.trackTimer.race.DecentHologramRenderer");
+            renderer.getMethod("render", String.class, Location.class, List.class,
+                            float.class, float.class, int.class)
+                    .invoke(null, board.hologramName(), location, lines, scale[0], scale[1], maximumLineWidth);
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            throw new IllegalStateException("DecentHolograms display API is unavailable or incompatible.", exception);
+        }
     }
 
     private void updateCmiHologram(Board board, Location location, List<String> lines) {
@@ -236,9 +271,10 @@ public final class RaceStatisticsHologramManager {
             Object manager = cmiClass.getMethod("getHologramManager").invoke(cmi);
             Method getByName = manager.getClass().getMethod("getByName", String.class);
             Object hologram = getByName.invoke(manager, board.hologramName());
-            boolean created = hologram == null;
+            boolean created = !activeCmiBoards.contains(board.key()) || hologram == null;
             Class<?> hologramClass = Class.forName("com.Zrips.CMI.Modules.Holograms.CMIHologram");
             if (created) {
+                if (hologram != null) invoke(hologramClass, hologram, "delete", new Class<?>[0]);
                 Constructor<?> constructor = hologramClass.getConstructor(String.class, Location.class);
                 hologram = constructor.newInstance(board.hologramName(), location);
             }
@@ -247,6 +283,7 @@ public final class RaceStatisticsHologramManager {
             invoke(pages.getClass(), pages, "setLines", new Class<?>[]{List.class}, lines);
             float[] scale = calculateScale(board, lines);
             Object settings = invoke(hologramClass, hologram, "getSettings", new Class<?>[0]);
+            invoke(settings.getClass(), settings, "setSaveToFile", new Class<?>[]{boolean.class}, false);
             Class<?> vectorClass = Class.forName("net.Zrips.CMILib.Container.CMIVector2D");
             Object vector = vectorClass.getConstructor(double.class, double.class)
                     .newInstance((double) scale[0], (double) scale[1]);
@@ -256,32 +293,49 @@ public final class RaceStatisticsHologramManager {
             invoke(settings.getClass(), settings, "setBillboard", new Class<?>[]{billboardClass}, fixedBillboard);
             invoke(settings.getClass(), settings, "setYaw", new Class<?>[]{double.class}, (double) board.yaw());
             invoke(hologramClass, hologram, created ? "show" : "update", new Class<?>[0]);
-            invoke(hologramClass, hologram, "saveToFile", new Class<?>[0]);
+            activeCmiBoards.add(board.key());
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("CMI hologram API is unavailable or incompatible.", exception);
         }
     }
 
-    private DecentLocation decentLocation(Location location) {
-        return new DecentLocation(location.getWorld().getName(), location.getX(), location.getY(),
-                location.getZ(), location.getYaw(), location.getPitch());
-    }
-
     private float[] calculateScale(Board board, List<String> lines) {
-        int longestLine = lines.stream()
-                .map(line -> ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', line)))
-                .filter(java.util.Objects::nonNull)
-                .mapToInt(String::length)
-                .max().orElse(1);
+        int maximumLineWidth = measureMaximumLineWidthPixels(lines);
         double width = board.lowZ() == board.highZ()
                 ? board.highX() - board.lowX() + 1.0
                 : board.highZ() - board.lowZ() + 1.0;
         double height = board.highY() - board.lowY() + 1.0;
-        double naturalWidth = Math.max(0.5, longestLine * 0.12);
-        double naturalHeight = Math.max(0.3, lines.size() * 0.3);
-        float scaleX = (float) Math.max(0.1, Math.min(1.0, width / naturalWidth));
-        float scaleY = (float) Math.max(0.1, Math.min(1.0, height / naturalHeight));
-        return new float[]{scaleX, scaleY};
+        // A Minecraft text display renders each font pixel at 1/40 block at scale 1.
+        // Measure glyph pixels with Bukkit's actual default Minecraft font, then use
+        // one uniform factor so the displayed text keeps its proportions.
+        double naturalWidth = Math.max(0.025, maximumLineWidth * 0.025);
+        double naturalHeight = Math.max(0.25, lines.size() * 0.25);
+        double widthScale = width * 0.9 / naturalWidth;
+        double heightScale = height * 0.9 / naturalHeight;
+        float scale = (float) Math.max(0.01, Math.min(16.0, Math.min(widthScale, heightScale)));
+        return new float[]{scale, scale};
+    }
+
+    private int measureMaximumLineWidthPixels(List<String> lines) {
+        return lines.stream().mapToInt(this::measureLineWidthPixels).max().orElse(1);
+    }
+
+    private int measureLineWidthPixels(String line) {
+        String plain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', line));
+        if (plain == null || plain.isEmpty()) return 1;
+        try {
+            return Math.max(1, MinecraftFont.Font.getWidth(plain));
+        } catch (IllegalArgumentException unsupportedGlyph) {
+            MapFont font = MinecraftFont.Font;
+            int width = Math.max(0, plain.codePointCount(0, plain.length()) - 1);
+            for (int offset = 0; offset < plain.length();) {
+                int codePoint = plain.codePointAt(offset);
+                MapFont.CharacterSprite glyph = codePoint <= Character.MAX_VALUE ? font.getChar((char) codePoint) : null;
+                width += glyph == null ? 6 : glyph.getWidth();
+                offset += Character.charCount(codePoint);
+            }
+            return Math.max(1, width);
+        }
     }
 
     private Object invoke(Class<?> type, Object receiver, String methodName, Class<?>[] parameterTypes,
@@ -357,39 +411,65 @@ public final class RaceStatisticsHologramManager {
         return LEGACY.serialize(component).replace('§', '&');
     }
 
-    private Board readBoard(String key, ConfigurationSection section) {
+    private void migrateLegacyFile() throws SQLException {
+        File legacyFile = new File(plugin.getDataFolder(), LEGACY_FILE_NAME);
+        if (!legacyFile.isFile()) return;
+
+        YamlConfiguration legacy = YamlConfiguration.loadConfiguration(legacyFile);
+        ConfigurationSection boards = legacy.getConfigurationSection("boards");
+        if (boards == null) {
+            if (legacyFile.delete()) plugin.getLogger().info("Removed empty legacy race hologram file.");
+            return;
+        }
+
+        String server = plugin.getServer().getName();
+        Set<String> existingIds = new HashSet<>();
+        database.listRaceHologramBoards(server).forEach(board -> existingIds.add(board.id()));
+        boolean complete = true;
+        for (String key : boards.getKeys(false)) {
+            Board board = readLegacyBoard(key, boards.getConfigurationSection(key), server);
+            if (board == null) {
+                complete = false;
+                plugin.getLogger().warning("Could not migrate legacy race hologram '" + key + "'; keeping the old file.");
+                continue;
+            }
+            if (existingIds.add(board.key())) database.saveRaceHologramBoard(toDatabase(board, server));
+        }
+        if (complete && legacyFile.delete()) {
+            plugin.getLogger().info("Migrated race hologram definitions into the TrackTimer database.");
+        }
+    }
+
+    private Board readLegacyBoard(String key, ConfigurationSection section, String server) {
         if (section == null || !(section.get("event-id") instanceof Number) || !section.isString("world")
                 || !section.isString("hologram-name")) return null;
-        return new Board(key, section.getString("hologram-name"), section.getLong("event-id"),
-                section.getBoolean("redstone"), section.getString("world"),
+        String id = key.replaceAll("[^A-Za-z0-9_-]", "");
+        if (id.isEmpty()) return null;
+        String hologramName = "tracktimer_" + section.getLong("event-id") + "_" + id;
+        return new Board(id, hologramName, section.getLong("event-id"), section.getBoolean("redstone"),
+                server, section.getString("world"),
                 section.getInt("low-x"), section.getInt("low-y"), section.getInt("low-z"),
                 section.getInt("high-x"), section.getInt("high-y"), section.getInt("high-z"),
                 section.getDouble("center-x"), section.getDouble("top-y"), section.getDouble("center-z"),
                 (float) section.getDouble("yaw", 0f));
     }
 
-    private void save() {
-        if (configuration == null) return;
-        try {
-            configuration.save(file);
-        } catch (IOException exception) {
-            plugin.getLogger().log(Level.SEVERE, "Could not save holograms.yml.", exception);
-        }
+    private Board fromDatabase(RaceHologramBoard board) {
+        String hologramName = "tracktimer_" + board.eventId() + "_" + board.id().replace("-", "");
+        return new Board(board.id(), hologramName, board.eventId(), board.redstone(), board.server(), board.world(),
+                board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
+                board.centerX(), board.topY(), board.centerZ(), board.yaw());
     }
 
-    private record Board(String key, String hologramName, long eventId, boolean redstone, String world,
-                         int lowX, int lowY, int lowZ, int highX, int highY, int highZ,
-                         double centerX, double topY, double centerZ, float yaw) {
-        private Map<String, Object> serialize() {
-            return Map.ofEntries(
-                    Map.entry("hologram-name", hologramName), Map.entry("event-id", eventId),
-                    Map.entry("redstone", redstone), Map.entry("world", world),
-                    Map.entry("low-x", lowX), Map.entry("low-y", lowY), Map.entry("low-z", lowZ),
-                    Map.entry("high-x", highX), Map.entry("high-y", highY), Map.entry("high-z", highZ),
-                    Map.entry("center-x", centerX), Map.entry("top-y", topY), Map.entry("center-z", centerZ),
-                    Map.entry("yaw", yaw));
-        }
+    private RaceHologramBoard toDatabase(Board board, String server) {
+        return new RaceHologramBoard(board.key(), board.eventId(), board.redstone(), server, board.world(),
+                board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
+                board.centerX(), board.topY(), board.centerZ(), board.yaw());
     }
+
+    private record Board(String key, String hologramName, long eventId, boolean redstone, String server, String world,
+                         int lowX, int lowY, int lowZ, int highX, int highY, int highZ,
+                         double centerX, double topY, double centerZ, float yaw) { }
 
     private enum Provider { NONE, CMI, DECENT_HOLOGRAMS }
 }

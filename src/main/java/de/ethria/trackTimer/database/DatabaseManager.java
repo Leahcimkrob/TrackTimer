@@ -14,6 +14,8 @@ import java.sql.ResultSetMetaData;
 import java.util.List;
 import java.util.Locale;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class DatabaseManager {
     private static final java.util.regex.Pattern EVENT_NAME_PATTERN =
@@ -22,6 +24,7 @@ public final class DatabaseManager {
     private final JavaPlugin plugin;
     private final Connection connection;
     private final String autoIncrement;
+    private final List<RaceHologramBoard> duplicateRaceHologramBoards = new ArrayList<>();
 
     public DatabaseManager(JavaPlugin plugin) throws SQLException {
         this.plugin = plugin;
@@ -65,6 +68,8 @@ public final class DatabaseManager {
             }
         }
         ensureRaceResultsRedstoneColumn();
+        dropLegacyRaceHologramUniqueIndex(connection);
+        removeDuplicateRaceHolograms(connection, duplicateRaceHologramBoards);
         createIndexes();
         plugin.getLogger().info("Database tables are ready.");
     }
@@ -103,13 +108,15 @@ public final class DatabaseManager {
                 for (String sql : tableStatements(targetAutoIncrement)) statement.executeUpdate(sql);
                 if ("sqlite".equals(targetType)) statement.execute("PRAGMA foreign_keys = ON");
             }
-            createIndexes(target);
             target.setAutoCommit(false);
             try {
                 for (String table : List.of("players", "events", "event_triggers", "race_sessions",
-                        "race_results", "race_checkpoint_times", "race_lap_times", "race_session_results")) {
+                        "race_results", "race_checkpoint_times", "race_lap_times", "race_session_results",
+                        "race_holograms")) {
+                    if ("race_holograms".equals(table) && !tableExists(source, table)) continue;
                     copyTable(source, target, table);
                 }
+                removeDuplicateRaceHolograms(target, null);
                 target.commit();
             } catch (SQLException exception) {
                 target.rollback();
@@ -117,6 +124,7 @@ public final class DatabaseManager {
             } finally {
                 target.setAutoCommit(true);
             }
+            createIndexes(target);
         }
     }
 
@@ -158,6 +166,16 @@ public final class DatabaseManager {
                 }
                 insert.executeBatch();
             }
+        }
+    }
+
+    private boolean tableExists(Connection database, String table) throws SQLException {
+        try (ResultSet tables = database.getMetaData().getTables(database.getCatalog(), null, table, new String[]{"TABLE"})) {
+            if (tables.next()) return true;
+        }
+        try (ResultSet tables = database.getMetaData().getTables(database.getCatalog(), null,
+                table.toUpperCase(Locale.ROOT), new String[]{"TABLE"})) {
+            return tables.next();
         }
     }
 
@@ -283,6 +301,209 @@ public final class DatabaseManager {
     public record RaceLapTime(int lap, long lapTimeMillis) { }
     public record PlayerRaceLapTime(long raceResultId, int lap, long lapTimeMillis) { }
     public record RaceCheckpointSplit(int lap, int checkpointOrder, long elapsedMillis) { }
+
+    public record RaceHologramBoard(String id, long eventId, boolean redstone, String server, String world,
+                                    int lowX, int lowY, int lowZ, int highX, int highY, int highZ,
+                                    double centerX, double topY, double centerZ, float yaw) { }
+
+    public RaceHologramBoard saveRaceHologramBoard(RaceHologramBoard board) throws SQLException {
+        String existingId = null;
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT id FROM race_holograms
+                WHERE server = ? AND event_id = ? AND redstone = ? AND world = ?
+                  AND low_x = ? AND low_y = ? AND low_z = ?
+                  AND high_x = ? AND high_y = ? AND high_z = ?
+                """)) {
+            statement.setString(1, board.server());
+            statement.setLong(2, board.eventId());
+            statement.setBoolean(3, board.redstone());
+            statement.setString(4, board.world());
+            statement.setInt(5, board.lowX());
+            statement.setInt(6, board.lowY());
+            statement.setInt(7, board.lowZ());
+            statement.setInt(8, board.highX());
+            statement.setInt(9, board.highY());
+            statement.setInt(10, board.highZ());
+            try (ResultSet rows = statement.executeQuery()) {
+                if (rows.next()) existingId = rows.getString("id");
+            }
+        }
+        if (existingId != null) {
+            try (PreparedStatement statement = connection.prepareStatement("""
+                    UPDATE race_holograms SET world = ?, low_x = ?, low_y = ?, low_z = ?,
+                        high_x = ?, high_y = ?, high_z = ?, center_x = ?, top_y = ?, center_z = ?, yaw = ?
+                    WHERE id = ?
+                    """)) {
+                statement.setString(1, board.world());
+                statement.setInt(2, board.lowX());
+                statement.setInt(3, board.lowY());
+                statement.setInt(4, board.lowZ());
+                statement.setInt(5, board.highX());
+                statement.setInt(6, board.highY());
+                statement.setInt(7, board.highZ());
+                statement.setDouble(8, board.centerX());
+                statement.setDouble(9, board.topY());
+                statement.setDouble(10, board.centerZ());
+                statement.setFloat(11, board.yaw());
+                statement.setString(12, existingId);
+                statement.executeUpdate();
+            }
+            return new RaceHologramBoard(existingId, board.eventId(), board.redstone(), board.server(), board.world(),
+                    board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
+                    board.centerX(), board.topY(), board.centerZ(), board.yaw());
+        }
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO race_holograms (id, event_id, redstone, server, world,
+                    low_x, low_y, low_z, high_x, high_y, high_z, center_x, top_y, center_z, yaw)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """)) {
+            statement.setString(1, board.id());
+            statement.setLong(2, board.eventId());
+            statement.setBoolean(3, board.redstone());
+            statement.setString(4, board.server());
+            statement.setString(5, board.world());
+            statement.setInt(6, board.lowX());
+            statement.setInt(7, board.lowY());
+            statement.setInt(8, board.lowZ());
+            statement.setInt(9, board.highX());
+            statement.setInt(10, board.highY());
+            statement.setInt(11, board.highZ());
+            statement.setDouble(12, board.centerX());
+            statement.setDouble(13, board.topY());
+            statement.setDouble(14, board.centerZ());
+            statement.setFloat(15, board.yaw());
+            statement.executeUpdate();
+        }
+        return board;
+    }
+
+    public List<RaceHologramBoard> duplicateRaceHologramBoards() {
+        return List.copyOf(duplicateRaceHologramBoards);
+    }
+
+    public List<RaceHologramBoard> listRaceHologramBoards(String server) throws SQLException {
+        List<RaceHologramBoard> boards = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                FROM race_holograms WHERE server = ? ORDER BY id
+                """)) {
+            statement.setString(1, server);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) boards.add(new RaceHologramBoard(rows.getString("id"),
+                        rows.getLong("event_id"), rows.getBoolean("redstone"), rows.getString("server"),
+                        rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
+                        rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
+                        rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
+                        rows.getDouble("center_z"), rows.getFloat("yaw")));
+            }
+        }
+        return List.copyOf(boards);
+    }
+
+    public List<RaceHologramBoard> listRaceHologramBoardsAt(String server, String world,
+                                                            int x, int y, int z) throws SQLException {
+        List<RaceHologramBoard> boards = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                FROM race_holograms
+                WHERE server = ? AND world = ?
+                  AND low_x <= ? AND high_x >= ?
+                  AND low_y <= ? AND high_y >= ?
+                  AND low_z <= ? AND high_z >= ?
+                ORDER BY event_id, redstone
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, x);
+            statement.setInt(5, y);
+            statement.setInt(6, y);
+            statement.setInt(7, z);
+            statement.setInt(8, z);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) boards.add(new RaceHologramBoard(rows.getString("id"),
+                        rows.getLong("event_id"), rows.getBoolean("redstone"), rows.getString("server"),
+                        rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
+                        rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
+                        rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
+                        rows.getDouble("center_z"), rows.getFloat("yaw")));
+            }
+        }
+        return List.copyOf(boards);
+    }
+
+    public boolean deleteRaceHologramBoard(String id, String server) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "DELETE FROM race_holograms WHERE id = ? AND server = ?")) {
+            statement.setString(1, id);
+            statement.setString(2, server);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public boolean updateRaceHologramPosition(String id, String server, double centerX,
+                                              double topY, double centerZ) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE race_holograms SET center_x = ?, top_y = ?, center_z = ?
+                WHERE id = ? AND server = ?
+                """)) {
+            statement.setDouble(1, centerX);
+            statement.setDouble(2, topY);
+            statement.setDouble(3, centerZ);
+            statement.setString(4, id);
+            statement.setString(5, server);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    private void removeDuplicateRaceHolograms(Connection database, List<RaceHologramBoard> removed)
+            throws SQLException {
+        Set<String> seen = new HashSet<>();
+        List<RaceHologramBoard> duplicates = new ArrayList<>();
+        try (Statement statement = database.createStatement(); ResultSet rows = statement.executeQuery("""
+                SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                FROM race_holograms ORDER BY server, event_id, redstone, id
+                """)) {
+            while (rows.next()) {
+                RaceHologramBoard board = new RaceHologramBoard(rows.getString("id"),
+                        rows.getLong("event_id"), rows.getBoolean("redstone"), rows.getString("server"),
+                        rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
+                        rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
+                        rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
+                        rows.getDouble("center_z"), rows.getFloat("yaw"));
+                String key = board.server() + '\u0000' + board.eventId() + '\u0000' + board.redstone()
+                        + '\u0000' + board.world() + '\u0000' + board.lowX() + '\u0000' + board.lowY()
+                        + '\u0000' + board.lowZ() + '\u0000' + board.highX() + '\u0000' + board.highY()
+                        + '\u0000' + board.highZ();
+                if (!seen.add(key)) duplicates.add(board);
+            }
+        }
+        if (duplicates.isEmpty()) return;
+        try (PreparedStatement delete = database.prepareStatement("DELETE FROM race_holograms WHERE id = ?")) {
+            for (RaceHologramBoard duplicate : duplicates) {
+                delete.setString(1, duplicate.id());
+                delete.addBatch();
+                if (removed != null) removed.add(duplicate);
+            }
+            delete.executeBatch();
+        }
+        plugin.getLogger().warning("Removed " + duplicates.size()
+                + " duplicate race hologram entries; keeping one hologram per marked area and race type.");
+    }
+
+    private void dropLegacyRaceHologramUniqueIndex(Connection database) throws SQLException {
+        if (!indexExists(database, "race_holograms", "ux_race_holograms_server_event_mode")) return;
+        boolean mysql = "MySQL".equalsIgnoreCase(database.getMetaData().getDatabaseProductName());
+        String sql = mysql
+                ? "DROP INDEX ux_race_holograms_server_event_mode ON race_holograms"
+                : "DROP INDEX ux_race_holograms_server_event_mode";
+        try (Statement statement = database.createStatement()) {
+            statement.executeUpdate(sql);
+        }
+    }
 
     public List<RaceLapTime> listRaceLapTimes(long raceResultId) throws SQLException {
         List<RaceLapTime> lapTimes = new ArrayList<>();
@@ -1171,7 +1392,27 @@ public final class DatabaseManager {
                     CHECK (lap > 0),
                     UNIQUE (race_result_id, trigger_id, lap)
                 )
-                """.formatted(autoIncrement)
+                """.formatted(autoIncrement),
+                """
+                CREATE TABLE IF NOT EXISTS race_holograms (
+                    id VARCHAR(64) PRIMARY KEY,
+                    event_id BIGINT NOT NULL,
+                    redstone BOOLEAN NOT NULL,
+                    server VARCHAR(128) NOT NULL,
+                    world VARCHAR(128) NOT NULL,
+                    low_x INTEGER NOT NULL,
+                    low_y INTEGER NOT NULL,
+                    low_z INTEGER NOT NULL,
+                    high_x INTEGER NOT NULL,
+                    high_y INTEGER NOT NULL,
+                    high_z INTEGER NOT NULL,
+                    center_x DOUBLE NOT NULL,
+                    top_y DOUBLE NOT NULL,
+                    center_z DOUBLE NOT NULL,
+                    yaw REAL NOT NULL DEFAULT 0,
+                    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+                )
+                """
         );
     }
 
@@ -1186,7 +1427,10 @@ public final class DatabaseManager {
                 new IndexDefinition("race_results", "idx_race_results_leaderboard", "event_id, race_time_ms"),
                 new IndexDefinition("race_results", "idx_race_results_player", "player_uuid"),
                 new IndexDefinition("race_lap_times", "idx_race_lap_times_result", "race_result_id"),
-                new IndexDefinition("race_checkpoint_times", "idx_checkpoint_times_result", "race_result_id")
+                new IndexDefinition("race_checkpoint_times", "idx_checkpoint_times_result", "race_result_id"),
+                new IndexDefinition("race_holograms", "idx_race_holograms_server_event", "server, event_id"),
+                new IndexDefinition("race_holograms", "ux_race_holograms_placement",
+                        "server, event_id, redstone, world, low_x, low_y, low_z, high_x, high_y, high_z")
         );
 
         for (IndexDefinition index : indexes) {
@@ -1194,7 +1438,8 @@ public final class DatabaseManager {
                 continue;
             }
             try (Statement statement = database.createStatement()) {
-                statement.executeUpdate("CREATE INDEX " + index.name() + " ON "
+                String indexKind = index.name().startsWith("ux_") ? "CREATE UNIQUE INDEX " : "CREATE INDEX ";
+                statement.executeUpdate(indexKind + index.name() + " ON "
                         + index.table() + "(" + index.columns() + ")");
             }
         }

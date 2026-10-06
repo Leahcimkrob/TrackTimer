@@ -198,6 +198,11 @@ buttons:
       - "<gray>Gives you the tool to select the area."
       - "<yellow>Left-click: upper-left corner"
       - "<yellow>Right-click: lower-right corner"
+  hologram-delete:
+    name: "<red>Delete results hologram"
+    lore:
+      - "<gray>Gives you a universal removal tool."
+      - "<yellow>Click a block inside the selected area."
   close:
     name: "<red>Close"
   back:

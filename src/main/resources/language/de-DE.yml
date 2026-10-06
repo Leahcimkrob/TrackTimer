@@ -116,6 +116,9 @@ race-statistics:
   hologram-invalid-area: "<red>Ungültiger Bereich. Wähle zwei Ecken an derselben Wandfläche."
   hologram-created: "<green>Ergebnis-Hologramm für <yellow><event></yellow> erstellt. Es aktualisiert sich nach abgeschlossenen Rennen."
   hologram-tool-cancelled: "<yellow>Hologramm-Auswahl abgebrochen."
+  hologram-delete-tool-started: "<yellow>Hologramm-Löschwerkzeug erhalten. Klicke einen Block innerhalb des Hologrammbereichs an."
+  hologram-delete-not-found: "<red>In diesem Bereich wurde kein Hologramm gefunden."
+  hologram-deleted: "<green><count> Hologramm(e) aus der Datenbank gelöscht."
 
 leaderboard:
   header: "<gold>Bestenliste - <event>"

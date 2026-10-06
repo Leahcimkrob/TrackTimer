@@ -16,6 +16,7 @@ import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
+import de.ethria.trackTimer.tools.RaceStatisticsHologramDeleteTool;
 import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceCheckpointListener;
 import de.ethria.trackTimer.race.RaceTriggerMonitor;
@@ -95,15 +96,24 @@ public final class TrackTimer extends JavaPlugin {
         TopTenGui topTenGui = new TopTenGui(editorGuiContext, raceStatisticsEvaluator, eventOverviewGui);
         PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
         topTenGui.setPlayerDetailsGui(playerDetailsGui);
-        RaceStatisticsHologramTool hologramTool = new RaceStatisticsHologramTool(editorGuiContext, hologramManager);
+        RaceStatisticsHologramTool hologramTool = null;
+        RaceStatisticsHologramDeleteTool hologramDeleteTool = null;
+        if (hologramManager.isAvailable()) {
+            hologramTool = new RaceStatisticsHologramTool(editorGuiContext, hologramManager);
+            getServer().getPluginManager().registerEvents(hologramTool, this);
+            hologramDeleteTool = new RaceStatisticsHologramDeleteTool(editorGuiContext, hologramManager);
+            getServer().getPluginManager().registerEvents(hologramDeleteTool, this);
+        } else {
+            getLogger().info("No hologram provider found; TrackTimer will run without the hologram feature.");
+        }
         topTenGui.setHologramTool(hologramTool);
+        topTenGui.setHologramDeleteTool(hologramDeleteTool);
         RedstoneRaceSelectionGui redstoneRaceSelectionGui = new RedstoneRaceSelectionGui(
                 editorGuiContext, raceStatisticsEvaluator, eventOverviewGui, topTenGui);
         topTenGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         eventOverviewGui.setTopTenGui(topTenGui);
         eventOverviewGui.setRedstoneRaceSelectionGui(redstoneRaceSelectionGui);
         getServer().getPluginManager().registerEvents(topTenGui, this);
-        getServer().getPluginManager().registerEvents(hologramTool, this);
         getServer().getPluginManager().registerEvents(playerDetailsGui, this);
         getServer().getPluginManager().registerEvents(redstoneRaceSelectionGui, this);
         RaceEndListener raceEndListener = new RaceEndListener(

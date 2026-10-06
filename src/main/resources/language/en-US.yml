@@ -116,6 +116,9 @@ race-statistics:
   hologram-invalid-area: "<red>Invalid area. Select two corners on the same wall plane."
   hologram-created: "<green>Results hologram for <yellow><event></yellow> created. It updates after completed races."
   hologram-tool-cancelled: "<yellow>Hologram selection cancelled."
+  hologram-delete-tool-started: "<yellow>Hologram removal tool given. Click a block inside a hologram area."
+  hologram-delete-not-found: "<red>No hologram was found in this area."
+  hologram-deleted: "<green>Removed <count> hologram(s) from the database."
 
 leaderboard:
   header: "<gold>Leaderboard - <event>"

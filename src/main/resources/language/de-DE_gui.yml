@@ -198,6 +198,11 @@ buttons:
       - "<gray>Gibt das Werkzeug zum Auswählen des Bereichs."
       - "<yellow>Linksklick: obere linke Ecke"
       - "<yellow>Rechtsklick: untere rechte Ecke"
+  hologram-delete:
+    name: "<red>Ergebnis-Hologramm löschen"
+    lore:
+      - "<gray>Gibt ein universelles Löschwerkzeug."
+      - "<yellow>Klicke einen Block im markierten Bereich an."
   close:
     name: "<red>Schließen"
   back:
