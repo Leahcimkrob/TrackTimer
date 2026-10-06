@@ -109,6 +109,12 @@ race-statistics:
   normal-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> laps <dark_gray>| <white><races> races driven"
   redstone-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> laps"
   duration-format: "<hours>:<minutes>:<seconds>.<centiseconds>"
+  hologram-columns:
+    rank: "<gold>Rank"
+    player: "<gold>Player"
+    time: "<gold>Time"
+    laps: "<gold>Laps"
+    races: "<gold>Races"
   redstone-filter-only: "<red>You can only select a date or time for redstone races."
   invalid-date-or-time: "<red>Invalid date or time. Use a value from tab completion."
   command-failed: "<red>Could not load race statistics."

@@ -81,6 +81,12 @@ items:
   provider:
     slot: 34
     material: BEACON
+  show-player-heads:
+    slot: 35
+    enabled:
+      material: LIME_CONCRETE
+    disabled:
+      material: RED_CONCRETE
   chat-normal:
     slot: 38
     material: PAPER

@@ -8,13 +8,10 @@ import de.ethria.trackTimer.language.LanguageManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.map.MapFont;
-import org.bukkit.map.MinecraftFont;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -358,21 +355,7 @@ public final class RaceStatisticsHologramManager {
     }
 
     private int measureLineWidthPixels(String line) {
-        String plain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', line));
-        if (plain == null || plain.isEmpty()) return 1;
-        try {
-            return Math.max(1, MinecraftFont.Font.getWidth(plain));
-        } catch (IllegalArgumentException unsupportedGlyph) {
-            MapFont font = MinecraftFont.Font;
-            int width = Math.max(0, plain.codePointCount(0, plain.length()) - 1);
-            for (int offset = 0; offset < plain.length();) {
-                int codePoint = plain.codePointAt(offset);
-                MapFont.CharacterSprite glyph = codePoint <= Character.MAX_VALUE ? font.getChar((char) codePoint) : null;
-                width += glyph == null ? 6 : glyph.getWidth();
-                offset += Character.charCount(codePoint);
-            }
-            return Math.max(1, width);
-        }
+        return Math.max(1, HologramTableFormatter.width(line));
     }
 
     private Object invoke(Class<?> type, Object receiver, String methodName, Class<?>[] parameterTypes,
@@ -394,14 +377,14 @@ public final class RaceStatisticsHologramManager {
                 lines.add(asHologramText(language.chatFragment("race-statistics.chat-empty")));
                 return lines;
             }
+            List<List<String>> rows = tableHeader(false);
             int rank = 1;
             for (RaceStatisticsEntry entry : evaluation.entries()) {
-                lines.add(asHologramText(language.chatFragment("race-statistics.normal-entry",
-                        LanguageManager.placeholders("rank", rank++, "event", entry.eventName(),
-                                "player", entry.playerName(), "race_time", formatDuration(entry.raceTimeMillis()),
-                                "laps", entry.lapsCompleted(),
-                                "races", evaluation.racesDrivenBy(entry.playerUuid())))));
+                rows.add(List.of("&e" + rank++ + ".", playerCell(entry),
+                        "&f" + formatDuration(entry.raceTimeMillis()), "&f" + entry.lapsCompleted(),
+                        "&f" + evaluation.racesDrivenBy(entry.playerUuid())));
             }
+            lines.addAll(HologramTableFormatter.format(rows));
             return lines;
         }
 
@@ -414,9 +397,20 @@ public final class RaceStatisticsHologramManager {
 
         long currentSession = Long.MIN_VALUE;
         int rank = 1;
+        List<List<String>> rows = tableHeader(true);
+        List<List<String>> sizingRows = tableHeader(true);
+        int sizingRank = 1;
+        for (RaceStatisticsEntry entry : evaluation.entries()) {
+            sizingRows.add(List.of("&e" + sizingRank++ + ".", playerCell(entry),
+                    "&f" + formatDuration(entry.raceTimeMillis()), "&f" + entry.lapsCompleted()));
+        }
         for (RaceStatisticsEntry entry : evaluation.entries()) {
             long session = Math.floorDiv(entry.startTimeMillis(), 1000);
             if (session != currentSession) {
+                if (currentSession != Long.MIN_VALUE) {
+                    lines.addAll(HologramTableFormatter.format(rows, sizingRows));
+                    rows = tableHeader(true);
+                }
                 Instant start = Instant.ofEpochMilli(entry.startTimeMillis());
                 lines.add(asHologramText(language.chatFragment("race-statistics.redstone-chat-title",
                         LanguageManager.placeholders("event", evaluation.event().name(),
@@ -425,12 +419,34 @@ public final class RaceStatisticsHologramManager {
                 currentSession = session;
                 rank = 1;
             }
-            lines.add(asHologramText(language.chatFragment("race-statistics.redstone-entry",
-                    LanguageManager.placeholders("rank", rank++, "event", entry.eventName(),
-                            "player", entry.playerName(), "race_time", formatDuration(entry.raceTimeMillis()),
-                            "laps", entry.lapsCompleted()))));
+            rows.add(List.of("&e" + rank++ + ".", playerCell(entry),
+                    "&f" + formatDuration(entry.raceTimeMillis()), "&f" + entry.lapsCompleted()));
         }
+        lines.addAll(HologramTableFormatter.format(rows, sizingRows));
         return lines;
+    }
+
+    private List<List<String>> tableHeader(boolean redstone) {
+        List<String> header = new ArrayList<>();
+        for (String column : List.of("rank", "player", "time", "laps")) {
+            String label = asHologramText(language.chatFragment("race-statistics.hologram-columns." + column));
+            if (column.equals("player") && showPlayerHeads()) label = "   " + label;
+            header.add(label);
+        }
+        if (!redstone) header.add(asHologramText(language.chatFragment("race-statistics.hologram-columns.races")));
+        List<List<String>> rows = new ArrayList<>();
+        rows.add(header);
+        return rows;
+    }
+
+    private boolean showPlayerHeads() {
+        return provider == Provider.CMI
+                && plugin.getConfig().getBoolean("race-statistics.hologram.show-player-heads", true);
+    }
+
+    private String playerCell(RaceStatisticsEntry entry) {
+        String head = showPlayerHeads() ? "<head:" + entry.playerName() + ":false> " : "";
+        return head + "&f" + entry.playerName();
     }
 
     private String formatDuration(long millis) {

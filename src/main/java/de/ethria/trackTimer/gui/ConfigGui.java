@@ -44,6 +44,7 @@ public final class ConfigGui implements Listener {
             number("hologram-signal", "race-statistics.hologram.redstone-races", 30, Material.REDSTONE_LAMP, 1, 0, Integer.MAX_VALUE),
             number("tool-timeout", "race-statistics.hologram.delete-tool-timeout-seconds", 32, Material.SHEARS, 1, 1, 86400),
             choice("provider", "race-statistics.hologram.provider", 34, Material.BEACON, List.of("auto", "cmi", "decentholograms")),
+            choice("show-player-heads", "race-statistics.hologram.show-player-heads", 35, Material.LIME_CONCRETE, List.of()),
             number("chat-normal", "race-statistics.chat.normal-races", 38, Material.PAPER, 1, 0, Integer.MAX_VALUE),
             number("chat-signal", "race-statistics.chat.redstone-races", 40, Material.CLOCK, 1, 0, Integer.MAX_VALUE),
             choice("sort", "race-statistics.chat.redstone-sort-order", 42, Material.ARROW, List.of("descending", "ascending")));
@@ -57,7 +58,9 @@ public final class ConfigGui implements Listener {
         Holder holder = new Holder();
         holder.inventory = Bukkit.createInventory(holder, 54, context.language.gui("config-editor.title"));
         for (Setting setting : SETTINGS) {
-            Object value = context.plugin.getConfig().get(setting.path);
+            Object value = setting.key.equals("show-player-heads")
+                    ? context.plugin.getConfig().getBoolean(setting.path, true)
+                    : context.plugin.getConfig().get(setting.path);
             holder.values.put(setting.path, value == null ? (setting.step > 0 ? setting.min : "") : value);
             int slot = context.slot(context.configSettings, "items." + setting.key + ".slot", setting.slot, 45);
             holder.settings.put(slot, setting);
@@ -123,6 +126,8 @@ public final class ConfigGui implements Listener {
             next = Math.max(setting.min, Math.min(setting.max, next));
             if (setting.step < 1) value = next;
             else value = (int) next;
+        } else if (setting.key.equals("show-player-heads")) {
+            value = !Boolean.TRUE.equals(holder.values.get(setting.path));
         } else {
             List<String> options = setting.key.equals("language") ? languages() : setting.choices;
             String current = String.valueOf(holder.values.get(setting.path));
@@ -164,6 +169,7 @@ public final class ConfigGui implements Listener {
         Object value = holder.values.get(setting.path);
         String iconPath = "items." + setting.key;
         if (setting.key.equals("sort")) iconPath = "items.sort." + value;
+        else if (value instanceof Boolean enabled) iconPath += enabled ? ".enabled" : ".disabled";
         else if (setting.key.equals("language")
                 && context.configSettings.isConfigurationSection("items.language." + value)) {
             iconPath = "items.language." + value;
@@ -178,6 +184,9 @@ public final class ConfigGui implements Listener {
                 LanguageManager.placeholders("label", label, "value", formatted)) : label);
         Object displayed = setting.key.equals("sort")
                 ? context.language.gui("config-editor.sort." + value) : formatted;
+        if (value instanceof Boolean enabled) {
+            displayed = context.language.gui("config-editor.toggle." + (enabled ? "enabled" : "disabled"));
+        }
         List<Component> lore = new ArrayList<>(context.language.guiList("config-editor.items." + setting.key + ".lore"));
         lore.addAll(context.language.guiList(setting.step > 0 ? "config-editor.number-lore" : "config-editor.choice-lore",
                 LanguageManager.placeholders("value", displayed, "step", setting.step < 1 ? "0.1" : "1")));

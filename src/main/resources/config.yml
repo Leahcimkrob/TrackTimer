@@ -23,6 +23,8 @@ race-statistics:
     normal-races: 10
     redstone-races: 15
   hologram:
+    # Display each player's head beside their name (CMI only).
+    show-player-heads: true
     # Selectable providers: auto, cmi, decentholograms.
     # auto uses CMI when available, otherwise DecentHolograms; either plugin may be absent.
     # If neither plugin is enabled, hologram buttons and the hologram command are unavailable.

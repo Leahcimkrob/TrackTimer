@@ -28,6 +28,9 @@ config-editor:
   sort:
     descending: "Descending (newest first)"
     ascending: "Ascending (oldest first)"
+  toggle:
+    enabled: "<green>Enabled"
+    disabled: "<red>Disabled"
   items:
     language:
       name: "<gold>Language"
@@ -69,6 +72,10 @@ config-editor:
         - "<gray>Seconds before removing the deletion tool."
     provider:
       name: "<gold>Hologram provider"
+    show-player-heads:
+      name: "<gold>Hologram: player heads"
+      lore:
+        - "<gray>Show player heads beside their names (CMI only)."
     chat-normal:
       name: "<gold>Chat: best times"
       lore:

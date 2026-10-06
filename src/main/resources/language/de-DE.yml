@@ -109,6 +109,12 @@ race-statistics:
   normal-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> Runden <dark_gray>| <white><races> Rennen gefahren"
   redstone-entry: "<yellow><rank>. <player> <dark_gray>| <white><race_time> <dark_gray>| <white><laps> Runden"
   duration-format: "<hours>:<minutes>:<seconds>.<centiseconds>"
+  hologram-columns:
+    rank: "<gold>Platz"
+    player: "<gold>Spieler"
+    time: "<gold>Zeit"
+    laps: "<gold>Runden"
+    races: "<gold>Rennen"
   redstone-filter-only: "<red>Datum oder Uhrzeit kann nur für Redstone-Rennen ausgewählt werden."
   invalid-date-or-time: "<red>Ungültiges Datum oder Uhrzeit. Nutze einen Wert aus der Tab-Vervollständigung."
   command-failed: "<red>Die Rennauswertung konnte nicht geladen werden."

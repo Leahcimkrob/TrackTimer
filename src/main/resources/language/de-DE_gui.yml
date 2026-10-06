@@ -28,6 +28,9 @@ config-editor:
   sort:
     descending: "Absteigend (neueste zuerst)"
     ascending: "Aufsteigend (älteste zuerst)"
+  toggle:
+    enabled: "<green>Aktiv"
+    disabled: "<red>Inaktiv"
   items:
     language:
       name: "<gold>Sprache"
@@ -69,6 +72,10 @@ config-editor:
         - "<gray>Sekunden bis das Löschwerkzeug entfernt wird."
     provider:
       name: "<gold>Hologramm-Anbieter"
+    show-player-heads:
+      name: "<gold>Hologramm: Spielerköpfe"
+      lore:
+        - "<gray>Spielerköpfe neben den Namen anzeigen (nur CMI)."
     chat-normal:
       name: "<gold>Chat: Bestzeiten"
       lore:
