@@ -201,8 +201,9 @@ buttons:
   hologram-delete:
     name: "<red>Delete results hologram"
     lore:
-      - "<gray>Gives you a universal removal tool."
-      - "<yellow>Click a block inside the selected area."
+      - "<yellow>Left-click: delete hologram"
+      - "<yellow>Right-click: cancel"
+      - "<gray>The tool disappears after <seconds> seconds without use."
   close:
     name: "<red>Close"
   back:

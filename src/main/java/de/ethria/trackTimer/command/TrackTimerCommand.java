@@ -13,6 +13,7 @@ import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -62,10 +63,13 @@ public final class TrackTimerCommand {
         TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
         HologramSubCommand hologram = new HologramSubCommand(plugin, database, language,
                 raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
-        HelpSubCommand help = new HelpSubCommand(language, label,
-                List.of(reload, create, delete, reset, editor, overview, convert, leave, topTen, hologram));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, overview, convert, leave,
-                topTen, hologram);
+        List<SubCommand> availableSubCommands = new ArrayList<>(List.of(
+                reload, create, delete, reset, editor, overview, convert, leave, topTen));
+        if (hologramTool != null && hologramDeleteTool != null) availableSubCommands.add(hologram);
+        HelpSubCommand help = new HelpSubCommand(language, label, availableSubCommands);
+        List<SubCommand> subCommands = new ArrayList<>();
+        subCommands.add(help);
+        subCommands.addAll(availableSubCommands);
 
         var root = Commands.literal(label)
                 .executes(context -> {

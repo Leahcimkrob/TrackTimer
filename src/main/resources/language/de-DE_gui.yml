@@ -201,8 +201,9 @@ buttons:
   hologram-delete:
     name: "<red>Ergebnis-Hologramm löschen"
     lore:
-      - "<gray>Gibt ein universelles Löschwerkzeug."
-      - "<yellow>Klicke einen Block im markierten Bereich an."
+      - "<yellow>Linksklick: Hologramm löschen"
+      - "<yellow>Rechtsklick: abbrechen"
+      - "<gray>Nach <seconds> Sekunden ohne Benutzung verschwindet das Werkzeug."
   close:
     name: "<red>Schließen"
   back:

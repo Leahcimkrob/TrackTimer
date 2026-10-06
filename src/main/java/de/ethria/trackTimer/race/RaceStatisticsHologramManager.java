@@ -62,6 +62,16 @@ public final class RaceStatisticsHologramManager {
         return provider != Provider.NONE;
     }
 
+    public void logProviderStatus() {
+        resolveProvider();
+        String message = switch (provider) {
+            case CMI -> "Hologram-Provider erkannt: CMI.";
+            case DECENT_HOLOGRAMS -> "Hologram-Provider erkannt: DecentHolograms.";
+            case NONE -> "Kein Hologram-Provider erkannt. Die Hologramm-Funktion ist deaktiviert.";
+        };
+        plugin.getLogger().info(message);
+    }
+
     private void resolveProvider() {
         String requested = plugin.getConfig().getString("race-statistics.hologram.provider", "auto")
                 .trim().toLowerCase(Locale.ROOT);
@@ -181,18 +191,35 @@ public final class RaceStatisticsHologramManager {
         }
     }
 
-    public int deleteHologramsAt(Location clickedBlock) throws SQLException {
+    public int deleteHologramAt(Location clickedBlock, Location playerLocation) throws SQLException {
         if (!isAvailable()) return 0;
         List<RaceHologramBoard> matches = database.listRaceHologramBoardsAt(plugin.getServer().getName(),
                 clickedBlock.getWorld().getName(), clickedBlock.getBlockX(), clickedBlock.getBlockY(),
                 clickedBlock.getBlockZ());
-        int removed = 0;
-        for (RaceHologramBoard board : matches) {
-            if (!database.deleteRaceHologramBoard(board.id(), plugin.getServer().getName())) continue;
-            removeProviderHologram(fromDatabase(board));
-            removed++;
+        RaceHologramBoard selected = matches.stream()
+                .filter(board -> isOnSameSideAsPlayer(board, playerLocation))
+                .min(java.util.Comparator.comparingDouble(board -> distanceSquaredToPlayer(board, playerLocation)))
+                .orElse(null);
+        if (selected == null || !database.deleteRaceHologramBoard(selected.id(), plugin.getServer().getName())) {
+            return 0;
         }
-        return removed;
+        removeProviderHologram(fromDatabase(selected));
+        return 1;
+    }
+
+    private boolean isOnSameSideAsPlayer(RaceHologramBoard board, Location playerLocation) {
+        boolean xPlane = board.lowZ() == board.highZ();
+        double planeCoordinate = xPlane ? board.lowZ() + 0.5 : board.lowX() + 0.5;
+        double playerCoordinate = xPlane ? playerLocation.getZ() : playerLocation.getX();
+        double hologramCoordinate = xPlane ? board.centerZ() : board.centerX();
+        return Math.signum(playerCoordinate - planeCoordinate) == Math.signum(hologramCoordinate - planeCoordinate);
+    }
+
+    private double distanceSquaredToPlayer(RaceHologramBoard board, Location playerLocation) {
+        double dx = playerLocation.getX() - board.centerX();
+        double dy = playerLocation.getY() - board.topY();
+        double dz = playerLocation.getZ() - board.centerZ();
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private void removeProviderHologram(Board board) {

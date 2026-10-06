@@ -92,6 +92,7 @@ public final class TrackTimer extends JavaPlugin {
                 this, databaseManager);
         RaceStatisticsHologramManager hologramManager = new RaceStatisticsHologramManager(
                 this, databaseManager, languageManager, raceStatisticsEvaluator);
+        hologramManager.logProviderStatus();
         hologramManager.load();
         TopTenGui topTenGui = new TopTenGui(editorGuiContext, raceStatisticsEvaluator, eventOverviewGui);
         PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
@@ -103,8 +104,6 @@ public final class TrackTimer extends JavaPlugin {
             getServer().getPluginManager().registerEvents(hologramTool, this);
             hologramDeleteTool = new RaceStatisticsHologramDeleteTool(editorGuiContext, hologramManager);
             getServer().getPluginManager().registerEvents(hologramDeleteTool, this);
-        } else {
-            getLogger().info("No hologram provider found; TrackTimer will run without the hologram feature.");
         }
         topTenGui.setHologramTool(hologramTool);
         topTenGui.setHologramDeleteTool(hologramDeleteTool);

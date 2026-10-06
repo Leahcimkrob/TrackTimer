@@ -23,8 +23,12 @@ race-statistics:
     normal-races: 10
     redstone-races: 15
   hologram:
-    # Provider: auto (prefer CMI, otherwise DecentHolograms), cmi, or decentholograms.
+    # Selectable providers: auto, cmi, decentholograms.
+    # auto uses CMI when available, otherwise DecentHolograms; either plugin may be absent.
+    # If neither plugin is enabled, hologram buttons and the hologram command are unavailable.
     provider: auto
+    # Remove the hologram deletion tool after this many seconds without use (1-86400).
+    delete-tool-timeout-seconds: 10
     # Number of race results/sessions shown on each race statistics hologram.
     normal-races: 10
     redstone-races: 10
