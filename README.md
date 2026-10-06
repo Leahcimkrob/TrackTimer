@@ -23,36 +23,9 @@ zeigt die Ergebnisse in Bestenlisten und optionalen Hologrammen an.
 - Einstellungen über eine Config-GUI ändern. Beim Schließen werden Änderungen gespeichert; ohne Änderungen erfolgt kein Reload.
 - Deutsche und englische Texte sowie Speicherung mit SQLite oder MySQL/MariaDB.
 
-### Erste Schritte
+### Dokumentation
 
-1. Die Plugin-JAR in den `plugins`-Ordner eines passenden Paper-Servers legen und den Server starten. Die aktuelle Version verwendet Paper API 26.2 und Java 25.
-2. Mit `/tt create <strecke> <runden> <modus>` eine Strecke anlegen. `player` steht für einen normalen Start, `signal` für einen Redstone-Start.
-3. Mit `/tt editor` die Strecke auswählen und die Trigger-Werkzeuge verwenden. Mit `exit` im Chat wird die Trigger-Auswahl beendet.
-4. Die Strecke befahren. Normalerweise beginnt die Zeit am Start-Trigger. Beim Ampel-Rennen gilt für alle Teilnehmer die gemeinsame Startzeit des Redstone-Signals.
-
-`/tt` ist der Standardalias für `/tracktimer`. Die verfügbaren Befehle hängen
-von den Berechtigungen des Spielers ab.
-
-### Wichtige Befehle
-
-| Befehl | Funktion |
-| --- | --- |
-| `/tt help` | Verfügbare Befehle anzeigen. |
-| `/tt editor` | Strecken und Trigger bearbeiten. |
-| `/tt overview` | Streckenübersicht öffnen. |
-| `/tt config` | Einstellungen über die GUI bearbeiten. |
-| `/tt leave` | Den aktuellen Lauf abbrechen. |
-| `/tt topten <strecke>` | Ergebnisse normaler Rennen im Chat anzeigen. |
-| `/tt topten <strecke> <datum> [uhrzeit]` | Ergebnisse von Ampel-Rennen anzeigen. |
-| `/tt hologram add <strecke>` | Werkzeug für ein Hologramm normaler Rennen erhalten. |
-| `/tt hologram add <strecke> <datum> [uhrzeit]` | Werkzeug für ein Ampel-Rennen-Hologramm erhalten. |
-| `/tt hologram remove` | Hologramm-Löschwerkzeug erhalten. |
-| `/tt hologram reload` | Hologramme aktualisieren. |
-| `/tt reload` | Einstellungen und Sprachdateien neu laden. |
-
-Das Datum wird als `YYYY-MM-DD` angegeben, die Uhrzeit beispielsweise als
-`HH:mm:ss`. Die Tab-Vervollständigung schlägt vorhandene Ampel-Rennen vor.
-Ohne Datum werden nur normale Rennen ausgewertet.
+[Installation und erste Schritte](https://github.com/Leahcimkrob/TrackTimer/wiki/Install-Deutsch) · [Befehle](https://github.com/Leahcimkrob/TrackTimer/wiki/Befehle) · [Berechtigungen](https://github.com/Leahcimkrob/TrackTimer/wiki/Berechtigungen)
 
 ### Hologramme und optionale Plugins
 
@@ -91,36 +64,9 @@ results in leaderboards and optional holograms.
 - Edit settings through a configuration GUI. Changes are saved when it closes; closing without changes does not trigger a reload.
 - German and English text, with SQLite or MySQL/MariaDB storage.
 
-### Getting started
+### Documentation
 
-1. Place the plugin JAR in the `plugins` folder of a compatible Paper server and start it. The current version uses Paper API 26.2 and Java 25.
-2. Create a track using `/tt create <track> <laps> <mode>`. Use `player` for an individual start or `signal` for a redstone start.
-3. Open `/tt editor`, select the track and use the trigger tools. Type `exit` in chat to finish selecting triggers.
-4. Drive the track. Normal races start at a start trigger. Redstone races use the same signal start time for all participants.
-
-`/tt` is the default alias for `/tracktimer`. Available commands depend on the
-player's permissions.
-
-### Main commands
-
-| Command | Purpose |
-| --- | --- |
-| `/tt help` | List available commands. |
-| `/tt editor` | Edit tracks and triggers. |
-| `/tt overview` | Open the track overview. |
-| `/tt config` | Edit settings through the GUI. |
-| `/tt leave` | Cancel the current run. |
-| `/tt topten <track>` | Display normal race results in chat. |
-| `/tt topten <track> <date> [time]` | Display redstone race results. |
-| `/tt hologram add <track>` | Get a normal race hologram placement tool. |
-| `/tt hologram add <track> <date> [time]` | Get a redstone race hologram placement tool. |
-| `/tt hologram remove` | Get a hologram removal tool. |
-| `/tt hologram reload` | Refresh holograms. |
-| `/tt reload` | Reload settings and language files. |
-
-Use `YYYY-MM-DD` for dates and, for example, `HH:mm:ss` for times.
-Tab completion suggests existing redstone races. Without a date, only normal
-race results are included.
+[Installation and first steps](https://github.com/Leahcimkrob/TrackTimer/wiki/Install-English) · [Commands](https://github.com/Leahcimkrob/TrackTimer/wiki/Commands) · [Permissions](https://github.com/Leahcimkrob/TrackTimer/wiki/Permissions)
 
 ### Holograms and optional plugins
 
