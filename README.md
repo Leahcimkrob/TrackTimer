@@ -1,5 +1,11 @@
 # TrackTimer
 
+![Version](https://img.shields.io/badge/version-1.0-blue)
+![Paper API](https://img.shields.io/badge/Paper_API-26.2-green)
+![Java](https://img.shields.io/badge/Java-25-orange)
+![Languages](https://img.shields.io/badge/languages-DE%20%7C%20EN-blue)
+[![Wiki](https://img.shields.io/badge/docs-Wiki-blue)](https://github.com/Leahcimkrob/TrackTimer/wiki)
+
 [Deutsch](#deutsch) · [English](#english)
 
 ## Deutsch
@@ -34,14 +40,7 @@ funktioniert TrackTimer weiterhin; die Hologramm-Buttons und der Hologramm-Befeh
 sind dann nicht verfügbar. **HeadDatabase** ist optional und stellt die
 besonderen Köpfe in den GUIs bereit.
 
-In der TopTen-GUI gibt es getrennte Buttons für normale Rennen und Ampel-Rennen.
-Mit dem Platzierungswerkzeug wird zuerst die obere linke, dann die untere rechte
-Ecke einer Wandfläche markiert. Die Hologramme bleiben fest ausgerichtet und
-werden an die markierte Fläche angepasst.
-
-Beim Löschwerkzeug entfernt Linksklick auf einen Block innerhalb der Fläche das
-Hologramm auf der Spielerseite. Rechtsklick beendet die Verwendung. Nach einer
-einstellbaren Zeit ohne Benutzung verschwindet das Werkzeug automatisch.
+[Hologramme erstellen und entfernen](https://github.com/Leahcimkrob/TrackTimer/wiki/Hologramme)
 
 ## English
 
@@ -74,10 +73,4 @@ Holograms require **CMI** or **DecentHolograms**. TrackTimer works without eithe
 plugin; hologram buttons and the hologram command are then unavailable.
 **HeadDatabase** is optional and supplies the custom heads used in the GUIs.
 
-The TopTen GUI has separate buttons for normal race and redstone race holograms.
-Use the placement tool to select the upper-left and lower-right corners of a
-wall area. Holograms remain fixed in direction and are sized to the selected area.
-
-With the removal tool, left-click a block inside the selected area to remove the
-hologram on your side of the wall. Right-click cancels the tool. The tool disappears
-automatically after a configurable period without use.
+[Creating and removing holograms](https://github.com/Leahcimkrob/TrackTimer/wiki/Holograms)
