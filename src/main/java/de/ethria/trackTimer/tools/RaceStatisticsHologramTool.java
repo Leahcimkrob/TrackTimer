@@ -20,6 +20,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +42,10 @@ public final class RaceStatisticsHologramTool implements Listener {
     }
 
     public void giveTool(Player player, Event event, boolean redstone) {
+        giveTool(player, event, redstone, null, null);
+    }
+
+    public void giveTool(Player player, Event event, boolean redstone, LocalDate filterDate, LocalTime filterTime) {
         if (!holograms.isAvailable()) {
             player.sendMessage(context.language().chat("race-statistics.hologram-plugin-missing"));
             return;
@@ -50,10 +57,11 @@ public final class RaceStatisticsHologramTool implements Listener {
         var lore = context.language().guiList("buttons.hologram.lore");
         if (!lore.isEmpty()) meta.lore(lore);
         meta.getPersistentDataContainer().set(toolKey, PersistentDataType.STRING,
-                event.id() + ":" + redstone);
+                event.id() + "|" + redstone + "|" + (filterDate == null ? "" : filterDate)
+                        + "|" + (filterTime == null ? "" : filterTime));
         item.setItemMeta(meta);
         player.getInventory().addItem(item);
-        selections.put(player.getUniqueId(), new Selection(event.id(), redstone, null));
+        selections.put(player.getUniqueId(), new Selection(event.id(), redstone, null, filterDate, filterTime));
         player.sendMessage(context.language().chat("race-statistics.hologram-tool-started",
                 LanguageManager.placeholders("event", event.name())));
     }
@@ -74,7 +82,7 @@ public final class RaceStatisticsHologramTool implements Listener {
         }
         if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
             selections.put(player.getUniqueId(), new Selection(selection.eventId(), selection.redstone(),
-                    block.getLocation()));
+                    block.getLocation(), selection.filterDate(), selection.filterTime()));
             player.sendMessage(context.language().chat("race-statistics.hologram-first-corner",
                     LanguageManager.placeholders("x", block.getX(), "y", block.getY(), "z", block.getZ())));
             return;
@@ -95,7 +103,7 @@ public final class RaceStatisticsHologramTool implements Listener {
                 return;
             }
             if (!holograms.createBoard(selectedEvent, selection.redstone(), selection.firstCorner(),
-                    block.getLocation(), player.getLocation())) {
+                    block.getLocation(), player.getLocation(), selection.filterDate(), selection.filterTime())) {
                 player.sendMessage(context.language().chat("race-statistics.hologram-invalid-area"));
                 return;
             }
@@ -130,11 +138,16 @@ public final class RaceStatisticsHologramTool implements Listener {
         if (item == null || !item.hasItemMeta()) return null;
         String value = item.getItemMeta().getPersistentDataContainer().get(toolKey, PersistentDataType.STRING);
         if (value == null) return null;
-        String[] parts = value.split(":", -1);
-        if (parts.length != 2) return null;
+        // Keep already-issued tools usable after adding the optional date/time filter.
+        String[] parts = value.contains("|") ? value.split("\\|", -1) : value.split(":", -1);
+        if (parts.length != 2 && parts.length != 4) return null;
         try {
-            return new Selection(Long.parseLong(parts[0]), Boolean.parseBoolean(parts[1]), null);
-        } catch (NumberFormatException ignored) {
+            LocalDate filterDate = parts.length == 4 && !parts[2].isEmpty() ? LocalDate.parse(parts[2]) : null;
+            LocalTime filterTime = parts.length == 4 && !parts[3].isEmpty()
+                    ? LocalTime.parse(parts[3]).withNano(0) : null;
+            return new Selection(Long.parseLong(parts[0]), Boolean.parseBoolean(parts[1]), null,
+                    filterDate, filterTime);
+        } catch (NumberFormatException | DateTimeParseException ignored) {
             return null;
         }
     }
@@ -150,5 +163,6 @@ public final class RaceStatisticsHologramTool implements Listener {
         }
     }
 
-    private record Selection(long eventId, boolean redstone, org.bukkit.Location firstCorner) { }
+    private record Selection(long eventId, boolean redstone, org.bukkit.Location firstCorner,
+                             LocalDate filterDate, LocalTime filterTime) { }
 }

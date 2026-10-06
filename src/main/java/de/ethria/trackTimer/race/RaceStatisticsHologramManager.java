@@ -20,6 +20,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
@@ -105,6 +107,12 @@ public final class RaceStatisticsHologramManager {
 
     public boolean createBoard(Event event, boolean redstone, Location firstCorner,
                                Location secondCorner, Location playerLocation) throws SQLException {
+        return createBoard(event, redstone, firstCorner, secondCorner, playerLocation, null, null);
+    }
+
+    public boolean createBoard(Event event, boolean redstone, Location firstCorner,
+                               Location secondCorner, Location playerLocation,
+                               LocalDate filterDate, LocalTime filterTime) throws SQLException {
         if (!isAvailable()) return false;
         if (!firstCorner.getWorld().equals(secondCorner.getWorld())) return false;
         int x1 = firstCorner.getBlockX();
@@ -141,7 +149,8 @@ public final class RaceStatisticsHologramManager {
         String key = UUID.randomUUID().toString();
         String hologramName = "tracktimer_" + event.id() + "_" + key.replace("-", "");
         Board board = new Board(key, hologramName, event.id(), redstone, plugin.getServer().getName(), world.getName(),
-                lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_GAP, z, yaw);
+                lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_GAP, z, yaw,
+                filterDate == null ? null : filterDate.toString(), filterTime == null ? null : filterTime.toString());
         RaceHologramBoard saved = database.saveRaceHologramBoard(toDatabase(board, plugin.getServer().getName()));
         refresh(fromDatabase(saved));
         return true;
@@ -163,7 +172,7 @@ public final class RaceStatisticsHologramManager {
         }
         return new RaceHologramBoard(board.id(), board.eventId(), board.redstone(), board.server(), board.world(),
                 board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
-                centerX, board.highY() + VERTICAL_GAP, centerZ, board.yaw());
+                centerX, board.highY() + VERTICAL_GAP, centerZ, board.yaw(), board.filterDate(), board.filterTime());
     }
 
     private void removeDuplicateProviderHolograms(List<RaceHologramBoard> duplicates) {
@@ -229,7 +238,8 @@ public final class RaceStatisticsHologramManager {
         List<String> lines;
         try {
             var result = statistics.evaluate(board.eventId(), RaceStatisticsEvaluator.Output.HOLOGRAM,
-                    null, null, board.redstone());
+                    board.filterDate() == null ? null : LocalDate.parse(board.filterDate()),
+                    board.filterTime() == null ? null : LocalTime.parse(board.filterTime()), board.redstone());
             if (result.isEmpty()) return;
             lines = formatLines(result.get());
         } catch (Exception exception) {
@@ -451,25 +461,26 @@ public final class RaceStatisticsHologramManager {
                 section.getInt("low-x"), section.getInt("low-y"), section.getInt("low-z"),
                 section.getInt("high-x"), section.getInt("high-y"), section.getInt("high-z"),
                 section.getDouble("center-x"), section.getDouble("top-y"), section.getDouble("center-z"),
-                (float) section.getDouble("yaw", 0f));
+                (float) section.getDouble("yaw", 0f), null, null);
     }
 
     private Board fromDatabase(RaceHologramBoard board) {
         String hologramName = "tracktimer_" + board.eventId() + "_" + board.id().replace("-", "");
         return new Board(board.id(), hologramName, board.eventId(), board.redstone(), board.server(), board.world(),
                 board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
-                board.centerX(), board.topY(), board.centerZ(), board.yaw());
+                board.centerX(), board.topY(), board.centerZ(), board.yaw(), board.filterDate(), board.filterTime());
     }
 
     private RaceHologramBoard toDatabase(Board board, String server) {
         return new RaceHologramBoard(board.key(), board.eventId(), board.redstone(), server, board.world(),
                 board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
-                board.centerX(), board.topY(), board.centerZ(), board.yaw());
+                board.centerX(), board.topY(), board.centerZ(), board.yaw(), board.filterDate(), board.filterTime());
     }
 
     private record Board(String key, String hologramName, long eventId, boolean redstone, String server, String world,
                          int lowX, int lowY, int lowZ, int highX, int highY, int highZ,
-                         double centerX, double topY, double centerZ, float yaw) { }
+                         double centerX, double topY, double centerZ, float yaw,
+                         String filterDate, String filterTime) { }
 
     private enum Provider { NONE, CMI, DECENT_HOLOGRAMS }
 }

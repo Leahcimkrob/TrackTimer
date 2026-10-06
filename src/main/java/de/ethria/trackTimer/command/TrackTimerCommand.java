@@ -8,6 +8,8 @@ import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.gui.EventOverviewGui;
 import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
+import de.ethria.trackTimer.tools.RaceStatisticsHologramDeleteTool;
+import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
@@ -30,16 +32,22 @@ public final class TrackTimerCommand {
     private final EventOverviewGui eventOverviewGui;
     private final RaceStartListener raceStartListener;
     private final RaceStatisticsEvaluator raceStatisticsEvaluator;
+    private final RaceStatisticsHologramTool hologramTool;
+    private final RaceStatisticsHologramDeleteTool hologramDeleteTool;
 
     public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language,
                              EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
-                             RaceStatisticsEvaluator raceStatisticsEvaluator) {
+                             RaceStatisticsEvaluator raceStatisticsEvaluator,
+                             RaceStatisticsHologramTool hologramTool,
+                             RaceStatisticsHologramDeleteTool hologramDeleteTool) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
         this.eventOverviewGui = eventOverviewGui;
         this.raceStartListener = raceStartListener;
         this.raceStatisticsEvaluator = raceStatisticsEvaluator;
+        this.hologramTool = hologramTool;
+        this.hologramDeleteTool = hologramDeleteTool;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
@@ -52,9 +60,12 @@ public final class TrackTimerCommand {
         ConvertSubCommand convert = new ConvertSubCommand(database, language);
         LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
         TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
+        HologramSubCommand hologram = new HologramSubCommand(plugin, database, language,
+                raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
         HelpSubCommand help = new HelpSubCommand(language, label,
-                List.of(reload, create, delete, reset, editor, overview, convert, leave, topTen));
-        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, overview, convert, leave, topTen);
+                List.of(reload, create, delete, reset, editor, overview, convert, leave, topTen, hologram));
+        List<SubCommand> subCommands = List.of(help, reload, create, delete, reset, editor, overview, convert, leave,
+                topTen, hologram);
 
         var root = Commands.literal(label)
                 .executes(context -> {

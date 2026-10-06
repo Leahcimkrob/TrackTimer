@@ -125,7 +125,8 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(raceStartListener, this);
         getServer().getPluginManager().registerEvents(redstoneStartListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
-        registerMainCommand(eventOverviewGui, raceStartListener, raceStatisticsEvaluator);
+        registerMainCommand(eventOverviewGui, raceStartListener, raceStatisticsEvaluator,
+                hologramTool, hologramDeleteTool);
     }
 
     /**
@@ -158,9 +159,11 @@ public final class TrackTimer extends JavaPlugin {
      * supported for this plugin format.
      */
     private void registerMainCommand(EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
-                                     RaceStatisticsEvaluator raceStatisticsEvaluator) {
+                                     RaceStatisticsEvaluator raceStatisticsEvaluator,
+                                     RaceStatisticsHologramTool hologramTool,
+                                     RaceStatisticsHologramDeleteTool hologramDeleteTool) {
         TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager,
-                eventOverviewGui, raceStartListener, raceStatisticsEvaluator);
+                eventOverviewGui, raceStartListener, raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->

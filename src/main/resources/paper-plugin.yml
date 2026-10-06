@@ -48,6 +48,7 @@ permissions:
       tracktimer.command.convert: true
       tracktimer.command.leave: true
       tracktimer.command.topten: true
+      tracktimer.command.hologram: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -88,3 +89,7 @@ permissions:
   tracktimer.command.topten:
     description: Allows displaying TrackTimer race statistics in chat.
     default: true
+
+  tracktimer.command.hologram:
+    description: Allows creating and removing race statistics holograms.
+    default: op

@@ -68,6 +68,7 @@ public final class DatabaseManager {
             }
         }
         ensureRaceResultsRedstoneColumn();
+        ensureRaceHologramFilterColumns();
         dropLegacyRaceHologramUniqueIndex(connection);
         removeDuplicateRaceHolograms(connection, duplicateRaceHologramBoards);
         createIndexes();
@@ -90,6 +91,27 @@ public final class DatabaseManager {
         if (!columnExists) {
             try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate("ALTER TABLE race_results ADD COLUMN is_redstone BOOLEAN NOT NULL DEFAULT FALSE");
+            }
+        }
+    }
+
+    private void ensureRaceHologramFilterColumns() throws SQLException {
+        for (String column : List.of("filter_date", "filter_time")) {
+            boolean exists = false;
+            try (Statement statement = connection.createStatement();
+                 ResultSet columns = statement.executeQuery("SELECT * FROM race_holograms LIMIT 0")) {
+                ResultSetMetaData metadata = columns.getMetaData();
+                for (int index = 1; index <= metadata.getColumnCount(); index++) {
+                    if (column.equalsIgnoreCase(metadata.getColumnLabel(index))) {
+                        exists = true;
+                        break;
+                    }
+                }
+            }
+            if (!exists) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate("ALTER TABLE race_holograms ADD COLUMN " + column + " VARCHAR(16)");
+                }
             }
         }
     }
@@ -304,7 +326,8 @@ public final class DatabaseManager {
 
     public record RaceHologramBoard(String id, long eventId, boolean redstone, String server, String world,
                                     int lowX, int lowY, int lowZ, int highX, int highY, int highZ,
-                                    double centerX, double topY, double centerZ, float yaw) { }
+                                    double centerX, double topY, double centerZ, float yaw,
+                                    String filterDate, String filterTime) { }
 
     public RaceHologramBoard saveRaceHologramBoard(RaceHologramBoard board) throws SQLException {
         String existingId = null;
@@ -331,7 +354,8 @@ public final class DatabaseManager {
         if (existingId != null) {
             try (PreparedStatement statement = connection.prepareStatement("""
                     UPDATE race_holograms SET world = ?, low_x = ?, low_y = ?, low_z = ?,
-                        high_x = ?, high_y = ?, high_z = ?, center_x = ?, top_y = ?, center_z = ?, yaw = ?
+                        high_x = ?, high_y = ?, high_z = ?, center_x = ?, top_y = ?, center_z = ?, yaw = ?,
+                        filter_date = ?, filter_time = ?
                     WHERE id = ?
                     """)) {
                 statement.setString(1, board.world());
@@ -345,17 +369,20 @@ public final class DatabaseManager {
                 statement.setDouble(9, board.topY());
                 statement.setDouble(10, board.centerZ());
                 statement.setFloat(11, board.yaw());
-                statement.setString(12, existingId);
+                statement.setString(12, board.filterDate());
+                statement.setString(13, board.filterTime());
+                statement.setString(14, existingId);
                 statement.executeUpdate();
             }
             return new RaceHologramBoard(existingId, board.eventId(), board.redstone(), board.server(), board.world(),
                     board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
-                    board.centerX(), board.topY(), board.centerZ(), board.yaw());
+                    board.centerX(), board.topY(), board.centerZ(), board.yaw(), board.filterDate(), board.filterTime());
         }
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO race_holograms (id, event_id, redstone, server, world,
-                    low_x, low_y, low_z, high_x, high_y, high_z, center_x, top_y, center_z, yaw)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    low_x, low_y, low_z, high_x, high_y, high_z, center_x, top_y, center_z, yaw,
+                    filter_date, filter_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """)) {
             statement.setString(1, board.id());
             statement.setLong(2, board.eventId());
@@ -372,6 +399,8 @@ public final class DatabaseManager {
             statement.setDouble(13, board.topY());
             statement.setDouble(14, board.centerZ());
             statement.setFloat(15, board.yaw());
+            statement.setString(16, board.filterDate());
+            statement.setString(17, board.filterTime());
             statement.executeUpdate();
         }
         return board;
@@ -385,7 +414,7 @@ public final class DatabaseManager {
         List<RaceHologramBoard> boards = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
-                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw, filter_date, filter_time
                 FROM race_holograms WHERE server = ? ORDER BY id
                 """)) {
             statement.setString(1, server);
@@ -395,7 +424,8 @@ public final class DatabaseManager {
                         rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
                         rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
                         rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
-                        rows.getDouble("center_z"), rows.getFloat("yaw")));
+                        rows.getDouble("center_z"), rows.getFloat("yaw"),
+                        rows.getString("filter_date"), rows.getString("filter_time")));
             }
         }
         return List.copyOf(boards);
@@ -406,7 +436,7 @@ public final class DatabaseManager {
         List<RaceHologramBoard> boards = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
-                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw, filter_date, filter_time
                 FROM race_holograms
                 WHERE server = ? AND world = ?
                   AND low_x <= ? AND high_x >= ?
@@ -428,7 +458,8 @@ public final class DatabaseManager {
                         rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
                         rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
                         rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
-                        rows.getDouble("center_z"), rows.getFloat("yaw")));
+                        rows.getDouble("center_z"), rows.getFloat("yaw"),
+                        rows.getString("filter_date"), rows.getString("filter_time")));
             }
         }
         return List.copyOf(boards);
@@ -464,7 +495,7 @@ public final class DatabaseManager {
         List<RaceHologramBoard> duplicates = new ArrayList<>();
         try (Statement statement = database.createStatement(); ResultSet rows = statement.executeQuery("""
                 SELECT id, event_id, redstone, server, world, low_x, low_y, low_z,
-                       high_x, high_y, high_z, center_x, top_y, center_z, yaw
+                       high_x, high_y, high_z, center_x, top_y, center_z, yaw, filter_date, filter_time
                 FROM race_holograms ORDER BY server, event_id, redstone, id
                 """)) {
             while (rows.next()) {
@@ -473,7 +504,8 @@ public final class DatabaseManager {
                         rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
                         rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"),
                         rows.getInt("high_z"), rows.getDouble("center_x"), rows.getDouble("top_y"),
-                        rows.getDouble("center_z"), rows.getFloat("yaw"));
+                        rows.getDouble("center_z"), rows.getFloat("yaw"),
+                        rows.getString("filter_date"), rows.getString("filter_time"));
                 String key = board.server() + '\u0000' + board.eventId() + '\u0000' + board.redstone()
                         + '\u0000' + board.world() + '\u0000' + board.lowX() + '\u0000' + board.lowY()
                         + '\u0000' + board.lowZ() + '\u0000' + board.highX() + '\u0000' + board.highY()
@@ -1410,6 +1442,8 @@ public final class DatabaseManager {
                     top_y DOUBLE NOT NULL,
                     center_z DOUBLE NOT NULL,
                     yaw REAL NOT NULL DEFAULT 0,
+                    filter_date VARCHAR(16),
+                    filter_time VARCHAR(16),
                     FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
                 )
                 """

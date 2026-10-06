@@ -18,6 +18,7 @@ help:
   convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
   leave: "<yellow>/<command> leave <gray>- Cancels your current run."
   topten: "<yellow>/<command> topten <event> [date|time] <gray>- Displays race statistics in chat."
+  hologram: "<yellow>/<command> hologram add <event> [date time] <gray>- Gives the placement tool. <yellow>/<command> hologram remove <gray>- Gives the removal tool."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:
@@ -107,7 +108,7 @@ race-statistics:
   redstone-filter-only: "<red>You can only select a date or time for redstone races."
   invalid-date-or-time: "<red>Invalid date or time. Use a value from tab completion."
   command-failed: "<red>Could not load race statistics."
-  hologram-plugin-missing: "<red>DecentHolograms is not installed or enabled."
+  hologram-plugin-missing: "<red>Neither CMI nor DecentHolograms is installed and enabled."
   hologram-tool-started: "<yellow>Hologram tool for <event>: left-click the upper-left corner. Type exit to cancel."
   hologram-event-missing: "<red>The selected event no longer exists."
   hologram-first-corner: "<green>First corner selected (<x>, <y>, <z>). Right-click the lower-right corner."

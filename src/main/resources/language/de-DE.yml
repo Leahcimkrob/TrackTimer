@@ -18,6 +18,7 @@ help:
   convert: "<yellow>/<command> convert <from> <to> <gray>- Überträgt Daten zwischen SQLite und MySQL."
   leave: "<yellow>/<command> leave <gray>- Bricht deinen aktuellen Lauf ab."
   topten: "<yellow>/<command> topten <event> [datum|uhrzeit] <gray>- Zeigt die Rennauswertung im Chat."
+  hologram: "<yellow>/<command> hologram add <event> [datum uhrzeit] <gray>- Gibt das Setzwerkzeug. <yellow>/<command> hologram remove <gray>- Gibt das Löschwerkzeug."
   help: "<yellow>/<command> help <gray>- Zeigt diese Hilfe an."
 
 event:
@@ -107,7 +108,7 @@ race-statistics:
   redstone-filter-only: "<red>Datum oder Uhrzeit kann nur für Redstone-Rennen ausgewählt werden."
   invalid-date-or-time: "<red>Ungültiges Datum oder Uhrzeit. Nutze einen Wert aus der Tab-Vervollständigung."
   command-failed: "<red>Die Rennauswertung konnte nicht geladen werden."
-  hologram-plugin-missing: "<red>DecentHolograms ist nicht installiert oder aktiviert."
+  hologram-plugin-missing: "<red>Weder CMI noch DecentHolograms ist installiert und aktiviert."
   hologram-tool-started: "<yellow>Hologramm-Werkzeug für <event>: Linksklick auf die obere linke Ecke. Schreibe exit zum Abbrechen."
   hologram-event-missing: "<red>Das ausgewählte Event existiert nicht mehr."
   hologram-first-corner: "<green>Erste Ecke gesetzt (<x>, <y>, <z>). Rechtsklick auf die untere rechte Ecke."
