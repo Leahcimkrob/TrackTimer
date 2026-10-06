@@ -78,6 +78,8 @@ public final class HologramSubCommand implements SubCommand {
                                                 StringArgumentType.getString(context, "dateTime"))))))
                 .then(Commands.literal("remove")
                         .executes(context -> executeRemove(context.getSource().getSender())))
+                .then(Commands.literal("reload")
+                        .executes(context -> executeReload(context.getSource().getSender())))
                 .build();
     }
 
@@ -99,27 +101,35 @@ public final class HologramSubCommand implements SubCommand {
             LocalDate date = null;
             LocalTime time = null;
             if (dateTime != null) {
-                if (!"signal".equals(event.startMode())) {
-                    player.sendMessage(language.chat("race-statistics.redstone-filter-only"));
-                    return Command.SINGLE_SUCCESS;
-                }
                 try {
                     String[] dateAndTime = dateTime.trim().split("\\s+", 2);
-                    if (dateAndTime.length != 2) {
-                        throw new DateTimeParseException("Date and time are both required", dateTime, 0);
-                    }
                     date = LocalDate.parse(dateAndTime[0], DateTimeFormatter.ISO_LOCAL_DATE);
-                    time = LocalTime.parse(dateAndTime[1], DateTimeFormatter.ISO_LOCAL_TIME).withNano(0);
+                    if (dateAndTime.length == 2) {
+                        time = LocalTime.parse(dateAndTime[1], DateTimeFormatter.ISO_LOCAL_TIME).withNano(0);
+                    }
                 } catch (DateTimeParseException invalidDateTime) {
                     player.sendMessage(language.chat("race-statistics.invalid-date-or-time"));
                     return Command.SINGLE_SUCCESS;
                 }
             }
-            createTool.giveTool(player, event, "signal".equals(event.startMode()), date, time);
+            createTool.giveTool(player, event, date != null, date, time);
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.WARNING, "Could not prepare the race hologram tool for '"
                     + eventName + "'.", exception);
             player.sendMessage(language.chat("race-statistics.command-failed"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeReload(CommandSender sender) {
+        try {
+            plugin.reloadConfig();
+            language.load();
+            plugin.reloadHolograms();
+            sender.sendMessage(language.chat("race-statistics.holograms-reloaded"));
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not reload race holograms.", exception);
+            sender.sendMessage(language.chat("race-statistics.command-failed"));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -151,11 +161,11 @@ public final class HologramSubCommand implements SubCommand {
     private CompletableFuture<Suggestions> suggestDatesAndTimes(String eventName, SuggestionsBuilder builder) {
         try {
             Event event = findEvent(eventName);
-            if (event == null || !"signal".equals(event.startMode())) return builder.buildFuture();
+            if (event == null) return builder.buildFuture();
             ZoneId zone = ZoneId.systemDefault();
             LinkedHashSet<String> values = new LinkedHashSet<>();
             for (long timestamp : statistics.recentRedstoneRaceStartTimes(
-                    event.id(), RaceStatisticsEvaluator.Output.CHAT)) {
+                    event.id(), RaceStatisticsEvaluator.Output.HOLOGRAM)) {
                 values.add(DATE_TIME_SUGGESTION_FORMAT.format(Instant.ofEpochMilli(timestamp).atZone(zone)));
             }
             values.stream().filter(value -> matchesPrefix(value, builder.getRemaining())).forEach(builder::suggest);

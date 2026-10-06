@@ -69,15 +69,17 @@ public final class RaceStatisticsEvaluator {
                     .thenComparingLong(RaceStatisticsEntry::startTimeMillis)
                     .thenComparingLong(RaceStatisticsEntry::resultId);
 
-        List<RaceStatisticsEntry> completedRaces = database.listCompletedRaceStatistics(eventId);
+        // The persisted race flag determines the result category, independently
+        // of the track's current start mode. Never mix both categories.
+        List<RaceStatisticsEntry> completedRaces = database.listCompletedRaceStatistics(eventId).stream()
+                .filter(entry -> entry.redstoneStart() == redstone)
+                .toList();
         Map<String, Integer> racesPerPlayer = new LinkedHashMap<>();
-        completedRaces.stream().filter(entry -> !redstone || entry.redstoneStart())
-                .forEach(entry -> racesPerPlayer.merge(entry.playerUuid(), 1, Integer::sum));
+        completedRaces.forEach(entry -> racesPerPlayer.merge(entry.playerUuid(), 1, Integer::sum));
         ZoneId zone = ZoneId.systemDefault();
         List<RaceStatisticsEntry> selected;
         if (redstone) {
             List<RaceStatisticsEntry> filtered = completedRaces.stream()
-                    .filter(RaceStatisticsEntry::redstoneStart)
                     .filter(entry -> matchesDateTime(entry, dateFilter, timeFilter, zone))
                     .toList();
             var selectedStarts = new java.util.LinkedHashSet<Long>();
@@ -111,7 +113,7 @@ public final class RaceStatisticsEvaluator {
     /** Returns the most recent distinct redstone race start timestamps for tab completion. */
     public List<Long> recentRedstoneRaceStartTimes(long eventId, Output output) throws SQLException {
         Event event = database.getEvent(eventId);
-        if (event == null || !"signal".equals(event.startMode())) return List.of();
+        if (event == null) return List.of();
 
         int limit = Math.max(0, plugin.getConfig().getInt(
                 "race-statistics." + output.configKey + ".redstone-races", defaultCount(output, true)));

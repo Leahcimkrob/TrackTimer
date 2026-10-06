@@ -21,8 +21,8 @@ help:
   overview: "<yellow>/<command> overview <gray>- Öffnet die Event-Übersicht mit den TopTen."
   convert: "<yellow>/<command> convert <from> <to> <gray>- Überträgt Daten zwischen SQLite und MySQL."
   leave: "<yellow>/<command> leave <gray>- Bricht deinen aktuellen Lauf ab."
-  topten: "<yellow>/<command> topten <event> [datum|uhrzeit] <gray>- Zeigt die Rennauswertung im Chat."
-  hologram: "<yellow>/<command> hologram add <event> [datum uhrzeit] <gray>- Gibt das Setzwerkzeug. <yellow>/<command> hologram remove <gray>- Gibt das Löschwerkzeug."
+  topten: "<yellow>/<command> topten <event> [datum [uhrzeit]] <gray>- Ohne Datum: normale Rennen; mit Datum: Ampel-Rennen."
+  hologram: "<yellow>/<command> hologram add <event> [datum [uhrzeit]] <gray>- Ohne Datum: normale Rennen; mit Datum: Ampel-Rennen. <yellow>/<command> hologram remove <gray>- Gibt das Löschwerkzeug. <yellow>/<command> hologram reload <gray>- Lädt alle Hologramme neu."
   help: "<yellow>/<command> help <gray>- Zeigt diese Hilfe an."
 
 event:
@@ -102,6 +102,7 @@ race:
   new-record: "<gold><bold>Neuer Rekord auf <event>! </bold><gold>Zeit: <white><time>"
 
 race-statistics:
+  holograms-reloaded: "<green>Hologramme neu geladen."
   chat-title: "<gold>Rennergebnisse für <yellow><event>"
   redstone-chat-title: "<gold>Rennen für <yellow><event> <dark_gray>| <white><date> <time_of_day>"
   chat-empty: "<gray>Für dieses Event liegen noch keine abgeschlossenen Rennen vor."

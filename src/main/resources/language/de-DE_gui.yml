@@ -275,9 +275,15 @@ leaderboard:
 
 buttons:
   hologram:
-    name: "<gold>Ergebnis-Hologramm setzen"
+    name: "<gold>Hologramm für normale Rennen setzen"
     lore:
       - "<gray>Gibt das Werkzeug zum Auswählen des Bereichs."
+      - "<yellow>Linksklick: obere linke Ecke"
+      - "<yellow>Rechtsklick: untere rechte Ecke"
+  hologram-redstone:
+    name: "<gold>Hologramm für Ampel-Rennen setzen"
+    lore:
+      - "<gray>Zeigt die Ergebnisse der Ampel-Rennen."
       - "<yellow>Linksklick: obere linke Ecke"
       - "<yellow>Rechtsklick: untere rechte Ecke"
   hologram-delete:

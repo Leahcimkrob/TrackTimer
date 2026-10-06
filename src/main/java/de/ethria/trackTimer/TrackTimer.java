@@ -44,6 +44,7 @@ public final class TrackTimer extends JavaPlugin {
     private RaceStartListener raceStartListener;
     private RaceTriggerMonitor raceTriggerMonitor;
     private RaceStatisticsEvaluator raceStatisticsEvaluator;
+    private RaceStatisticsHologramManager hologramManager;
 
     @Override
     public void onEnable() {
@@ -95,7 +96,7 @@ public final class TrackTimer extends JavaPlugin {
                 this, databaseManager, languageManager, raceStartListener);
         raceStatisticsEvaluator = new RaceStatisticsEvaluator(
                 this, databaseManager);
-        RaceStatisticsHologramManager hologramManager = new RaceStatisticsHologramManager(
+        hologramManager = new RaceStatisticsHologramManager(
                 this, databaseManager, languageManager, raceStatisticsEvaluator);
         hologramManager.logProviderStatus();
         hologramManager.load();
@@ -198,5 +199,9 @@ public final class TrackTimer extends JavaPlugin {
 
     public void openConfigGui(Player player) {
         configGui.open(player);
+    }
+
+    public void reloadHolograms() throws SQLException {
+        if (hologramManager != null) hologramManager.reload();
     }
 }

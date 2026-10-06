@@ -42,7 +42,9 @@ public final class RaceStatisticsHologramManager {
     private final LanguageManager language;
     private final RaceStatisticsEvaluator statistics;
     private static final double WALL_GAP = 0.05;
-    private static final double VERTICAL_GAP = 0.25;
+    // Stored top_y is the visible upper edge, a quarter block below the block's top.
+    private static final double VERTICAL_OFFSET = 1.0 - 0.25;
+    private final CmiHologramTopAligner cmiTopAligner;
     private Provider provider = Provider.NONE;
     private final Set<String> activeCmiBoards = new HashSet<>();
 
@@ -52,6 +54,7 @@ public final class RaceStatisticsHologramManager {
         this.database = database;
         this.language = language;
         this.statistics = statistics;
+        this.cmiTopAligner = new CmiHologramTopAligner(plugin);
     }
 
     public boolean isAvailable() {
@@ -112,6 +115,20 @@ public final class RaceStatisticsHologramManager {
         }
     }
 
+    /** Recreates existing displays after removing them from the previously selected provider. */
+    public void reload() throws SQLException {
+        List<RaceHologramBoard> boards = database.listRaceHologramBoards(plugin.getServer().getName());
+        for (RaceHologramBoard board : boards) removeProviderHologram(fromDatabase(board));
+        resolveProvider();
+        if (provider == Provider.NONE) return;
+        for (RaceHologramBoard board : boards) {
+            RaceHologramBoard adjusted = adjustPlacement(board);
+            database.updateRaceHologramPosition(adjusted.id(), adjusted.server(), adjusted.centerX(),
+                    adjusted.topY(), adjusted.centerZ());
+            refresh(fromDatabase(adjusted));
+        }
+    }
+
     public boolean createBoard(Event event, boolean redstone, Location firstCorner,
                                Location secondCorner, Location playerLocation) throws SQLException {
         return createBoard(event, redstone, firstCorner, secondCorner, playerLocation, null, null);
@@ -156,7 +173,7 @@ public final class RaceStatisticsHologramManager {
         String key = UUID.randomUUID().toString();
         String hologramName = "tracktimer_" + event.id() + "_" + key.replace("-", "");
         Board board = new Board(key, hologramName, event.id(), redstone, plugin.getServer().getName(), world.getName(),
-                lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_GAP, z, yaw,
+                lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_OFFSET, z, yaw,
                 filterDate == null ? null : filterDate.toString(), filterTime == null ? null : filterTime.toString());
         RaceHologramBoard saved = database.saveRaceHologramBoard(toDatabase(board, plugin.getServer().getName()));
         refresh(fromDatabase(saved));
@@ -179,7 +196,7 @@ public final class RaceStatisticsHologramManager {
         }
         return new RaceHologramBoard(board.id(), board.eventId(), board.redstone(), board.server(), board.world(),
                 board.lowX(), board.lowY(), board.lowZ(), board.highX(), board.highY(), board.highZ(),
-                centerX, board.highY() + VERTICAL_GAP, centerZ, board.yaw(), board.filterDate(), board.filterTime());
+                centerX, board.highY() + VERTICAL_OFFSET, centerZ, board.yaw(), board.filterDate(), board.filterTime());
     }
 
     private void removeDuplicateProviderHolograms(List<RaceHologramBoard> duplicates) {
@@ -221,6 +238,7 @@ public final class RaceStatisticsHologramManager {
 
     private void removeProviderHologram(Board board) {
         String hologramName = board.hologramName();
+        cmiTopAligner.remove(hologramName);
         try {
             if (provider == Provider.CMI) {
                 Class<?> cmiClass = Class.forName("com.Zrips.CMI.CMI");
@@ -287,12 +305,15 @@ public final class RaceStatisticsHologramManager {
 
     private void updateDecentHologram(Board board, Location location, List<String> lines) {
         float[] scale = calculateScale(board, lines);
+        // Decent's native TextDisplay location is its lower edge; reserve the
+        // entire scaled text height so its upper edge remains at top_y.
+        Location displayLocation = location.clone().subtract(0, lines.size() * 0.25 * scale[1], 0);
         int maximumLineWidth = measureMaximumLineWidthPixels(lines);
         try {
             Class<?> renderer = Class.forName("de.ethria.trackTimer.race.DecentHologramRenderer");
             renderer.getMethod("render", String.class, Location.class, List.class,
                             float.class, float.class, int.class)
-                    .invoke(null, board.hologramName(), location, lines, scale[0], scale[1], maximumLineWidth);
+                    .invoke(null, board.hologramName(), displayLocation, lines, scale[0], scale[1], maximumLineWidth);
         } catch (ReflectiveOperationException | LinkageError exception) {
             throw new IllegalStateException("DecentHolograms display API is unavailable or incompatible.", exception);
         }
@@ -315,6 +336,9 @@ public final class RaceStatisticsHologramManager {
             invoke(hologramClass, hologram, "setLocation", new Class<?>[]{Location.class}, location);
             Object pages = invoke(hologramClass, hologram, "getPages", new Class<?>[0]);
             invoke(pages.getClass(), pages, "setLines", new Class<?>[]{List.class}, lines);
+            Object textSettings = invoke(hologramClass, hologram, "getTextSettings", new Class<?>[0]);
+            invoke(textSettings.getClass(), textSettings, "setLineWidth", new Class<?>[]{int.class},
+                    Math.max(1, measureMaximumLineWidthPixels(lines)));
             float[] scale = calculateScale(board, lines);
             Object settings = invoke(hologramClass, hologram, "getSettings", new Class<?>[0]);
             invoke(settings.getClass(), settings, "setSaveToFile", new Class<?>[]{boolean.class}, false);
@@ -328,6 +352,7 @@ public final class RaceStatisticsHologramManager {
             invoke(settings.getClass(), settings, "setYaw", new Class<?>[]{double.class}, (double) board.yaw());
             invoke(hologramClass, hologram, created ? "show" : "update", new Class<?>[0]);
             activeCmiBoards.add(board.key());
+            cmiTopAligner.align(board.hologramName(), hologram, location);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("CMI hologram API is unavailable or incompatible.", exception);
         }

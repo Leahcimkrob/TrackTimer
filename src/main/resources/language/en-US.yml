@@ -21,8 +21,8 @@ help:
   overview: "<yellow>/<command> overview <gray>- Opens the event overview and TopTen."
   convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
   leave: "<yellow>/<command> leave <gray>- Cancels your current run."
-  topten: "<yellow>/<command> topten <event> [date|time] <gray>- Displays race statistics in chat."
-  hologram: "<yellow>/<command> hologram add <event> [date time] <gray>- Gives the placement tool. <yellow>/<command> hologram remove <gray>- Gives the removal tool."
+  topten: "<yellow>/<command> topten <event> [date [time]] <gray>- Without a date: normal races; with a date: redstone races."
+  hologram: "<yellow>/<command> hologram add <event> [date [time]] <gray>- Without a date: normal races; with a date: redstone races. <yellow>/<command> hologram remove <gray>- Gives the removal tool. <yellow>/<command> hologram reload <gray>- Reloads all holograms."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:
@@ -102,6 +102,7 @@ race:
   new-record: "<gold><bold>New record on <event>! </bold><gold>Time: <white><time>"
 
 race-statistics:
+  holograms-reloaded: "<green>Holograms reloaded."
   chat-title: "<gold>Race results for <yellow><event>"
   redstone-chat-title: "<gold>Race for <yellow><event> <dark_gray>| <white><date> <time_of_day>"
   chat-empty: "<gray>There are no completed races for this event yet."

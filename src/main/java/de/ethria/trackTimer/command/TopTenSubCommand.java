@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-/** {@code /tracktimer topten <event> [date time]} - displays configured race statistics. */
+/** {@code /tracktimer topten <event> [date [time]]} - displays configured race statistics. */
 public final class TopTenSubCommand implements SubCommand {
     private static final String PERMISSION = "tracktimer.command.topten";
     private static final DateTimeFormatter DATE_TIME_SUGGESTION_FORMAT =
@@ -80,17 +80,12 @@ public final class TopTenSubCommand implements SubCommand {
             LocalDate date = null;
             LocalTime time = null;
             if (dateTime != null) {
-                if (!"signal".equals(event.startMode())) {
-                    sender.sendMessage(language.chat("race-statistics.redstone-filter-only"));
-                    return Command.SINGLE_SUCCESS;
-                }
                 try {
                     String[] dateAndTime = dateTime.trim().split("\\s+", 2);
-                    if (dateAndTime.length != 2) {
-                        throw new DateTimeParseException("Date and time are both required", dateTime, 0);
-                    }
                     date = LocalDate.parse(dateAndTime[0], DateTimeFormatter.ISO_LOCAL_DATE);
-                    time = LocalTime.parse(dateAndTime[1], DateTimeFormatter.ISO_LOCAL_TIME).withNano(0);
+                    if (dateAndTime.length == 2) {
+                        time = LocalTime.parse(dateAndTime[1], DateTimeFormatter.ISO_LOCAL_TIME).withNano(0);
+                    }
                 } catch (DateTimeParseException invalidDateTime) {
                     sender.sendMessage(language.chat("race-statistics.invalid-date-or-time"));
                     return Command.SINGLE_SUCCESS;
@@ -107,7 +102,7 @@ public final class TopTenSubCommand implements SubCommand {
     private void sendStatistics(CommandSender audience, long eventId, LocalDate dateFilter,
                                 LocalTime timeFilter) throws SQLException {
         var optionalEvaluation = statistics.evaluate(eventId, RaceStatisticsEvaluator.Output.CHAT,
-                dateFilter, timeFilter);
+                dateFilter, timeFilter, dateFilter != null);
         if (optionalEvaluation.isEmpty()) return;
         var evaluation = optionalEvaluation.get();
 
@@ -181,7 +176,7 @@ public final class TopTenSubCommand implements SubCommand {
     private CompletableFuture<Suggestions> suggestDatesAndTimes(String eventName, SuggestionsBuilder builder) {
         try {
             Event event = findEvent(eventName);
-            if (event == null || !"signal".equals(event.startMode())) return builder.buildFuture();
+            if (event == null) return builder.buildFuture();
             ZoneId zone = ZoneId.systemDefault();
             LinkedHashSet<String> values = new LinkedHashSet<>();
             for (long timestamp : statistics.recentRedstoneRaceStartTimes(

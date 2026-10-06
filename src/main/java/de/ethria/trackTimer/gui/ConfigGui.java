@@ -62,6 +62,7 @@ public final class ConfigGui implements Listener {
                     ? context.plugin.getConfig().getBoolean(setting.path, true)
                     : context.plugin.getConfig().get(setting.path);
             holder.values.put(setting.path, value == null ? (setting.step > 0 ? setting.min : "") : value);
+            holder.originalValues.put(setting.path, holder.values.get(setting.path));
             int slot = context.slot(context.configSettings, "items." + setting.key + ".slot", setting.slot, 45);
             holder.settings.put(slot, setting);
             render(holder, slot, setting);
@@ -148,6 +149,10 @@ public final class ConfigGui implements Listener {
         if (!(event.getInventory().getHolder() instanceof Holder holder)
                 || !(event.getPlayer() instanceof Player player) || !context.plugin.isEnabled()) return;
         if (!player.hasPermission(PERMISSION)) return;
+        holder.changed.entrySet().removeIf(entry -> sameValue(holder.originalValues.get(entry.getKey()), entry.getValue()));
+        if (holder.changed.isEmpty()) return;
+        boolean hologramChanged = holder.changed.keySet().stream()
+                .anyMatch(path -> path.startsWith("race-statistics.hologram."));
         Map<String, Object> previous = new LinkedHashMap<>();
         holder.changed.forEach((path, value) -> {
             previous.put(path, context.plugin.getConfig().get(path));
@@ -161,8 +166,25 @@ public final class ConfigGui implements Listener {
             player.sendMessage(context.language.chat("config-editor.save-failed"));
             return;
         }
-        Bukkit.getScheduler().runTask(context.plugin,
-                () -> new ReloadSubCommand((TrackTimer) context.plugin, context.language).execute(player));
+        Bukkit.getScheduler().runTask(context.plugin, () -> {
+            TrackTimer plugin = (TrackTimer) context.plugin;
+            new ReloadSubCommand(plugin, context.language).execute(player);
+            if (hologramChanged) {
+                try {
+                    plugin.reloadHolograms();
+                } catch (java.sql.SQLException exception) {
+                    plugin.getLogger().log(Level.SEVERE, "Could not reload holograms after config GUI changes.", exception);
+                    player.sendMessage(context.language.chat("race-statistics.command-failed"));
+                }
+            }
+        });
+    }
+
+    private boolean sameValue(Object original, Object current) {
+        if (original instanceof Number && current instanceof Number) {
+            return new BigDecimal(original.toString()).compareTo(new BigDecimal(current.toString())) == 0;
+        }
+        return java.util.Objects.equals(original, current);
     }
 
     private void render(Holder holder, int slot, Setting setting) {
@@ -226,6 +248,7 @@ public final class ConfigGui implements Listener {
         private int closeSlot;
         private final Map<Integer, Setting> settings = new LinkedHashMap<>();
         private final Map<String, Object> values = new LinkedHashMap<>();
+        private final Map<String, Object> originalValues = new LinkedHashMap<>();
         private final Map<String, Object> changed = new LinkedHashMap<>();
         @Override public Inventory getInventory() { return inventory; }
     }

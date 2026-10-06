@@ -275,9 +275,15 @@ leaderboard:
 
 buttons:
   hologram:
-    name: "<gold>Place results hologram"
+    name: "<gold>Place normal race hologram"
     lore:
       - "<gray>Gives you the tool to select the area."
+      - "<yellow>Left-click: upper-left corner"
+      - "<yellow>Right-click: lower-right corner"
+  hologram-redstone:
+    name: "<gold>Place redstone race hologram"
+    lore:
+      - "<gray>Displays redstone race results."
       - "<yellow>Left-click: upper-left corner"
       - "<yellow>Right-click: lower-right corner"
   hologram-delete:

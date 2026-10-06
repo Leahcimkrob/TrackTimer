@@ -154,6 +154,11 @@ public final class TopTenGui implements Listener {
                 ItemStack hologramButton = context.configuredIcon(context.topTenSettings,
                         "guis.topten.button-bar.hologram", Material.PLAYER_HEAD);
                 inventory.setItem(hologramSlot, named(hologramButton, "buttons.hologram"));
+                int deleteSlot = hologramDeleteTool == null ? -1 : hologramDeleteSlot(backSlot, hologramSlot);
+                ItemStack redstoneButton = context.configuredIcon(context.topTenSettings,
+                        "guis.topten.button-bar.hologram-redstone", Material.REDSTONE);
+                inventory.setItem(hologramRedstoneSlot(backSlot, hologramSlot, deleteSlot),
+                        named(redstoneButton, "buttons.hologram-redstone"));
             }
             if (hologramDeleteTool != null) {
                 int deleteSlot = hologramDeleteSlot(backSlot, hologramTool == null ? -1 : hologramSlot(backSlot));
@@ -178,7 +183,16 @@ public final class TopTenGui implements Listener {
         int backSlot = context.topTenSettings.getInt("guis.topten.button-bar.back.slot", 49);
         if (backSlot < BUTTON_ROW_START || backSlot >= INVENTORY_SIZE) backSlot = 49;
         if (hologramTool != null && event.getRawSlot() == hologramSlot(backSlot)) {
-            hologramTool.giveTool(player, holder.event, holder.redstoneRace);
+            hologramTool.giveTool(player, holder.event, false);
+            player.closeInventory();
+            return;
+        }
+        if (hologramTool != null && event.getRawSlot() == hologramRedstoneSlot(backSlot,
+                hologramSlot(backSlot), hologramDeleteTool == null ? -1
+                        : hologramDeleteSlot(backSlot, hologramSlot(backSlot)))) {
+            hologramTool.giveTool(player, holder.event, true,
+                    holder.redstoneRace ? holder.dateFilter : null,
+                    holder.redstoneRace ? holder.timeFilter : null);
             player.closeInventory();
             return;
         }
@@ -259,6 +273,16 @@ public final class TopTenGui implements Listener {
         }
         for (int candidate = BUTTON_ROW_START; candidate < INVENTORY_SIZE; candidate++) {
             if (candidate != backSlot && candidate != hologramSlot) return candidate;
+        }
+        return 47;
+    }
+
+    private int hologramRedstoneSlot(int backSlot, int normalSlot, int deleteSlot) {
+        int slot = context.topTenSettings.getInt("guis.topten.button-bar.hologram-redstone.slot", 47);
+        if (slot >= BUTTON_ROW_START && slot < INVENTORY_SIZE
+                && slot != backSlot && slot != normalSlot && slot != deleteSlot) return slot;
+        for (int candidate = BUTTON_ROW_START; candidate < INVENTORY_SIZE; candidate++) {
+            if (candidate != backSlot && candidate != normalSlot && candidate != deleteSlot) return candidate;
         }
         return 47;
     }

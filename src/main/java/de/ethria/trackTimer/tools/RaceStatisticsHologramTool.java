@@ -50,11 +50,12 @@ public final class RaceStatisticsHologramTool implements Listener {
             player.sendMessage(context.language().chat("race-statistics.hologram-plugin-missing"));
             return;
         }
+        String variant = redstone ? "hologram-redstone" : "hologram";
         ItemStack item = context.configuredIcon(context.topTenSettings(),
-                "guis.topten.button-bar.hologram", Material.STICK);
+                "guis.topten.button-bar." + variant, Material.STICK);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(context.language().gui("buttons.hologram.name"));
-        var lore = context.language().guiList("buttons.hologram.lore");
+        meta.displayName(context.language().gui("buttons." + variant + ".name"));
+        var lore = context.language().guiList("buttons." + variant + ".lore");
         if (!lore.isEmpty()) meta.lore(lore);
         meta.getPersistentDataContainer().set(toolKey, PersistentDataType.STRING,
                 event.id() + "|" + redstone + "|" + (filterDate == null ? "" : filterDate)
