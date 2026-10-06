@@ -44,7 +44,7 @@ public final class ReloadSubCommand implements SubCommand {
                 .build();
     }
 
-    private void execute(CommandSender sender) {
+    public void execute(CommandSender sender) {
         plugin.updateConfigWithNewDefaults();
         language.load();
         plugin.reloadEditorGuiConfig();

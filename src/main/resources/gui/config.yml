@@ -1,0 +1,107 @@
+# Six rows: language, race, GUI statistics, hologram statistics, chat, buttons.
+# Each item supports material, head-database-id and fallback-material.
+
+# for HeadDatabase: https://minecraft-heads.com/custom-heads/heads-database
+#     material: PLAYER_HEAD
+#     head-database-id: "xxxxx" e.g. "75167"
+#     fallback-material: e.g.: REDSTONE
+
+# Slots are zero-based: 0 is the first slot, 9 the tenth.
+# Fill empty slots in each section with its own glass color.
+backgrounds:
+  language:
+    material: LIGHT_BLUE_STAINED_GLASS_PANE
+  race:
+    material: GREEN_STAINED_GLASS_PANE
+  statistics:
+    material: YELLOW_STAINED_GLASS_PANE
+  hologram:
+    material: PURPLE_STAINED_GLASS_PANE
+  chat:
+    material: ORANGE_STAINED_GLASS_PANE
+row-labels:
+  language:
+    slot: 0
+    material: OAK_SIGN
+  race:
+    slot: 9
+    material: OAK_SIGN
+  statistics:
+    slot: 18
+    material: OAK_SIGN
+  hologram:
+    slot: 27
+    material: OAK_SIGN
+  chat:
+    slot: 36
+    material: OAK_SIGN
+items:
+  language:
+    slot: 4
+    material: BOOK
+    # Add another locale section here (e.g. en-en) to include it in the selector.
+    # Translations are loaded from language/<locale>.yml and <locale>_gui.yml.
+    # Missing translations fall back to English. Reload after editing this file.
+    en-US:
+      material: PLAYER_HEAD
+      head-database-id: "890"
+      fallback-material: BOOK
+    de-DE:
+      material: PLAYER_HEAD
+      head-database-id: "522"
+      fallback-material: BOOK
+  height:
+    slot: 11
+    material: SCAFFOLDING
+  join-timeout:
+    slot: 13
+    material: CLOCK
+  title-radius:
+    slot: 15
+    material: BELL
+  gui-normal:
+    slot: 20
+    material: PLAYER_HEAD
+    fallback-material: GOLD_BLOCK
+  gui-signal:
+    slot: 22
+    material: CLOCK
+  player-details:
+    slot: 24
+    material: WRITABLE_BOOK
+  hologram-normal:
+    slot: 28
+    material: ARMOR_STAND
+  hologram-signal:
+    slot: 30
+    material: REDSTONE_LAMP
+  tool-timeout:
+    slot: 32
+    material: SHEARS
+  provider:
+    slot: 34
+    material: BEACON
+  chat-normal:
+    slot: 38
+    material: PAPER
+  chat-signal:
+    slot: 40
+    material: CLOCK
+  sort:
+    slot: 42
+    descending:
+      material: PLAYER_HEAD
+      head-database-id: "46612"
+      fallback-material: RED_WOOL
+    ascending:
+      material: PLAYER_HEAD
+      head-database-id: "46611"
+      fallback-material: GREEN_WOOL
+button-bar:
+  filler:
+    material: GRAY_STAINED_GLASS_PANE
+  close:
+    slot: 49
+    material: PLAYER_HEAD
+    head-database-id: "94681"
+    fallback-material: BARRIER

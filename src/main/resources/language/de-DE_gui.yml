@@ -5,6 +5,81 @@
 #     head-database-id: "xxxxx" e.g. "75167"
 #     fallback-material: e.g.: REDSTONE
 
+config-editor:
+  row-labels:
+    language: "<gold>Sprache"
+    race: "<gold>Race"
+    statistics: "<gold>Rennstatistik (GUI)"
+    hologram: "<gold>Rennstatistik (Hologramm)"
+    chat: "<gold>Chat"
+  title: "TrackTimer - Konfiguration"
+  number-name: "<yellow><label>: <white><value>"
+  number-lore:
+    - "<gray>Aktuell: <white><value>"
+    - "<green>Rechtsklick: +<step>"
+    - "<red>Linksklick: -<step>"
+  choice-lore:
+    - "<gray>Aktuell: <white><value>"
+    - "<yellow>Anklicken zum Wechseln"
+  close:
+    name: "<green>Speichern und schließen"
+    lore:
+      - "<gray>Beim Schließen speichern und TrackTimer neu laden."
+  sort:
+    descending: "Absteigend (neueste zuerst)"
+    ascending: "Aufsteigend (älteste zuerst)"
+  items:
+    language:
+      name: "<gold>Sprache"
+    height:
+      name: "<gold>Höhentoleranz des Start-Triggers"
+      lore:
+        - "<gray>Abstand nach oben und unten in Blöcken."
+    join-timeout:
+      name: "<gold>Wartezeit beim Ampel-Start"
+      lore:
+        - "<gray>Sekunden; 0 hält den Start freigegeben."
+    title-radius:
+      name: "<gold>Radius der Start-Ankündigung"
+      lore:
+        - "<gray>Reichweite in Blöcken."
+    gui-normal:
+      name: "<gold>GUI: Bestzeiten"
+      lore:
+        - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
+    gui-signal:
+      name: "<gold>GUI: Ampel-Rennen"
+      lore:
+        - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
+    player-details:
+      name: "<gold>Spieler-Details: letzte Rennen"
+      lore:
+        - "<gray>Zusätzlich zum schnellsten Rundenrennen; 0 zeigt alle."
+    hologram-normal:
+      name: "<gold>Hologramm: Bestzeiten"
+      lore:
+        - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
+    hologram-signal:
+      name: "<gold>Hologramm: Ampel-Rennen"
+      lore:
+        - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
+    tool-timeout:
+      name: "<gold>Hologramm: Werkzeug-Timeout"
+      lore:
+        - "<gray>Sekunden bis das Löschwerkzeug entfernt wird."
+    provider:
+      name: "<gold>Hologramm-Anbieter"
+    chat-normal:
+      name: "<gold>Chat: Bestzeiten"
+      lore:
+        - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
+    chat-signal:
+      name: "<gold>Chat: Ampel-Rennen"
+      lore:
+        - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
+    sort:
+      name: "<gold>Chat: Datumssortierung"
+
 overview:
   title: "TrackTimer - Übersicht"
   event-item:

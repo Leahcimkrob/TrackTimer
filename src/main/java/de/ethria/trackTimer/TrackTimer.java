@@ -5,6 +5,8 @@ import de.ethria.trackTimer.database.DatabaseManager;
 import de.ethria.trackTimer.heads.HeadDatabaseService;
 import de.ethria.trackTimer.gui.EventOverviewGui;
 import de.ethria.trackTimer.gui.EditorGuiContext;
+import de.ethria.trackTimer.gui.ConfigGui;
+import org.bukkit.entity.Player;
 import de.ethria.trackTimer.gui.EventEditorGui;
 import de.ethria.trackTimer.gui.EventIconSwapGui;
 import de.ethria.trackTimer.gui.EventTriggerGui;
@@ -38,6 +40,7 @@ public final class TrackTimer extends JavaPlugin {
     private LanguageManager languageManager;
     private HeadDatabaseService headDatabaseService;
     private EditorGuiContext editorGuiContext;
+    private ConfigGui configGui;
     private RaceStartListener raceStartListener;
     private RaceTriggerMonitor raceTriggerMonitor;
     private RaceStatisticsEvaluator raceStatisticsEvaluator;
@@ -63,6 +66,8 @@ public final class TrackTimer extends JavaPlugin {
         headDatabaseService.register();
 
         editorGuiContext = new EditorGuiContext(this, databaseManager, languageManager, headDatabaseService);
+        configGui = new ConfigGui(editorGuiContext);
+        getServer().getPluginManager().registerEvents(configGui, this);
         EventOverviewGui eventOverviewGui = new EventOverviewGui(editorGuiContext);
         EventIconSwapGui eventIconSwapGui = new EventIconSwapGui(editorGuiContext);
         EventEditorGui eventEditorGui = new EventEditorGui(editorGuiContext, eventOverviewGui);
@@ -189,5 +194,9 @@ public final class TrackTimer extends JavaPlugin {
 
     public void reloadEditorGuiConfig() {
         if (editorGuiContext != null) editorGuiContext.reload();
+    }
+
+    public void openConfigGui(Player player) {
+        configGui.open(player);
     }
 }

@@ -27,6 +27,7 @@ public final class EditorGuiContext {
     YamlConfiguration settings;
     YamlConfiguration triggerSettings;
     YamlConfiguration topTenSettings;
+    YamlConfiguration configSettings;
 
     public EditorGuiContext(JavaPlugin plugin, DatabaseManager database, LanguageManager language, HeadDatabaseService heads) {
         this.plugin = plugin;
@@ -50,6 +51,7 @@ public final class EditorGuiContext {
         settings = loadGuiConfig(guiFolder, "editor.yml");
         triggerSettings = loadGuiConfig(guiFolder, "trigger.yml");
         topTenSettings = loadGuiConfig(guiFolder, "topten.yml");
+        configSettings = loadGuiConfig(guiFolder, "config.yml");
     }
 
     private YamlConfiguration loadGuiConfig(File guiFolder, String fileName) {

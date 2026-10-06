@@ -40,6 +40,7 @@ permissions:
     children:
       tracktimer.command.help: true
       tracktimer.command.reload: true
+      tracktimer.command.config: true
       tracktimer.command.create: true
       tracktimer.command.delete: true
       tracktimer.command.reset: true
@@ -52,6 +53,10 @@ permissions:
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
+    default: op
+
+  tracktimer.command.config:
+    description: Allows editing race settings, statistics settings and language through the configuration GUI.
     default: op
 
   tracktimer.command.help:

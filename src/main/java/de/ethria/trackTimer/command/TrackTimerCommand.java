@@ -53,6 +53,7 @@ public final class TrackTimerCommand {
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
         ReloadSubCommand reload = new ReloadSubCommand(plugin, language);
+        ConfigSubCommand config = new ConfigSubCommand(plugin, language);
         CreateSubCommand create = new CreateSubCommand(plugin, database, language);
         DeleteSubCommand delete = new DeleteSubCommand(plugin, database, language);
         ResetSubCommand reset = new ResetSubCommand(plugin, database, language);
@@ -64,7 +65,7 @@ public final class TrackTimerCommand {
         HologramSubCommand hologram = new HologramSubCommand(plugin, database, language,
                 raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
         List<SubCommand> availableSubCommands = new ArrayList<>(List.of(
-                reload, create, delete, reset, editor, overview, convert, leave, topTen));
+                reload, config, create, delete, reset, editor, overview, convert, leave, topTen));
         if (hologramTool != null && hologramDeleteTool != null) availableSubCommands.add(hologram);
         HelpSubCommand help = new HelpSubCommand(language, label, availableSubCommands);
         List<SubCommand> subCommands = new ArrayList<>();

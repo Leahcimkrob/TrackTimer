@@ -5,6 +5,81 @@
 #     head-database-id: "xxxxx" e.g. "75167"
 #     fallback-material: e.g.: REDSTONE
 
+config-editor:
+  row-labels:
+    language: "<gold>Language"
+    race: "<gold>Race"
+    statistics: "<gold>Race statistics (GUI)"
+    hologram: "<gold>Race statistics (Holograms)"
+    chat: "<gold>Chat"
+  title: "TrackTimer - Configuration"
+  number-name: "<yellow><label>: <white><value>"
+  number-lore:
+    - "<gray>Current: <white><value>"
+    - "<green>Right-click: +<step>"
+    - "<red>Left-click: -<step>"
+  choice-lore:
+    - "<gray>Current: <white><value>"
+    - "<yellow>Click to cycle"
+  close:
+    name: "<green>Save and close"
+    lore:
+      - "<gray>Closing saves the settings and reloads TrackTimer."
+  sort:
+    descending: "Descending (newest first)"
+    ascending: "Ascending (oldest first)"
+  items:
+    language:
+      name: "<gold>Language"
+    height:
+      name: "<gold>Start trigger height tolerance"
+      lore:
+        - "<gray>Distance above and below in blocks."
+    join-timeout:
+      name: "<gold>Traffic light start timeout"
+      lore:
+        - "<gray>Seconds; 0 keeps the start armed."
+    title-radius:
+      name: "<gold>Start announcement radius"
+      lore:
+        - "<gray>Distance in blocks."
+    gui-normal:
+      name: "<gold>GUI: best times"
+      lore:
+        - "<gray>Player count; 0 shows no results."
+    gui-signal:
+      name: "<gold>GUI: traffic light races"
+      lore:
+        - "<gray>Number of recent races; 0 shows no results."
+    player-details:
+      name: "<gold>Player details: recent races"
+      lore:
+        - "<gray>Besides the fastest-lap race; 0 shows all."
+    hologram-normal:
+      name: "<gold>Hologram: best times"
+      lore:
+        - "<gray>Player count; 0 shows no results."
+    hologram-signal:
+      name: "<gold>Hologram: traffic light races"
+      lore:
+        - "<gray>Number of recent races; 0 shows no results."
+    tool-timeout:
+      name: "<gold>Hologram: tool timeout"
+      lore:
+        - "<gray>Seconds before removing the deletion tool."
+    provider:
+      name: "<gold>Hologram provider"
+    chat-normal:
+      name: "<gold>Chat: best times"
+      lore:
+        - "<gray>Player count; 0 shows no results."
+    chat-signal:
+      name: "<gold>Chat: traffic light races"
+      lore:
+        - "<gray>Number of recent races; 0 shows no results."
+    sort:
+      name: "<gold>Chat: date sorting"
+
 overview:
   title: "TrackTimer - Overview"
   event-item:

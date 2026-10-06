@@ -7,7 +7,11 @@ general:
   unknown-command: "<red>Unbekannter Befehl. Nutze /tracktimer help für Hilfe."
   reload: "<green>Konfiguration und Sprachdateien wurden neu geladen."
 
+config-editor:
+  save-failed: "<red>Die Konfiguration konnte nicht gespeichert werden."
+
 help:
+  config: "<yellow>/<command> config <gray>- Öffnet die Konfigurations-GUI."
   header: "<gold>=== TrackTimer Hilfe ==="
   reload: "<yellow>/<command> reload <gray>- Lädt Konfiguration und Sprachdateien neu."
   create: "<yellow>/<command> create <eventname> <laps> <mode: player|signal> <gray>- Erstellt ein Event."
