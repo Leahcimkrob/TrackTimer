@@ -98,6 +98,8 @@ public final class EventEditorGui implements Listener {
         for (int buttonSlot = size - 9; buttonSlot < size; buttonSlot++) inventory.setItem(buttonSlot, bar.clone());
         inventory.setItem(slot("button-bar.back.slot", size - 5, size), named(
                 context.configuredIcon("guis.event-editor.button-bar.back", Material.ARROW), "buttons.back"));
+        inventory.setItem(slot("button-bar.close.slot", size - 1, size), named(
+                context.configuredIcon("guis.event-editor.button-bar.close", Material.BARRIER), "buttons.close"));
         player.openInventory(inventory);
     }
 
@@ -121,6 +123,10 @@ public final class EventEditorGui implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int size = context.inventorySize("guis.event-editor.size", 54);
+        if (event.getRawSlot() == slot("button-bar.close.slot", size - 1, size)) {
+            player.closeInventory();
+            return;
+        }
         int rawSlot = event.getRawSlot();
         Event selected = holder.event;
         if (rawSlot == slot("items.event-name.slot", 13, size)) {

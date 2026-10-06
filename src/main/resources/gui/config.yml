@@ -109,5 +109,5 @@ button-bar:
   close:
     slot: 49
     material: PLAYER_HEAD
-    head-database-id: "94681"
+    head-database-id: "34744"
     fallback-material: BARRIER

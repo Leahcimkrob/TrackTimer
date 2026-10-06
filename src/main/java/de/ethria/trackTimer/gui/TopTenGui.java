@@ -82,6 +82,11 @@ public final class TopTenGui implements Listener {
 
     private void open(Player player, Event event, int overviewPage, LocalDate dateFilter,
                       LocalTime timeFilter, boolean redstoneView) {
+        open(player, event, overviewPage, dateFilter, timeFilter, redstoneView, 0);
+    }
+
+    private void open(Player player, Event event, int overviewPage, LocalDate dateFilter,
+                      LocalTime timeFilter, boolean redstoneView, int requestedPage) {
         try {
             var evaluation = statistics.evaluate(event.id(), RaceStatisticsEvaluator.Output.GUI,
                     dateFilter, timeFilter, redstoneView);
@@ -108,9 +113,13 @@ public final class TopTenGui implements Listener {
                     .withLocale(Locale.forLanguageTag(context.language.getLocale()));
             DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT);
             int count = Math.min(results.entries().size(), resultSlots.size());
+            holder.pages = Math.max(1, (results.entries().size() + resultSlots.size() - 1) / resultSlots.size());
+            holder.page = Math.max(0, Math.min(requestedPage, holder.pages - 1));
+            int start = holder.page * resultSlots.size();
+            count = Math.min(results.entries().size() - start, resultSlots.size());
             for (int index = 0; index < count; index++) {
-                RaceStatisticsEntry entry = results.entries().get(index);
-                int rank = index + 1;
+                RaceStatisticsEntry entry = results.entries().get(start + index);
+                int rank = start + index + 1;
                 ItemStack head = playerHead(entry.playerUuid());
                 ItemMeta meta = head.getItemMeta();
                 meta.displayName(context.language.gui("topten.entry-item.name",
@@ -166,6 +175,11 @@ public final class TopTenGui implements Listener {
                         "guis.topten.button-bar.hologram-delete", Material.PLAYER_HEAD);
                 inventory.setItem(deleteSlot, named(deleteButton, "buttons.hologram-delete"));
             }
+
+            if (holder.page > 0) inventory.setItem(navigationSlot("previous-page", 48), named(context.configuredIcon(context.topTenSettings,
+                    "guis.topten.button-bar.previous-page", Material.ARROW), "buttons.previous-page"));
+            if (holder.page + 1 < holder.pages) inventory.setItem(navigationSlot("next-page", 53), named(context.configuredIcon(context.topTenSettings,
+                    "guis.topten.button-bar.next-page", Material.ARROW), "buttons.next-page"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE,
@@ -180,6 +194,15 @@ public final class TopTenGui implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
+
+        if (event.getRawSlot() == navigationSlot("previous-page", 48) && holder.page > 0) {
+            open(player, holder.event, holder.overviewPage, holder.dateFilter, holder.timeFilter, holder.redstoneRace, holder.page - 1);
+            return;
+        }
+        if (event.getRawSlot() == navigationSlot("next-page", 53) && holder.page + 1 < holder.pages) {
+            open(player, holder.event, holder.overviewPage, holder.dateFilter, holder.timeFilter, holder.redstoneRace, holder.page + 1);
+            return;
+        }
         int backSlot = context.topTenSettings.getInt("guis.topten.button-bar.back.slot", 49);
         if (backSlot < BUTTON_ROW_START || backSlot >= INVENTORY_SIZE) backSlot = 49;
         if (hologramTool != null && event.getRawSlot() == hologramSlot(backSlot)) {
@@ -214,7 +237,7 @@ public final class TopTenGui implements Listener {
         if (entry != null && playerDetailsGui != null) {
             playerDetailsGui.open(player, holder.event, entry, holder.overviewPage,
                     () -> open(player, holder.event, holder.overviewPage,
-                            holder.dateFilter, holder.timeFilter, holder.redstoneRace));
+                            holder.dateFilter, holder.timeFilter, holder.redstoneRace, holder.page));
         }
     }
 
@@ -266,6 +289,11 @@ public final class TopTenGui implements Listener {
         return slot;
     }
 
+    private int navigationSlot(String key, int fallback) {
+        int slot = context.topTenSettings.getInt("guis.topten.button-bar." + key + ".slot", fallback);
+        return slot >= BUTTON_ROW_START && slot < INVENTORY_SIZE ? slot : fallback;
+    }
+
     private int hologramDeleteSlot(int backSlot, int hologramSlot) {
         int slot = context.topTenSettings.getInt("guis.topten.button-bar.hologram-delete.slot", 46);
         if (slot >= BUTTON_ROW_START && slot < INVENTORY_SIZE && slot != backSlot && slot != hologramSlot) {
@@ -289,6 +317,8 @@ public final class TopTenGui implements Listener {
 
     private static final class TopTenHolder implements InventoryHolder {
         private final int overviewPage;
+        private int page;
+        private int pages;
         private Inventory inventory;
         private final Map<Integer, RaceStatisticsEntry> entries = new java.util.HashMap<>();
 

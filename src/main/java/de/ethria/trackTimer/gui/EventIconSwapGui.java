@@ -55,6 +55,12 @@ public final class EventIconSwapGui implements Listener {
         inventory.setItem(backSlot, backButton());
         int center = context.slot("guis.event-icon-swap.center-slot", 13, size);
         inventory.setItem(center, context.icon(event.icon()));
+        ItemStack close = context.configuredIcon("guis.event-icon-swap.button-bar.close", Material.BARRIER);
+        ItemMeta closeMeta = close.getItemMeta();
+        closeMeta.displayName(context.language.gui("buttons.close.name"));
+        closeMeta.lore(context.language.guiList("buttons.close.lore"));
+        close.setItemMeta(closeMeta);
+        inventory.setItem(context.slot("guis.event-icon-swap.button-bar.close.slot", size - 1, size), close);
         player.openInventory(inventory);
     }
 
@@ -65,6 +71,11 @@ public final class EventIconSwapGui implements Listener {
         int center = context.slot("guis.event-icon-swap.center-slot", 13, size);
         boolean top = event.getClickedInventory() == event.getView().getTopInventory();
         if (top) {
+            if (event.getRawSlot() == context.slot("guis.event-icon-swap.button-bar.close.slot", size - 1, size)) {
+                event.setCancelled(true);
+                event.getWhoClicked().closeInventory();
+                return;
+            }
             int backSlot = context.slot("guis.event-icon-swap.button-bar.back.slot", size - 5, size);
             if (event.getRawSlot() == backSlot && event.getWhoClicked() instanceof Player player) {
                 event.setCancelled(true);

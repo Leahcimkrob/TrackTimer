@@ -11,6 +11,16 @@ guis:
     columns: 5
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
+      previous-page:
+        slot: 48
+        material: PLAYER_HEAD
+        head-database-id: '94736'
+        fallback-material: ARROW
+      next-page:
+        slot: 53
+        material: PLAYER_HEAD
+        head-database-id: '94735'
+        fallback-material: ARROW
       back:
         slot: 49
         material: PLAYER_HEAD
@@ -38,6 +48,16 @@ guis:
         material: CLOCK
       button-bar:
         material: GRAY_STAINED_GLASS_PANE
+        previous-page:
+          slot: 45
+          material: PLAYER_HEAD
+          head-database-id: '94736'
+          fallback-material: ARROW
+        next-page:
+          slot: 53
+          material: PLAYER_HEAD
+          head-database-id: '94735'
+          fallback-material: ARROW
         back:
           slot: 49
           material: PLAYER_HEAD
@@ -60,10 +80,14 @@ guis:
       material: GRAY_STAINED_GLASS_PANE
       previous-races:
         slot: 45
-        material: ARROW
+        material: PLAYER_HEAD
+        head-database-id: '94736'
+        fallback-material: ARROW
       previous-rounds:
         slot: 46
-        material: ARROW
+        material: PLAYER_HEAD
+        head-database-id: '94736'
+        fallback-material: ARROW
       back:
         slot: 49
         material: PLAYER_HEAD
@@ -71,7 +95,11 @@ guis:
         fallback-material: ARROW
       next-rounds:
         slot: 52
-        material: ARROW
+        material: PLAYER_HEAD
+        head-database-id: '94735'
+        fallback-material: ARROW
       next-races:
         slot: 53
-        material: ARROW
+        material: PLAYER_HEAD
+        head-database-id: '94735'
+        fallback-material: ARROW

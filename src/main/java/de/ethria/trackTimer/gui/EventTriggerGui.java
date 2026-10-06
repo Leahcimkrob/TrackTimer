@@ -45,6 +45,10 @@ public final class EventTriggerGui implements Listener {
     }
 
     public void open(Player player, Event event, int overviewPage) {
+        open(player, event, overviewPage, 0);
+    }
+
+    private void open(Player player, Event event, int overviewPage, int requestedPage) {
         int size = context.inventorySize(context.triggerSettings, "guis.trigger-editor.size", 54, "trigger.yml");
         TriggerHolder holder = new TriggerHolder(event.id(), overviewPage);
         Inventory inventory = Bukkit.createInventory(holder, size, context.language.gui("trigger-editor.title",
@@ -55,10 +59,13 @@ public final class EventTriggerGui implements Listener {
             List<EventTrigger> triggers = context.database.listEventTriggerDetails(event.id());
             holder.triggers = List.copyOf(triggers);
             int contentSlots = size - 9;
-            for (int index = 0; index < Math.min(triggers.size(), contentSlots); index++) {
+            holder.pages = Math.max(1, (triggers.size() + contentSlots - 1) / contentSlots);
+            holder.page = Math.max(0, Math.min(requestedPage, holder.pages - 1));
+            int start = holder.page * contentSlots;
+            for (int index = start; index < Math.min(triggers.size(), start + contentSlots); index++) {
                 EventTrigger trigger = triggers.get(index);
                 ItemStack item = triggerItem(trigger);
-                inventory.setItem(index, item);
+                inventory.setItem(index - start, item);
             }
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE, "Could not load event triggers for the GUI.", exception);
@@ -74,15 +81,20 @@ public final class EventTriggerGui implements Listener {
 
         inventory.setItem(slot("button-bar.start-trigger.slot", 46, size), configuredNamed(
                 "guis.trigger-editor.button-bar.start-trigger", Material.PLAYER_HEAD, "trigger-editor.add-start"));
-        inventory.setItem(slot("button-bar.start-redstone-trigger.slot", 49, size), configuredNamed(
+        inventory.setItem(slot("button-bar.start-redstone-trigger.slot", 48, size), configuredNamed(
                 "guis.trigger-editor.button-bar.start-redstone-trigger", Material.PLAYER_HEAD, "trigger-editor.add-redstone"));
-        inventory.setItem(slot("button-bar.checkpoint-trigger.slot", 47, size), configuredNamed(
+        inventory.setItem(slot("button-bar.checkpoint-trigger.slot", 50, size), configuredNamed(
                 "guis.trigger-editor.button-bar.checkpoint-trigger", Material.PLAYER_HEAD, "trigger-editor.add-checkpoint"));
-        inventory.setItem(slot("button-bar.end-trigger.slot", 48, size), configuredNamed(
+        inventory.setItem(slot("button-bar.end-trigger.slot", 52, size), configuredNamed(
                 "guis.trigger-editor.button-bar.end-trigger", Material.PLAYER_HEAD, "trigger-editor.add-end"));
         inventory.setItem(slot("button-bar.back.slot", size - 5, size), named(
                 context.configuredIcon(context.triggerSettings, "guis.trigger-editor.button-bar.back", Material.ARROW),
                 "buttons.back"));
+        if (holder.page > 0) inventory.setItem(slot("button-bar.previous-page.slot", size - 9, size), configuredNamed(
+                "guis.trigger-editor.button-bar.previous-page", Material.ARROW, "buttons.previous-page"));
+        if (holder.page + 1 < holder.pages) inventory.setItem(slot("button-bar.next-page.slot", size - 1, size), configuredNamed(
+                "guis.trigger-editor.button-bar.next-page", Material.ARROW, "buttons.next-page"));
+
         player.openInventory(inventory);
     }
 
@@ -153,11 +165,21 @@ public final class EventTriggerGui implements Listener {
         if (!(event.getView().getTopInventory().getHolder() instanceof TriggerHolder holder)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getView().getTopInventory()) return;
-        int size = context.inventorySize(context.triggerSettings, "guis.trigger-editor.size", 54, "trigger.yml");
+        int size = event.getView().getTopInventory().getSize();
+
+        if (event.getRawSlot() == slot("button-bar.previous-page.slot", size - 9, size) && holder.page > 0) {
+            reopenPage(player, holder, holder.page - 1);
+            return;
+        }
+        if (event.getRawSlot() == slot("button-bar.next-page.slot", size - 1, size) && holder.page + 1 < holder.pages) {
+            reopenPage(player, holder, holder.page + 1);
+            return;
+        }
+        int triggerIndex = holder.page * (size - 9) + event.getRawSlot();
         if (event.getClick().isShiftClick() && event.getClick().isLeftClick()
                 && event.getRawSlot() >= 0 && event.getRawSlot() < size - 9
-                && event.getRawSlot() < holder.triggers.size()) {
-            teleportToTrigger(player, holder.triggers.get(event.getRawSlot()));
+                && triggerIndex < holder.triggers.size()) {
+            teleportToTrigger(player, holder.triggers.get(triggerIndex));
             return;
         }
         if (event.getRawSlot() == slot("button-bar.back.slot", size - 5, size)) {
@@ -166,12 +188,23 @@ public final class EventTriggerGui implements Listener {
         }
         if (event.getRawSlot() == slot("button-bar.start-trigger.slot", 46, size)) {
             startTriggerTool.begin(player, holder.eventId, holder.overviewPage);
-        } else if (event.getRawSlot() == slot("button-bar.start-redstone-trigger.slot", 49, size)) {
+        } else if (event.getRawSlot() == slot("button-bar.start-redstone-trigger.slot", 48, size)) {
             redstoneTriggerTool.begin(player, holder.eventId, holder.overviewPage);
-        } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 48, size)) {
+        } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 52, size)) {
             endTriggerTool.begin(player, holder.eventId, holder.overviewPage);
-        } else if (event.getRawSlot() == slot("button-bar.checkpoint-trigger.slot", 47, size)) {
+        } else if (event.getRawSlot() == slot("button-bar.checkpoint-trigger.slot", 50, size)) {
             checkpointTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        }
+    }
+
+    private void reopenPage(Player player, TriggerHolder holder, int page) {
+        try {
+            Event selected = context.database.getEvent(holder.eventId);
+            if (selected != null) open(player, selected, holder.overviewPage, page);
+            else eventEditorGui.reopen(player, holder.eventId, holder.overviewPage);
+        } catch (SQLException exception) {
+            context.plugin.getLogger().log(Level.SEVERE, "Could not load event triggers for the GUI.", exception);
+            player.sendMessage(context.language.chat("event.list-failed"));
         }
     }
 
@@ -194,6 +227,8 @@ public final class EventTriggerGui implements Listener {
     private static final class TriggerHolder implements InventoryHolder {
         private final long eventId;
         private final int overviewPage;
+        private int page;
+        private int pages = 1;
         private List<EventTrigger> triggers = new ArrayList<>();
         private Inventory inventory;
 

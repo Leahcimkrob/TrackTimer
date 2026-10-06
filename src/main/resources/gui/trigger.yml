@@ -9,30 +9,40 @@ guis:
     size: 54
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
+      previous-page:
+        slot: 45
+        material: PLAYER_HEAD
+        head-database-id: '94736'
+        fallback-material: ARROW
       start-trigger:
-        slot: 47
+        slot: 46
         material: PLAYER_HEAD
         head-database-id: "24211"
         fallback-material: GREEN_WOOL
       start-redstone-trigger:
-        slot: 49
+        slot: 48
         material: PLAYER_HEAD
         head-database-id: "24214"
         fallback-material: BLUE_WOOL
-
+      back:
+        slot: 49
+        material: PLAYER_HEAD
+        head-database-id: '94681'
+        fallback-material: ARROW
       checkpoint-trigger:
-        slot: 51
+        slot: 50
         material: PLAYER_HEAD
         head-database-id: "24208"
         fallback-material: YELLOW_WOOL
       end-trigger:
-        slot: 53
+        slot: 52
         material: PLAYER_HEAD
         head-database-id: "24205"
         fallback-material: RED_WOOL
-      back:
-        slot: 45
+      next-page:
+        slot: 53
         material: PLAYER_HEAD
+        head-database-id: '94735'
         fallback-material: ARROW
     items:
       tool:

@@ -49,6 +49,10 @@ public final class RedstoneRaceSelectionGui implements Listener {
     }
 
     public void open(Player player, Event event, int overviewPage) {
+        open(player, event, overviewPage, 0);
+    }
+
+    private void open(Player player, Event event, int overviewPage, int requestedPage) {
         try {
             var evaluation = statistics.evaluate(event.id(), RaceStatisticsEvaluator.Output.GUI);
             if (evaluation.isEmpty()) return;
@@ -80,9 +84,11 @@ public final class RedstoneRaceSelectionGui implements Listener {
             DateTimeFormatter dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
             DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT);
             ZoneId zone = ZoneId.systemDefault();
+            holder.pages = Math.max(1, (sessions.size() + slots.size() - 1) / slots.size());
+            holder.page = Math.max(0, Math.min(requestedPage, holder.pages - 1));
+            int start = holder.page * slots.size();
             int index = 0;
-            for (Map.Entry<Long, List<RaceStatisticsEntry>> session : sessions.entrySet()) {
-                if (index >= slots.size()) break;
+            for (Map.Entry<Long, List<RaceStatisticsEntry>> session : sessions.entrySet().stream().skip(start).limit(slots.size()).toList()) {
                 long startMillis = session.getValue().get(0).startTimeMillis();
                 var localDateTime = Instant.ofEpochMilli(startMillis).atZone(zone);
                 List<RaceStatisticsEntry> podium = session.getValue().stream()
@@ -92,10 +98,10 @@ public final class RedstoneRaceSelectionGui implements Listener {
                         .toList();
                 ItemStack watch = context.configuredIcon(context.topTenSettings,
                         "guis.topten.redstone-selection.item", Material.CLOCK);
-                watch.setAmount(Math.min(index + 1, watch.getMaxStackSize()));
+                watch.setAmount(Math.min(start + index + 1, watch.getMaxStackSize()));
                 ItemMeta meta = watch.getItemMeta();
                 meta.displayName(context.language.gui("topten.redstone-race.name",
-                        LanguageManager.placeholders("rank", index + 1)));
+                        LanguageManager.placeholders("rank", start + index + 1)));
                 meta.lore(context.language.guiList("topten.redstone-race.lore", LanguageManager.placeholders(
                         "first", place(podium, 0), "second", place(podium, 1), "third", place(podium, 2),
                         "date", dateFormat.format(localDateTime),
@@ -124,6 +130,11 @@ public final class RedstoneRaceSelectionGui implements Listener {
             ItemStack backButton = context.configuredIcon(context.topTenSettings,
                     "guis.topten.redstone-selection.button-bar.back", Material.ARROW);
             inventory.setItem(backSlot, named(backButton, "buttons.back"));
+
+            if (holder.page > 0) inventory.setItem(navigationSlot("previous-page", 45), named(context.configuredIcon(context.topTenSettings,
+                    "guis.topten.redstone-selection.button-bar.previous-page", Material.ARROW), "buttons.previous-page"));
+            if (holder.page + 1 < holder.pages) inventory.setItem(navigationSlot("next-page", 53), named(context.configuredIcon(context.topTenSettings,
+                    "guis.topten.redstone-selection.button-bar.next-page", Material.ARROW), "buttons.next-page"));
             player.openInventory(inventory);
         } catch (SQLException exception) {
             context.plugin.getLogger().log(Level.SEVERE,
@@ -138,6 +149,15 @@ public final class RedstoneRaceSelectionGui implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
+
+        if (event.getRawSlot() == navigationSlot("previous-page", 45) && holder.page > 0) {
+            open(player, holder.event, holder.overviewPage, holder.page - 1);
+            return;
+        }
+        if (event.getRawSlot() == navigationSlot("next-page", 53) && holder.page + 1 < holder.pages) {
+            open(player, holder.event, holder.overviewPage, holder.page + 1);
+            return;
+        }
         if (event.getRawSlot() == backSlot()) {
             overviewGui.open(player, holder.overviewPage);
             return;
@@ -151,6 +171,11 @@ public final class RedstoneRaceSelectionGui implements Listener {
     private int backSlot() {
         int slot = context.topTenSettings.getInt("guis.topten.redstone-selection.button-bar.back.slot", 49);
         return slot >= BUTTON_ROW_START && slot < INVENTORY_SIZE ? slot : 49;
+    }
+
+    private int navigationSlot(String key, int fallback) {
+        int slot = context.topTenSettings.getInt("guis.topten.redstone-selection.button-bar." + key + ".slot", fallback);
+        return slot >= BUTTON_ROW_START && slot < INVENTORY_SIZE ? slot : fallback;
     }
 
     private String place(List<RaceStatisticsEntry> podium, int index) {
@@ -179,6 +204,8 @@ public final class RedstoneRaceSelectionGui implements Listener {
     private static final class RaceSelectionHolder implements InventoryHolder {
         private final Event event;
         private final int overviewPage;
+        private int page;
+        private int pages;
         private final Map<Integer, RaceChoice> choices = new LinkedHashMap<>();
         private Inventory inventory;
 

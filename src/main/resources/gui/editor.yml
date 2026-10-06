@@ -12,22 +12,31 @@ guis:
       previous-page:
         slot: 45
         material: PLAYER_HEAD
+        head-database-id: '94736'
         fallback-material: ARROW
       close:
         slot: 49
         material: PLAYER_HEAD
+        head-database-id: '34744'
         fallback-material: BARRIER
       next-page:
         slot: 53
         material: PLAYER_HEAD
+        head-database-id: '94735'
         fallback-material: ARROW
   event-editor:
     size: 54
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
+      close:
+        slot: 53
+        material: PLAYER_HEAD
+        head-database-id: '34744'
+        fallback-material: BARRIER
       back:
         slot: 49
         material: PLAYER_HEAD
+        head-database-id: '94681'
         fallback-material: ARROW
     items:
       event-name:
@@ -62,7 +71,13 @@ guis:
     filler-material: RED_STAINED_GLASS_PANE
     button-bar:
       material: GRAY_STAINED_GLASS_PANE
+      close:
+        slot: 35
+        material: PLAYER_HEAD
+        head-database-id: '34744'
+        fallback-material: BARRIER
       back:
         slot: 31
         material: PLAYER_HEAD
+        head-database-id: '94681'
         fallback-material: ARROW
