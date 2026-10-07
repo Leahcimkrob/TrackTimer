@@ -23,6 +23,13 @@ race-statistics:
     normal-races: 10
     redstone-races: 15
   hologram:
+    live:
+      # Live standings refresh interval in ticks (20 ticks = 1 second).
+      # Recommended: 10 (0.5 seconds); use 20 for many boards/participants. Minimum: 2.
+      update-interval-ticks: 10
+      # Keep the final live standings for this many minutes, or until the next start (0-1440).
+      # The GUI changes this value in steps of 0.5 minutes.
+      result-display-minutes: 10.0
     # Display each player's head beside their name (CMI only).
     show-player-heads: true
     # Selectable providers: auto, cmi, decentholograms.

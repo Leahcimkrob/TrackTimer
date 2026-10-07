@@ -45,6 +45,7 @@ public final class TrackTimer extends JavaPlugin {
     private RaceTriggerMonitor raceTriggerMonitor;
     private RaceStatisticsEvaluator raceStatisticsEvaluator;
     private RaceStatisticsHologramManager hologramManager;
+    private de.ethria.trackTimer.race.LiveRaceHologramManager liveHologramManager;
 
     @Override
     public void onEnable() {
@@ -91,7 +92,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
-        RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager);
+        RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager, raceStartListener);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
                 this, databaseManager, languageManager, raceStartListener);
         raceStatisticsEvaluator = new RaceStatisticsEvaluator(
@@ -100,12 +101,24 @@ public final class TrackTimer extends JavaPlugin {
                 this, databaseManager, languageManager, raceStatisticsEvaluator);
         hologramManager.logProviderStatus();
         hologramManager.load();
+        liveHologramManager = new de.ethria.trackTimer.race.LiveRaceHologramManager(
+                this, databaseManager, languageManager, raceStartListener, hologramManager);
+        hologramManager.setLiveHolograms(liveHologramManager);
+        databaseManager.setEventChangeListener(liveHologramManager::refreshEvent);
+        try {
+            liveHologramManager.load();
+        } catch (SQLException exception) {
+            getLogger().log(Level.SEVERE, "Could not load live race holograms.", exception);
+        }
         TopTenGui topTenGui = new TopTenGui(editorGuiContext, raceStatisticsEvaluator, eventOverviewGui);
         PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
         topTenGui.setPlayerDetailsGui(playerDetailsGui);
         RaceStatisticsHologramTool hologramTool = null;
         RaceStatisticsHologramDeleteTool hologramDeleteTool = null;
         if (hologramManager.isAvailable()) {
+            var liveTool = new de.ethria.trackTimer.tools.LiveRaceHologramTool(editorGuiContext, liveHologramManager);
+            eventEditorGui.setLiveHologramTool(liveTool);
+            getServer().getPluginManager().registerEvents(liveTool, this);
             hologramTool = new RaceStatisticsHologramTool(editorGuiContext, hologramManager);
             getServer().getPluginManager().registerEvents(hologramTool, this);
             hologramDeleteTool = new RaceStatisticsHologramDeleteTool(editorGuiContext, hologramManager);
@@ -182,6 +195,7 @@ public final class TrackTimer extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (liveHologramManager != null) liveHologramManager.shutdown();
         if (raceTriggerMonitor != null) raceTriggerMonitor.shutdown();
         if (raceStartListener != null) raceStartListener.shutdown();
         if (databaseManager != null) {
@@ -203,5 +217,6 @@ public final class TrackTimer extends JavaPlugin {
 
     public void reloadHolograms() throws SQLException {
         if (hologramManager != null) hologramManager.reload();
+        if (liveHologramManager != null) liveHologramManager.load();
     }
 }

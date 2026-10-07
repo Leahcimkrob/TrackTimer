@@ -54,7 +54,7 @@ public final class RaceEndListener {
                 race.completeLap(now);
 
                 if (finished) {
-                    races.finishRace(player, end.eventId());
+                    races.finishRace(player, end.eventId(), now);
                     holograms.updateEvent(end.eventId());
                     var finishLines = language.chatLines("race.finished", LanguageManager.placeholders(
                             "event", race.eventName(), "time", races.formatDuration(elapsedMillis)));

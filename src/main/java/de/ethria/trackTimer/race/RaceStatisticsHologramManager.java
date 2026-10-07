@@ -47,6 +47,10 @@ public final class RaceStatisticsHologramManager {
     private final CmiHologramTopAligner cmiTopAligner;
     private Provider provider = Provider.NONE;
     private final Set<String> activeCmiBoards = new HashSet<>();
+    private final java.util.Map<String, String> liveLayouts = new java.util.HashMap<>();
+    private LiveRaceHologramManager liveHolograms;
+
+    public void setLiveHolograms(LiveRaceHologramManager manager) { liveHolograms = manager; }
 
     public RaceStatisticsHologramManager(JavaPlugin plugin, DatabaseManager database,
                                          LanguageManager language, RaceStatisticsEvaluator statistics) {
@@ -207,18 +211,86 @@ public final class RaceStatisticsHologramManager {
 
     public int deleteHologramAt(Location clickedBlock, Location playerLocation) throws SQLException {
         if (!isAvailable()) return 0;
-        List<RaceHologramBoard> matches = database.listRaceHologramBoardsAt(plugin.getServer().getName(),
+        List<RaceHologramBoard> matches = new ArrayList<>(database.listRaceHologramBoardsAt(plugin.getServer().getName(),
                 clickedBlock.getWorld().getName(), clickedBlock.getBlockX(), clickedBlock.getBlockY(),
-                clickedBlock.getBlockZ());
+                clickedBlock.getBlockZ()));
+        if (liveHolograms != null) matches.addAll(liveHolograms.boardsAt(clickedBlock));
         RaceHologramBoard selected = matches.stream()
                 .filter(board -> isOnSameSideAsPlayer(board, playerLocation))
                 .min(java.util.Comparator.comparingDouble(board -> distanceSquaredToPlayer(board, playerLocation)))
                 .orElse(null);
-        if (selected == null || !database.deleteRaceHologramBoard(selected.id(), plugin.getServer().getName())) {
+        if (selected == null) return 0;
+        if (liveHolograms != null && liveHolograms.remove(selected.id())) return 1;
+        if (!database.deleteRaceHologramBoard(selected.id(), plugin.getServer().getName())) {
             return 0;
         }
         removeProviderHologram(fromDatabase(selected));
         return 1;
+    }
+
+    public RaceHologramBoard livePlacement(Event event, Location first, Location second, Location player) {
+        if (!isAvailable() || !first.getWorld().equals(second.getWorld())) return null;
+        int lowX = Math.min(first.getBlockX(), second.getBlockX()), highX = Math.max(first.getBlockX(), second.getBlockX());
+        int lowY = Math.min(first.getBlockY(), second.getBlockY()), highY = Math.max(first.getBlockY(), second.getBlockY());
+        int lowZ = Math.min(first.getBlockZ(), second.getBlockZ()), highZ = Math.max(first.getBlockZ(), second.getBlockZ());
+        if (lowX != highX && lowZ != highZ) return null;
+        double x = (lowX + highX + 1) / 2.0, z = (lowZ + highZ + 1) / 2.0;
+        float yaw;
+        if (lowZ == highZ) {
+            boolean north = player.getZ() < lowZ + 0.5;
+            z = lowZ + 0.5 + (north ? -1 : 1) * (0.5 + WALL_GAP);
+            yaw = north ? 180f : 0f;
+        } else {
+            boolean west = player.getX() < lowX + 0.5;
+            x = lowX + 0.5 + (west ? -1 : 1) * (0.5 + WALL_GAP);
+            yaw = west ? 90f : -90f;
+        }
+        return new RaceHologramBoard(UUID.randomUUID().toString(), event.id(), false, plugin.getServer().getName(),
+                first.getWorld().getName(), lowX, lowY, lowZ, highX, highY, highZ,
+                x, highY + VERTICAL_OFFSET, z, yaw, null, null);
+    }
+
+    public void removeLiveDisplay(RaceHologramBoard board) {
+        liveLayouts.remove(board.id());
+        activeCmiBoards.remove(board.id());
+        removeProviderHologram(board);
+    }
+
+    public boolean renderLive(RaceHologramBoard stored, List<String> lines) {
+        if (!isAvailable()) return false;
+        World world = Bukkit.getWorld(stored.world());
+        if (world == null) return false;
+        Board board = fromDatabase(stored);
+        String layout = provider + ":" + lines.size() + ":" + measureMaximumLineWidthPixels(lines);
+        boolean rebuild = !layout.equals(liveLayouts.get(stored.id()));
+        try {
+            Location location = new Location(world, board.centerX(), board.topY(), board.centerZ(), board.yaw(), 0f);
+            if (rebuild) {
+                if (provider == Provider.CMI) updateCmiHologram(board, location, lines);
+                else updateDecentHologram(board, location, lines);
+                liveLayouts.put(stored.id(), layout);
+            } else if (provider == Provider.CMI) {
+                Class<?> cmiClass = Class.forName("com.Zrips.CMI.CMI");
+                Object cmi = cmiClass.getMethod("getInstance").invoke(null);
+                Object manager = cmiClass.getMethod("getHologramManager").invoke(cmi);
+                Object hologram = manager.getClass().getMethod("getByName", String.class).invoke(manager, board.hologramName());
+                if (hologram == null) {
+                    liveLayouts.remove(stored.id());
+                    return renderLive(stored, lines);
+                }
+                Object pages = invoke(hologram.getClass(), hologram, "getPages", new Class<?>[0]);
+                invoke(pages.getClass(), pages, "setLines", new Class<?>[]{List.class}, lines);
+                invoke(hologram.getClass(), hologram, "update", new Class<?>[0]);
+            } else {
+                Class.forName("de.ethria.trackTimer.race.DecentHologramRenderer")
+                        .getMethod("updateLines", String.class, List.class).invoke(null, board.hologramName(), lines);
+            }
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            liveLayouts.remove(stored.id());
+            plugin.getLogger().log(Level.WARNING, "Could not update live hologram '" + board.hologramName() + "'.", exception);
+            return false;
+        }
     }
 
     private boolean isOnSameSideAsPlayer(RaceHologramBoard board, Location playerLocation) {
@@ -327,13 +399,14 @@ public final class RaceStatisticsHologramManager {
             Method getByName = manager.getClass().getMethod("getByName", String.class);
             Object hologram = getByName.invoke(manager, board.hologramName());
             boolean created = !activeCmiBoards.contains(board.key()) || hologram == null;
+            Location initialLocation = location.clone().subtract(0, 1, 0);
             Class<?> hologramClass = Class.forName("com.Zrips.CMI.Modules.Holograms.CMIHologram");
             if (created) {
                 if (hologram != null) invoke(hologramClass, hologram, "delete", new Class<?>[0]);
                 Constructor<?> constructor = hologramClass.getConstructor(String.class, Location.class);
-                hologram = constructor.newInstance(board.hologramName(), location);
+                hologram = constructor.newInstance(board.hologramName(), initialLocation);
             }
-            invoke(hologramClass, hologram, "setLocation", new Class<?>[]{Location.class}, location);
+            invoke(hologramClass, hologram, "setLocation", new Class<?>[]{Location.class}, initialLocation);
             Object pages = invoke(hologramClass, hologram, "getPages", new Class<?>[0]);
             invoke(pages.getClass(), pages, "setLines", new Class<?>[]{List.class}, lines);
             Object textSettings = invoke(hologramClass, hologram, "getTextSettings", new Class<?>[0]);
@@ -352,7 +425,7 @@ public final class RaceStatisticsHologramManager {
             invoke(settings.getClass(), settings, "setYaw", new Class<?>[]{double.class}, (double) board.yaw());
             invoke(hologramClass, hologram, created ? "show" : "update", new Class<?>[0]);
             activeCmiBoards.add(board.key());
-            cmiTopAligner.align(board.hologramName(), hologram, location);
+            cmiTopAligner.align(board.hologramName(), hologram, location, initialLocation);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("CMI hologram API is unavailable or incompatible.", exception);
         }

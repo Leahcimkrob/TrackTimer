@@ -126,7 +126,7 @@ race-statistics:
   hologram-select-first-corner: "<red>Setze zuerst mit Linksklick die obere linke Ecke."
   hologram-same-world: "<red>Beide Ecken müssen in derselben Welt liegen."
   hologram-invalid-area: "<red>Ungültiger Bereich. Wähle zwei Ecken an derselben Wandfläche."
-  hologram-created: "<green>Ergebnis-Hologramm für <yellow><event></yellow> erstellt. Es aktualisiert sich nach abgeschlossenen Rennen."
+  hologram-created: "<green>Ergebnis-Hologramm für <yellow><event></yellow> wird gesetzt und ausgerichtet. Es aktualisiert sich nach abgeschlossenen Rennen."
   hologram-tool-cancelled: "<yellow>Hologramm-Auswahl abgebrochen."
   hologram-delete-tool-started: "<yellow>Hologramm-Löschwerkzeug erhalten. Klicke einen Block innerhalb des Hologrammbereichs an."
   hologram-delete-not-found: "<red>In diesem Bereich wurde kein Hologramm gefunden."
@@ -143,3 +143,16 @@ database:
   converted: "<green>Daten wurden von <yellow><from></yellow> nach <yellow><to></yellow> übertragen."
   convert-invalid: "<red>Ungültige Datenbanktypen. Erlaubt sind sqlite und mysql; Quelle und Ziel müssen verschieden sein."
   convert-failed: "<red>Datenübertragung fehlgeschlagen: <message>"
+
+live-hologram:
+  race-title: "<gold>Rennen - <event>"
+  free-title: "<gold>Freie Runden - <event>"
+  idle: "<gray>Zur Zeit findet kein Rennen statt"
+  tool-started: "<green>Livehologramm-Werkzeug für <event> erhalten. Wähle die obere linke und untere rechte Ecke."
+  created: "<green>Livehologramm für <event> wird gesetzt und ausgerichtet."
+  inventory-full: "<red>Dein Inventar ist voll."
+  columns:
+    rank: "<gold>Platz"
+    player: "<gold>Spieler"
+    lap: "<gold>Runde"
+    time: "<gold>Gesamtzeit"

@@ -35,6 +35,9 @@ public final class EventEditorGui implements Listener {
     private final EventOverviewGui overviewGui;
     private EventIconSwapGui iconSwapGui;
     private EventTriggerGui triggerGui;
+    private de.ethria.trackTimer.tools.LiveRaceHologramTool liveHologramTool;
+
+    public void setLiveHologramTool(de.ethria.trackTimer.tools.LiveRaceHologramTool tool) { liveHologramTool = tool; }
 
     public EventEditorGui(EditorGuiContext context, EventOverviewGui overviewGui) {
         this.context = context;
@@ -90,6 +93,8 @@ public final class EventEditorGui implements Listener {
                 context.configuredIcon("guis.event-editor.items.delete", Material.BARRIER), "event-editor.delete"));
         inventory.setItem(slot("items.trigger-editor.slot", 33, size), named(
                 context.configuredIcon("guis.event-editor.items.trigger-editor", Material.REDSTONE_LAMP), "event-editor.trigger-editor"));
+        if (liveHologramTool != null) inventory.setItem(slot("items.live-hologram.slot", 22, size), named(
+                context.configuredIcon("guis.event-editor.items.live-hologram", Material.STICK), "event-editor.live-hologram"));
 
         ItemStack bar = new ItemStack(context.material(context.settings.getString("guis.event-editor.button-bar.material"), Material.GRAY_STAINED_GLASS_PANE));
         ItemMeta barMeta = bar.getItemMeta();
@@ -129,6 +134,11 @@ public final class EventEditorGui implements Listener {
         }
         int rawSlot = event.getRawSlot();
         Event selected = holder.event;
+        if (liveHologramTool != null && rawSlot == slot("items.live-hologram.slot", 22, size)) {
+            player.closeInventory();
+            liveHologramTool.giveTool(player, selected, "signal".equals(selected.startMode()));
+            return;
+        }
         if (rawSlot == slot("items.event-name.slot", 13, size)) {
             if (event.getClick() == ClickType.LEFT) openNameDialog(player, selected, holder.overviewPage);
         } else if (rawSlot == slot("items.laps.slot", 21, size)) {

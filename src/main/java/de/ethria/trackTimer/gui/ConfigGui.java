@@ -43,6 +43,8 @@ public final class ConfigGui implements Listener {
             number("hologram-normal", "race-statistics.hologram.normal-races", 28, Material.ARMOR_STAND, 1, 0, Integer.MAX_VALUE),
             number("hologram-signal", "race-statistics.hologram.redstone-races", 30, Material.REDSTONE_LAMP, 1, 0, Integer.MAX_VALUE),
             number("tool-timeout", "race-statistics.hologram.delete-tool-timeout-seconds", 32, Material.SHEARS, 1, 1, 86400),
+            number("live-update", "race-statistics.hologram.live.update-interval-ticks", 32, Material.CLOCK, 1, 2, 1200),
+            number("live-retention", "race-statistics.hologram.live.result-display-minutes", 33, Material.CLOCK, 0.5, 0, 1440),
             choice("provider", "race-statistics.hologram.provider", 34, Material.BEACON, List.of("auto", "cmi", "decentholograms")),
             choice("show-player-heads", "race-statistics.hologram.show-player-heads", 35, Material.LIME_CONCRETE, List.of()),
             number("chat-normal", "race-statistics.chat.normal-races", 38, Material.PAPER, 1, 0, Integer.MAX_VALUE),
@@ -211,7 +213,8 @@ public final class ConfigGui implements Listener {
         }
         List<Component> lore = new ArrayList<>(context.language.guiList("config-editor.items." + setting.key + ".lore"));
         lore.addAll(context.language.guiList(setting.step > 0 ? "config-editor.number-lore" : "config-editor.choice-lore",
-                LanguageManager.placeholders("value", displayed, "step", setting.step < 1 ? "0.1" : "1")));
+                LanguageManager.placeholders("value", displayed, "step",
+                        BigDecimal.valueOf(setting.step).stripTrailingZeros().toPlainString())));
         meta.lore(lore);
         item.setItemMeta(meta);
         holder.inventory.setItem(slot, item);

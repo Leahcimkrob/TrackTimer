@@ -70,6 +70,16 @@ config-editor:
       name: "<gold>Hologram: tool timeout"
       lore:
         - "<gray>Seconds before removing the deletion tool."
+    live-update:
+      name: "<gold>Live hologram: refresh interval (ticks)"
+      lore:
+        - "<gray>20 ticks = 1 second. Recommended: 10."
+    live-retention:
+      name: "<gold>Live hologram: result display duration"
+      lore:
+        - "<gray>Minutes after the race. Default: 10 minutes."
+        - "<gray>Adjust in steps of 0.5 minutes."
+        - "<gray>A new start replaces the previous standings."
     provider:
       name: "<gold>Hologram provider"
     show-player-heads:
@@ -152,6 +162,13 @@ topten:
     name: "<gray>No results yet"
 
 event-editor:
+  live-hologram:
+    name: "<gold>Create live hologram"
+    lore:
+      - "<gray>Shows current participants and elapsed times."
+      - "<yellow>Left-click: select the upper-left corner."
+      - "<yellow>Right-click: select the lower-right corner."
+      - "<gray>Type exit in chat to cancel."
   title: "Event Editor: <event>"
   event-name:
     name: "<yellow><event>"

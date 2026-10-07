@@ -23,12 +23,14 @@ public final class RedstoneStartListener implements Listener {
     private final JavaPlugin plugin;
     private final DatabaseManager database;
     private final LanguageManager language;
+    private final RaceStartListener races;
     private final Map<Long, BukkitTask> joinTimeouts = new HashMap<>();
 
-    public RedstoneStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language) {
+    public RedstoneStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language, RaceStartListener races) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
+        this.races = races;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -40,6 +42,7 @@ public final class RedstoneStartListener implements Listener {
                     plugin.getServer().getName(), block.getWorld().getName(),
                     block.getX(), block.getY(), block.getZ())) {
                 var session = database.activateRedstoneSession(trigger.eventId(), System.currentTimeMillis());
+                races.resetLiveStandings(trigger.eventId());
                 scheduleJoinTimeout(session);
                 Title title = Title.title(language.chatFragment("race.start-title"), Component.empty());
                 var center = block.getLocation().add(0.5, 0.5, 0.5);

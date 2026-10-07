@@ -58,4 +58,12 @@ public final class DecentHologramRenderer {
         return new DecentLocation(location.getWorld().getName(), location.getX(), location.getY(),
                 location.getZ(), location.getYaw(), location.getPitch());
     }
+
+    public static void updateLines(String hologramName, List<String> lines) {
+        DisplayService service = DecentHologramsAPI.get().getDisplayModule().getDisplayService();
+        DisplayBase display = service.getDisplay(hologramName + "_display");
+        if (!(display instanceof TextDisplay text)) throw new IllegalStateException("Live display no longer exists.");
+        text.setLines(lines);
+        service.updateDisplay(text);
+    }
 }

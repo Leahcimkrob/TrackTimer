@@ -32,6 +32,8 @@ public final class RaceStartListener implements Listener {
     private final DatabaseManager database;
     private final LanguageManager language;
     private final Map<UUID, Map<Long, RunningRace>> running = new HashMap<>();
+    private final Map<Long, Map<UUID, RunningRace>> liveFinishers = new HashMap<>();
+    private final Map<Long, Long> liveEndedAt = new HashMap<>();
 
     public RaceStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language) {
         this.plugin = plugin;
@@ -75,6 +77,9 @@ public final class RaceStartListener implements Listener {
 
     private void beginDisplay(Player player, StartPoint point, RaceResult result) {
         long eventId = point.eventId();
+        resetLiveStandings(eventId);
+        Map<UUID, RunningRace> previousFinishers = liveFinishers.get(eventId);
+        if (previousFinishers != null) previousFinishers.remove(player.getUniqueId());
         String eventName = point.eventName();
         long startTime = result.startTime();
         if (result.sessionId() == null) {
@@ -105,7 +110,44 @@ public final class RaceStartListener implements Listener {
     }
 
     public void finishRace(Player player, long eventId) {
+        finishRace(player, eventId, System.currentTimeMillis());
+    }
+
+    public void finishRace(Player player, long eventId, long finishedAt) {
+        RunningRace race = activeRace(player, eventId);
+        if (race != null) {
+            race.finishedAt = finishedAt;
+            liveFinishers.computeIfAbsent(eventId, ignored -> new HashMap<>()).put(player.getUniqueId(), race);
+        }
         stopDisplay(player.getUniqueId(), eventId);
+    }
+
+    public void resetLiveStandings(long eventId) {
+        boolean active = running.values().stream().anyMatch(entries -> entries.containsKey(eventId));
+        if (!active) {
+            liveFinishers.remove(eventId);
+            liveEndedAt.remove(eventId);
+        }
+    }
+
+    /** Finished drivers remain visible until expiry or the next start. No database reads. */
+    public List<RunningRace> liveRaces(long eventId) {
+        var active = running.values().stream().map(races -> races.get(eventId)).filter(java.util.Objects::nonNull).toList();
+        Map<UUID, RunningRace> finished = liveFinishers.get(eventId);
+        if (finished != null && active.isEmpty()) {
+            long now = System.currentTimeMillis();
+            long endedAt = liveEndedAt.computeIfAbsent(eventId, ignored -> now);
+            double minutes = Math.max(0, Math.min(1440,
+                    plugin.getConfig().getDouble("race-statistics.hologram.live.result-display-minutes", 10)));
+            if (now - endedAt >= minutes * 60000) {
+                liveFinishers.remove(eventId);
+                liveEndedAt.remove(eventId);
+                finished = null;
+            }
+        }
+        var result = new java.util.ArrayList<>(active);
+        if (finished != null) result.addAll(finished.values());
+        return List.copyOf(result);
     }
 
     public Component formatDuration(long elapsedMillis) {
@@ -144,12 +186,17 @@ public final class RaceStartListener implements Listener {
 
     private void stopDisplays(UUID playerId) {
         Map<Long, RunningRace> races = running.remove(playerId);
-        if (races != null) races.values().forEach(RunningRace::stop);
+        if (races != null) {
+            races.values().forEach(RunningRace::stop);
+            races.keySet().forEach(this::liveRaces);
+        }
     }
 
     public void shutdown() {
         running.values().forEach(races -> races.values().forEach(RunningRace::stop));
         running.clear();
+        liveFinishers.clear();
+        liveEndedAt.clear();
     }
 
     private void stopDisplay(UUID playerId, long eventId) {
@@ -158,6 +205,7 @@ public final class RaceStartListener implements Listener {
         RunningRace race = races.remove(eventId);
         if (race != null) race.stop();
         if (races.isEmpty()) running.remove(playerId);
+        liveRaces(eventId);
     }
 
     public static final class RunningRace {
@@ -174,6 +222,7 @@ public final class RaceStartListener implements Listener {
         private int lap = 1;
         private int nextCheckpoint = 1;
         private long lapStartTime;
+        private long finishedAt;
 
         private RunningRace(Player player, long eventId, String eventName, long raceResultId, long startTime,
                             Long sessionId,
@@ -192,6 +241,11 @@ public final class RaceStartListener implements Listener {
         }
 
         public long eventId() { return eventId; }
+        public Player player() { return player; }
+        public long finishedAt() { return finishedAt; }
+        public int checkpointProgress() {
+            return nextCheckpoint == 0 ? maxCheckpointOrder : nextCheckpoint - 1;
+        }
         public String eventName() { return eventName; }
         public long raceResultId() { return raceResultId; }
         public long startTime() { return startTime; }

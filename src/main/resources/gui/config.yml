@@ -36,6 +36,7 @@ row-labels:
     slot: 36
     material: OAK_SIGN
 items:
+  # Sprachauswahl
   language:
     slot: 4
     material: BOOK
@@ -50,6 +51,7 @@ items:
       material: PLAYER_HEAD
       head-database-id: "522"
       fallback-material: BOOK
+  # Rennen:
   height:
     slot: 11
     material: SCAFFOLDING
@@ -59,6 +61,7 @@ items:
   title-radius:
     slot: 15
     material: BELL
+  # Rennstatistik (GUI):
   gui-normal:
     slot: 20
     material: PLAYER_HEAD
@@ -69,24 +72,32 @@ items:
   player-details:
     slot: 24
     material: WRITABLE_BOOK
-  hologram-normal:
-    slot: 28
-    material: ARMOR_STAND
-  hologram-signal:
-    slot: 30
-    material: REDSTONE_LAMP
-  tool-timeout:
-    slot: 32
-    material: SHEARS
-  provider:
-    slot: 34
-    material: BEACON
+  # Rennstatistik (Hologramm):
   show-player-heads:
-    slot: 35
+    slot: 28
     enabled:
       material: LIME_CONCRETE
     disabled:
       material: RED_CONCRETE
+  hologram-normal:
+    slot: 29
+    material: ARMOR_STAND
+  hologram-signal:
+    slot: 30
+    material: REDSTONE_LAMP
+  live-update:
+    slot: 32
+    material: CLOCK
+  live-retention:
+    slot: 33
+    material: CLOCK
+  tool-timeout:
+    slot: 34
+    material: SHEARS
+  provider:
+    slot: 35
+    material: BEACON
+  # Chat:
   chat-normal:
     slot: 38
     material: PAPER

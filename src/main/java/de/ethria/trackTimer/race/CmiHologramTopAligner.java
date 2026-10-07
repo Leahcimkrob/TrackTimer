@@ -23,9 +23,9 @@ final class CmiHologramTopAligner {
         CompletableFuture<?> update;
         int corrections;
 
-        Pending(Object hologram, Location location, CompletableFuture<?> update) {
+        Pending(Object hologram, Location location, double topY, CompletableFuture<?> update) {
             this.hologram = hologram;
-            this.topY = location.getY();
+            this.topY = topY;
             this.location = location.clone();
             this.update = update;
         }
@@ -36,10 +36,10 @@ final class CmiHologramTopAligner {
 
     CmiHologramTopAligner(JavaPlugin plugin) { this.plugin = plugin; }
 
-    void align(String name, Object hologram, Location topLocation) throws ReflectiveOperationException {
+    void align(String name, Object hologram, Location topLocation, Location initialLocation) throws ReflectiveOperationException {
         CompletableFuture<?> update = (CompletableFuture<?>) call(hologram, "requestFullUpdate");
-        pending.put(name, new Pending(hologram, topLocation, update));
-        if (task == null) task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::alignPending, 1L, 20L);
+        pending.put(name, new Pending(hologram, initialLocation, topLocation.getY(), update));
+        if (task == null) task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::alignPending, 1L, 2L);
     }
 
     void remove(String name) { pending.remove(name); }

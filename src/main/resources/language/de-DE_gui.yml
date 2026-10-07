@@ -70,6 +70,16 @@ config-editor:
       name: "<gold>Hologramm: Werkzeug-Timeout"
       lore:
         - "<gray>Sekunden bis das Löschwerkzeug entfernt wird."
+    live-update:
+      name: "<gold>Livehologramm: Aktualisierung (Ticks)"
+      lore:
+        - "<gray>20 Ticks = 1 Sekunde. Empfohlen: 10."
+    live-retention:
+      name: "<gold>Livehologramm: Ergebnis-Anzeigedauer"
+      lore:
+        - "<gray>Minuten nach Rennende. Standard: 10 Minuten."
+        - "<gray>Änderung in Schritten von 0,5 Minuten."
+        - "<gray>Ein neuer Start ersetzt die letzte Anzeige."
     provider:
       name: "<gold>Hologramm-Anbieter"
     show-player-heads:
@@ -152,6 +162,13 @@ topten:
     name: "<gray>Noch keine Ergebnisse"
 
 event-editor:
+  live-hologram:
+    name: "<gold>Livehologramm erstellen"
+    lore:
+      - "<gray>Zeigt die laufenden Teilnehmer und Zeiten."
+      - "<yellow>Linksklick: obere linke Ecke wählen."
+      - "<yellow>Rechtsklick: untere rechte Ecke wählen."
+      - "<gray>Mit exit im Chat abbrechen."
   title: "Event-Editor: <event>"
   event-name:
     name: "<yellow><event>"

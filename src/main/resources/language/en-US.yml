@@ -126,7 +126,7 @@ race-statistics:
   hologram-select-first-corner: "<red>Left-click the upper-left corner first."
   hologram-same-world: "<red>Both corners must be in the same world."
   hologram-invalid-area: "<red>Invalid area. Select two corners on the same wall plane."
-  hologram-created: "<green>Results hologram for <yellow><event></yellow> created. It updates after completed races."
+  hologram-created: "<green>Results hologram for <yellow><event></yellow> is being placed and aligned. It updates after completed races."
   hologram-tool-cancelled: "<yellow>Hologram selection cancelled."
   hologram-delete-tool-started: "<yellow>Hologram removal tool given. Click a block inside a hologram area."
   hologram-delete-not-found: "<red>No hologram was found in this area."
@@ -143,3 +143,16 @@ database:
   converted: "<green>Data copied from <yellow><from></yellow> to <yellow><to></yellow>."
   convert-invalid: "<red>Invalid database types. Allowed: sqlite and mysql; source and target must differ."
   convert-failed: "<red>Data conversion failed: <message>"
+
+live-hologram:
+  race-title: "<gold>Race - <event>"
+  free-title: "<gold>Free laps - <event>"
+  idle: "<gray>No race is currently taking place"
+  tool-started: "<green>Live hologram tool for <event> received. Select the upper-left and lower-right corners."
+  created: "<green>Live hologram for <event> is being placed and aligned."
+  inventory-full: "<red>Your inventory is full."
+  columns:
+    rank: "<gold>Position"
+    player: "<gold>Player"
+    lap: "<gold>Lap"
+    time: "<gold>Total time"

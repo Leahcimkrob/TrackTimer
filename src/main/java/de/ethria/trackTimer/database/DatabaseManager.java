@@ -25,6 +25,9 @@ public final class DatabaseManager {
     private final Connection connection;
     private final String autoIncrement;
     private final List<RaceHologramBoard> duplicateRaceHologramBoards = new ArrayList<>();
+    private java.util.function.LongConsumer eventChangeListener = ignored -> { };
+
+    public void setEventChangeListener(java.util.function.LongConsumer listener) { eventChangeListener = listener; }
 
     public DatabaseManager(JavaPlugin plugin) throws SQLException {
         this.plugin = plugin;
@@ -66,6 +69,7 @@ public final class DatabaseManager {
             for (String sql : tableStatements()) {
                 statement.executeUpdate(sql);
             }
+            statement.executeUpdate(liveHologramTableSql());
         }
         ensureRaceResultsRedstoneColumn();
         ensureRaceHologramFilterColumns();
@@ -128,14 +132,15 @@ public final class DatabaseManager {
                     ? "INTEGER PRIMARY KEY AUTOINCREMENT" : "BIGINT PRIMARY KEY AUTO_INCREMENT";
             try (Statement statement = target.createStatement()) {
                 for (String sql : tableStatements(targetAutoIncrement)) statement.executeUpdate(sql);
+                statement.executeUpdate(liveHologramTableSql());
                 if ("sqlite".equals(targetType)) statement.execute("PRAGMA foreign_keys = ON");
             }
             target.setAutoCommit(false);
             try {
                 for (String table : List.of("players", "events", "event_triggers", "race_sessions",
                         "race_results", "race_checkpoint_times", "race_lap_times", "race_session_results",
-                        "race_holograms")) {
-                    if ("race_holograms".equals(table) && !tableExists(source, table)) continue;
+                        "race_holograms", "race_live_holograms")) {
+                    if (("race_holograms".equals(table) || "race_live_holograms".equals(table)) && !tableExists(source, table)) continue;
                     copyTable(source, target, table);
                 }
                 removeDuplicateRaceHolograms(target, null);
@@ -410,6 +415,59 @@ public final class DatabaseManager {
         return List.copyOf(duplicateRaceHologramBoards);
     }
 
+    private static String liveHologramTableSql() {
+        return """
+                CREATE TABLE IF NOT EXISTS race_live_holograms (
+                    id VARCHAR(64) PRIMARY KEY, event_id BIGINT NOT NULL,
+                    server VARCHAR(128) NOT NULL, world VARCHAR(128) NOT NULL,
+                    low_x INTEGER NOT NULL, low_y INTEGER NOT NULL, low_z INTEGER NOT NULL,
+                    high_x INTEGER NOT NULL, high_y INTEGER NOT NULL, high_z INTEGER NOT NULL,
+                    center_x DOUBLE NOT NULL, top_y DOUBLE NOT NULL, center_z DOUBLE NOT NULL, yaw DOUBLE NOT NULL,
+                    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+                )
+                """;
+    }
+
+    public void saveLiveHologram(RaceHologramBoard board) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO race_live_holograms (id, event_id, server, world,
+                    low_x, low_y, low_z, high_x, high_y, high_z, center_x, top_y, center_z, yaw)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """)) {
+            statement.setString(1, board.id());
+            statement.setLong(2, board.eventId());
+            statement.setString(3, board.server());
+            statement.setString(4, board.world());
+            statement.setInt(5, board.lowX()); statement.setInt(6, board.lowY()); statement.setInt(7, board.lowZ());
+            statement.setInt(8, board.highX()); statement.setInt(9, board.highY()); statement.setInt(10, board.highZ());
+            statement.setDouble(11, board.centerX()); statement.setDouble(12, board.topY());
+            statement.setDouble(13, board.centerZ()); statement.setFloat(14, board.yaw());
+            statement.executeUpdate();
+        }
+    }
+
+    public List<RaceHologramBoard> listLiveHolograms(String server) throws SQLException {
+        var boards = new ArrayList<RaceHologramBoard>();
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM race_live_holograms WHERE server = ?")) {
+            statement.setString(1, server);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) boards.add(new RaceHologramBoard(rows.getString("id"), rows.getLong("event_id"), false,
+                        rows.getString("server"), rows.getString("world"), rows.getInt("low_x"), rows.getInt("low_y"),
+                        rows.getInt("low_z"), rows.getInt("high_x"), rows.getInt("high_y"), rows.getInt("high_z"),
+                        rows.getDouble("center_x"), rows.getDouble("top_y"), rows.getDouble("center_z"),
+                        rows.getFloat("yaw"), null, null));
+            }
+        }
+        return List.copyOf(boards);
+    }
+
+    public boolean deleteLiveHologram(String id, String server) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM race_live_holograms WHERE id = ? AND server = ?")) {
+            statement.setString(1, id); statement.setString(2, server);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
     public List<RaceHologramBoard> listRaceHologramBoards(String server) throws SQLException {
         List<RaceHologramBoard> boards = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
@@ -595,6 +653,7 @@ public final class DatabaseManager {
             statement.setLong(2, eventId);
             statement.executeUpdate();
         }
+        eventChangeListener.accept(eventId);
     }
 
     /** Updates an event name, returning {@code false} when it is already in use. */
@@ -607,6 +666,7 @@ public final class DatabaseManager {
             statement.setString(1, eventName);
             statement.setLong(2, eventId);
             statement.executeUpdate();
+            eventChangeListener.accept(eventId);
             return true;
         } catch (SQLException exception) {
             if (isUniqueConstraintViolation(exception)) return false;
@@ -1239,6 +1299,7 @@ public final class DatabaseManager {
             statement.setLong(2, eventId);
             statement.executeUpdate();
         }
+        eventChangeListener.accept(eventId);
     }
 
     public void updateEventIcon(long eventId, String icon) throws SQLException {
@@ -1265,6 +1326,7 @@ public final class DatabaseManager {
         } finally {
             connection.setAutoCommit(originalAutoCommit);
         }
+        eventChangeListener.accept(eventId);
     }
 
     /** Removes every race result and checkpoint time for an event while keeping the event and its triggers. */
@@ -1463,6 +1525,7 @@ public final class DatabaseManager {
                 new IndexDefinition("race_lap_times", "idx_race_lap_times_result", "race_result_id"),
                 new IndexDefinition("race_checkpoint_times", "idx_checkpoint_times_result", "race_result_id"),
                 new IndexDefinition("race_holograms", "idx_race_holograms_server_event", "server, event_id"),
+                new IndexDefinition("race_live_holograms", "idx_live_holograms_server_event", "server, event_id"),
                 new IndexDefinition("race_holograms", "ux_race_holograms_placement",
                         "server, event_id, redstone, world, low_x, low_y, low_z, high_x, high_y, high_z")
         );

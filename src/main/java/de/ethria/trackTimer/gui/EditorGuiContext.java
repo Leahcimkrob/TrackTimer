@@ -42,6 +42,7 @@ public final class EditorGuiContext {
     public LanguageManager language() { return language; }
     public YamlConfiguration triggerSettings() { return triggerSettings; }
     public YamlConfiguration topTenSettings() { return topTenSettings; }
+    public YamlConfiguration editorSettings() { return settings; }
 
     public void reload() {
         File guiFolder = new File(plugin.getDataFolder(), "gui");

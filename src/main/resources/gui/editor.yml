@@ -47,6 +47,11 @@ guis:
         slot: 21
         material: PLAYER_HEAD
         fallback-material: STRUCTURE_VOID
+      live-hologram:
+        slot: 22
+        material: PLAYER_HEAD
+        head-database-id: '1627'
+        fallback-material: STICK
       start-mode:
         slot: 23
         material: PLAYER_HEAD
