@@ -26,6 +26,9 @@ zeigt die Ergebnisse in Bestenlisten und optionalen Hologrammen an.
 - Bestenlisten, persönliche Rundenzeiten und Checkpoint-Zeiten in GUIs ansehen.
 - Normale Rennen und Ampel-Rennen getrennt auswerten.
 - Ergebnis-Hologramme platzieren, die sich nach abgeschlossenen Rennen aktualisieren.
+- Livehologramme für normale Rennen und Ampel-Rennen über den Editor oder `/tt hologram addlive <event>` platzieren.
+- Platzierung, Spielerkopf und Name, aktuelle Runde und Gesamtzeit der Teilnehmer live anzeigen. Spielerköpfe werden mit CMI unterstützt.
+- Aktualisierungsintervall und Anzeigedauer der letzten Ergebnisse einstellen. Die letzte Anzeige bleibt standardmäßig 10 Minuten stehen oder bis zum nächsten Start.
 - Einstellungen über eine Config-GUI ändern. Beim Schließen werden Änderungen gespeichert; ohne Änderungen erfolgt kein Reload.
 - Deutsche und englische Texte sowie Speicherung mit SQLite oder MySQL/MariaDB.
 
@@ -60,6 +63,9 @@ results in leaderboards and optional holograms.
 - View leaderboards, personal lap times and checkpoint times through GUIs.
 - Keep normal race results and redstone race results separate.
 - Place results holograms that update after completed races.
+- Place live holograms for normal and redstone races through the editor or `/tt hologram addlive <event>`.
+- Show participants' position, player head and name, current lap and total elapsed time live. Player heads are supported with CMI.
+- Configure the refresh interval and how long final standings remain visible. By default, they stay for 10 minutes or until the next start.
 - Edit settings through a configuration GUI. Changes are saved when it closes; closing without changes does not trigger a reload.
 - German and English text, with SQLite or MySQL/MariaDB storage.
 
