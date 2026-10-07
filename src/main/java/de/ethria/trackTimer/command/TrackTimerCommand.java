@@ -10,6 +10,7 @@ import de.ethria.trackTimer.race.RaceStartListener;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramDeleteTool;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
+import de.ethria.trackTimer.tools.LiveRaceHologramTool;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 
@@ -35,12 +36,13 @@ public final class TrackTimerCommand {
     private final RaceStatisticsEvaluator raceStatisticsEvaluator;
     private final RaceStatisticsHologramTool hologramTool;
     private final RaceStatisticsHologramDeleteTool hologramDeleteTool;
+    private final LiveRaceHologramTool liveTool;
 
     public TrackTimerCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language,
                              EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
                              RaceStatisticsEvaluator raceStatisticsEvaluator,
                              RaceStatisticsHologramTool hologramTool,
-                             RaceStatisticsHologramDeleteTool hologramDeleteTool) {
+                             RaceStatisticsHologramDeleteTool hologramDeleteTool, LiveRaceHologramTool liveTool) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
@@ -49,6 +51,7 @@ public final class TrackTimerCommand {
         this.raceStatisticsEvaluator = raceStatisticsEvaluator;
         this.hologramTool = hologramTool;
         this.hologramDeleteTool = hologramDeleteTool;
+        this.liveTool = liveTool;
     }
 
     public LiteralCommandNode<CommandSourceStack> build(String label) {
@@ -63,7 +66,7 @@ public final class TrackTimerCommand {
         LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
         TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
         HologramSubCommand hologram = new HologramSubCommand(plugin, database, language,
-                raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
+                raceStatisticsEvaluator, hologramTool, hologramDeleteTool, liveTool);
         List<SubCommand> availableSubCommands = new ArrayList<>(List.of(
                 reload, config, create, delete, reset, editor, overview, convert, leave, topTen));
         if (hologramTool != null && hologramDeleteTool != null) availableSubCommands.add(hologram);

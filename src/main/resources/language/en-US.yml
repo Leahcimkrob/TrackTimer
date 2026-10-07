@@ -22,7 +22,7 @@ help:
   convert: "<yellow>/<command> convert <from> <to> <gray>- Copies data between SQLite and MySQL."
   leave: "<yellow>/<command> leave <gray>- Cancels your current run."
   topten: "<yellow>/<command> topten <event> [date [time]] <gray>- Without a date: normal races; with a date: redstone races."
-  hologram: "<yellow>/<command> hologram add <event> [date [time]] <gray>- Without a date: normal races; with a date: redstone races. <yellow>/<command> hologram remove <gray>- Gives the removal tool. <yellow>/<command> hologram reload <gray>- Reloads all holograms."
+  hologram: "<yellow>/<command> hologram add <event> [date [time]] <gray>- Without a date: normal races; with a date: redstone races. <yellow>/<command> hologram addlive <event> <gray>- Gives the live hologram tool. <yellow>/<command> hologram remove <gray>- Gives the removal tool. <yellow>/<command> hologram reload <gray>- Reloads all holograms."
   help: "<yellow>/<command> help <gray>- Shows this help."
 
 event:

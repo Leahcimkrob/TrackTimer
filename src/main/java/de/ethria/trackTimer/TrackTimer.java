@@ -114,9 +114,10 @@ public final class TrackTimer extends JavaPlugin {
         PlayerDetailsGui playerDetailsGui = new PlayerDetailsGui(editorGuiContext);
         topTenGui.setPlayerDetailsGui(playerDetailsGui);
         RaceStatisticsHologramTool hologramTool = null;
+        de.ethria.trackTimer.tools.LiveRaceHologramTool liveTool = null;
         RaceStatisticsHologramDeleteTool hologramDeleteTool = null;
         if (hologramManager.isAvailable()) {
-            var liveTool = new de.ethria.trackTimer.tools.LiveRaceHologramTool(editorGuiContext, liveHologramManager);
+            liveTool = new de.ethria.trackTimer.tools.LiveRaceHologramTool(editorGuiContext, liveHologramManager);
             eventEditorGui.setLiveHologramTool(liveTool);
             getServer().getPluginManager().registerEvents(liveTool, this);
             hologramTool = new RaceStatisticsHologramTool(editorGuiContext, hologramManager);
@@ -144,7 +145,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(redstoneStartListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
         registerMainCommand(eventOverviewGui, raceStartListener, raceStatisticsEvaluator,
-                hologramTool, hologramDeleteTool);
+                hologramTool, hologramDeleteTool, liveTool);
     }
 
     /**
@@ -179,9 +180,10 @@ public final class TrackTimer extends JavaPlugin {
     private void registerMainCommand(EventOverviewGui eventOverviewGui, RaceStartListener raceStartListener,
                                      RaceStatisticsEvaluator raceStatisticsEvaluator,
                                      RaceStatisticsHologramTool hologramTool,
-                                     RaceStatisticsHologramDeleteTool hologramDeleteTool) {
+                                     RaceStatisticsHologramDeleteTool hologramDeleteTool,
+                                     de.ethria.trackTimer.tools.LiveRaceHologramTool liveTool) {
         TrackTimerCommand command = new TrackTimerCommand(this, databaseManager, languageManager,
-                eventOverviewGui, raceStartListener, raceStatisticsEvaluator, hologramTool, hologramDeleteTool);
+                eventOverviewGui, raceStartListener, raceStatisticsEvaluator, hologramTool, hologramDeleteTool, liveTool);
         List<String> aliases = getConfig().getStringList("command.aliases");
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->

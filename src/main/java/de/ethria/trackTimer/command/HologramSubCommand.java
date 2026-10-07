@@ -12,6 +12,7 @@ import de.ethria.trackTimer.language.LanguageManager;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramDeleteTool;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
+import de.ethria.trackTimer.tools.LiveRaceHologramTool;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import org.bukkit.command.CommandSender;
@@ -41,16 +42,18 @@ public final class HologramSubCommand implements SubCommand {
     private final RaceStatisticsEvaluator statistics;
     private final RaceStatisticsHologramTool createTool;
     private final RaceStatisticsHologramDeleteTool removeTool;
+    private final LiveRaceHologramTool liveTool;
 
     public HologramSubCommand(TrackTimer plugin, DatabaseManager database, LanguageManager language,
                              RaceStatisticsEvaluator statistics, RaceStatisticsHologramTool createTool,
-                             RaceStatisticsHologramDeleteTool removeTool) {
+                             RaceStatisticsHologramDeleteTool removeTool, LiveRaceHologramTool liveTool) {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
         this.statistics = statistics;
         this.createTool = createTool;
         this.removeTool = removeTool;
+        this.liveTool = liveTool;
     }
 
     @Override public String name() { return "hologram"; }
@@ -76,6 +79,11 @@ public final class HologramSubCommand implements SubCommand {
                                         .executes(context -> executeAdd(context.getSource().getSender(),
                                                 StringArgumentType.getString(context, "eventname"),
                                                 StringArgumentType.getString(context, "dateTime"))))))
+                .then(Commands.literal("addlive")
+                        .then(Commands.argument("eventname", StringArgumentType.word())
+                                .suggests((context, builder) -> suggestEvents(builder))
+                                .executes(context -> executeAddLive(context.getSource().getSender(),
+                                        StringArgumentType.getString(context, "eventname")))))
                 .then(Commands.literal("remove")
                         .executes(context -> executeRemove(context.getSource().getSender())))
                 .then(Commands.literal("reload")
@@ -116,6 +124,29 @@ public final class HologramSubCommand implements SubCommand {
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.WARNING, "Could not prepare the race hologram tool for '"
                     + eventName + "'.", exception);
+            player.sendMessage(language.chat("race-statistics.command-failed"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeAddLive(CommandSender sender, String eventName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(language.chat("gui.player-only"));
+            return Command.SINGLE_SUCCESS;
+        }
+        if (liveTool == null) {
+            player.sendMessage(language.chat("race-statistics.hologram-plugin-missing"));
+            return Command.SINGLE_SUCCESS;
+        }
+        try {
+            Event event = findEvent(eventName);
+            if (event == null) {
+                player.sendMessage(language.chat("event.not-found", LanguageManager.placeholders("event", eventName)));
+            } else {
+                liveTool.giveTool(player, event, "signal".equals(event.startMode()), null, null);
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not prepare the live hologram tool for '" + eventName + "'.", exception);
             player.sendMessage(language.chat("race-statistics.command-failed"));
         }
         return Command.SINGLE_SUCCESS;
