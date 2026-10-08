@@ -99,6 +99,7 @@ public final class RaceStartListener implements Listener {
         running.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>())
                 .put(eventId, new RunningRace(player, eventId, eventName, result.id(), startTime,
                         result.sessionId(), point.laps(), point.maxCheckpointOrder(), bar, task));
+        activeRace(player, eventId).recordStartCrossing(System.currentTimeMillis());
     }
 
     public List<RunningRace> activeRaces(Player player) {
@@ -257,6 +258,7 @@ public final class RaceStartListener implements Listener {
         public int lap() { return lap; }
         public long lapStartTime() { return lapStartTime; }
         public long lastProgressAt() { return lastProgressAt; }
+        public void recordStartCrossing(long crossedAt) { lastProgressAt = crossedAt; }
         public int nextCheckpoint() { return nextCheckpoint; }
         public boolean checkpointsComplete() {
             return maxCheckpointOrder == 0 || nextCheckpoint == 0;
