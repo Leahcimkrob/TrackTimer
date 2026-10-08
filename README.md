@@ -45,6 +45,10 @@ besonderen Köpfe in den GUIs bereit.
 
 [Hologramme erstellen und entfernen](https://github.com/Leahcimkrob/TrackTimer/wiki/Hologramme)
 
+### Lizenz
+
+TrackTimer steht unter der [Mozilla Public License 2.0 (MPL-2.0)](https://www.mozilla.org/MPL/2.0/). Den Lizenzhinweis findest du in der Datei [LICENSE](LICENSE).
+
 ## English
 
 TrackTimer is a Paper plugin for race tracks and timed races in Minecraft.
@@ -80,3 +84,7 @@ plugin; hologram buttons and the hologram command are then unavailable.
 **HeadDatabase** is optional and supplies the custom heads used in the GUIs.
 
 [Creating and removing holograms](https://github.com/Leahcimkrob/TrackTimer/wiki/Holograms)
+
+### License
+
+TrackTimer is licensed under the [Mozilla Public License 2.0 (MPL-2.0)](https://www.mozilla.org/MPL/2.0/). See [LICENSE](LICENSE) for the license notice.
