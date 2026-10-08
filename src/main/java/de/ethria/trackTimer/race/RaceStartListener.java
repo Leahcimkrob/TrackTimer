@@ -222,6 +222,7 @@ public final class RaceStartListener implements Listener {
         private int lap = 1;
         private int nextCheckpoint = 1;
         private long lapStartTime;
+        private long lastProgressAt;
         private long finishedAt;
 
         private RunningRace(Player player, long eventId, String eventName, long raceResultId, long startTime,
@@ -238,6 +239,7 @@ public final class RaceStartListener implements Listener {
             this.bar = bar;
             this.task = task;
             this.lapStartTime = startTime;
+            this.lastProgressAt = startTime;
         }
 
         public long eventId() { return eventId; }
@@ -254,11 +256,13 @@ public final class RaceStartListener implements Listener {
         public int maxCheckpointOrder() { return maxCheckpointOrder; }
         public int lap() { return lap; }
         public long lapStartTime() { return lapStartTime; }
+        public long lastProgressAt() { return lastProgressAt; }
         public int nextCheckpoint() { return nextCheckpoint; }
         public boolean checkpointsComplete() {
             return maxCheckpointOrder == 0 || nextCheckpoint == 0;
         }
-        public void completeCheckpoint() {
+        public void completeCheckpoint(long passedAt) {
+            lastProgressAt = passedAt;
             if (nextCheckpoint < maxCheckpointOrder) nextCheckpoint++;
             else nextCheckpoint = 0;
         }
@@ -268,6 +272,7 @@ public final class RaceStartListener implements Listener {
             if (!checkpointsComplete()) return -1;
             int completedLap = lap;
             lapStartTime = completedAt;
+            lastProgressAt = completedAt;
             if (lap < laps) {
                 lap++;
                 nextCheckpoint = maxCheckpointOrder > 0 ? 1 : 0;

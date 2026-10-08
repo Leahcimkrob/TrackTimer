@@ -138,6 +138,7 @@ public final class LiveRaceHologramManager {
         entries.sort(Comparator.<RaceStartListener.RunningRace>comparingInt(race -> race.finishedAt() > 0 ? 0 : 1)
                 .thenComparing(Comparator.comparingInt(RaceStartListener.RunningRace::lap).reversed())
                 .thenComparing(Comparator.comparingInt(RaceStartListener.RunningRace::checkpointProgress).reversed())
+                .thenComparingLong(RaceStartListener.RunningRace::lastProgressAt)
                 .thenComparingLong(race -> (race.finishedAt() > 0 ? race.finishedAt() : now) - race.startTime())
                 .thenComparing(race -> race.player().getUniqueId()));
         boolean redstone = entries.isEmpty() ? "signal".equals(event.startMode()) : entries.getFirst().sessionId() != null;

@@ -42,7 +42,7 @@ public final class RaceCheckpointListener {
 
                 long elapsedMillis = Math.max(0, System.currentTimeMillis() - race.startTime());
                 database.recordCheckpoint(race.raceResultId(), checkpoint.triggerId(), race.lap(), elapsedMillis);
-                race.completeCheckpoint();
+                race.completeCheckpoint(System.currentTimeMillis());
                 player.sendActionBar(language.chatFragment("race.checkpoint", LanguageManager.placeholders(
                         "order", checkpoint.checkpointOrder(),
                         "time", races.formatDuration(elapsedMillis),
