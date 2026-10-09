@@ -2,6 +2,7 @@ package de.ethria.trackTimer;
 
 import de.ethria.trackTimer.command.TrackTimerCommand;
 import de.ethria.trackTimer.database.DatabaseManager;
+import de.ethria.trackTimer.api.TrackTimerApi;
 import de.ethria.trackTimer.heads.HeadDatabaseService;
 import de.ethria.trackTimer.gui.EventOverviewGui;
 import de.ethria.trackTimer.gui.EditorGuiContext;
@@ -46,6 +47,7 @@ public final class TrackTimer extends JavaPlugin {
     private RaceStatisticsEvaluator raceStatisticsEvaluator;
     private RaceStatisticsHologramManager hologramManager;
     private de.ethria.trackTimer.race.LiveRaceHologramManager liveHologramManager;
+    private TrackTimerApi api;
 
     @Override
     public void onEnable() {
@@ -92,6 +94,7 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
+        api = new TrackTimerApi(databaseManager, raceStartListener);
         RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager, raceStartListener);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
                 this, databaseManager, languageManager, raceStartListener);
@@ -207,6 +210,11 @@ public final class TrackTimer extends JavaPlugin {
 
     public HeadDatabaseService getHeadDatabaseService() {
         return headDatabaseService;
+    }
+
+    /** Gets the read-only integration API for other plugins on this server. */
+    public TrackTimerApi getApi() {
+        return api;
     }
 
     public void reloadEditorGuiConfig() {

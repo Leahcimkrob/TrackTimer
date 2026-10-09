@@ -34,6 +34,7 @@ public final class RaceStartListener implements Listener {
     private final Map<UUID, Map<Long, RunningRace>> running = new HashMap<>();
     private final Map<Long, Map<UUID, RunningRace>> liveFinishers = new HashMap<>();
     private final Map<Long, Long> liveEndedAt = new HashMap<>();
+    private final java.util.Set<Long> finishedEvents = new java.util.HashSet<>();
 
     public RaceStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language) {
         this.plugin = plugin;
@@ -106,6 +107,12 @@ public final class RaceStartListener implements Listener {
         return List.copyOf(running.getOrDefault(player.getUniqueId(), Map.of()).values());
     }
 
+    /** Returns the currently active participants for one event. */
+    public List<RunningRace> activeRaces(long eventId) {
+        return running.values().stream().map(entries -> entries.get(eventId))
+                .filter(java.util.Objects::nonNull).toList();
+    }
+
     public RunningRace activeRace(Player player, long eventId) {
         return running.getOrDefault(player.getUniqueId(), Map.of()).get(eventId);
     }
@@ -119,16 +126,23 @@ public final class RaceStartListener implements Listener {
         if (race != null) {
             race.finishedAt = finishedAt;
             liveFinishers.computeIfAbsent(eventId, ignored -> new HashMap<>()).put(player.getUniqueId(), race);
+            finishedEvents.add(eventId);
         }
         stopDisplay(player.getUniqueId(), eventId);
     }
 
     public void resetLiveStandings(long eventId) {
+        finishedEvents.remove(eventId);
         boolean active = running.values().stream().anyMatch(entries -> entries.containsKey(eventId));
         if (!active) {
             liveFinishers.remove(eventId);
             liveEndedAt.remove(eventId);
         }
+    }
+
+    /** Returns whether the most recently started race for this event has fully finished. */
+    public boolean hasFinished(long eventId) {
+        return finishedEvents.contains(eventId);
     }
 
     /** Finished drivers remain visible until expiry or the next start. No database reads. */
@@ -198,6 +212,7 @@ public final class RaceStartListener implements Listener {
         running.clear();
         liveFinishers.clear();
         liveEndedAt.clear();
+        finishedEvents.clear();
     }
 
     private void stopDisplay(UUID playerId, long eventId) {
