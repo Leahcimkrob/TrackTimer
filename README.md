@@ -1,6 +1,6 @@
 # TrackTimer
 
-![Version](https://img.shields.io/badge/version-1.0-blue)
+![Version](https://img.shields.io/badge/version-1.1-blue)
 ![Paper API](https://img.shields.io/badge/Paper_API-26.2-green)
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![Languages](https://img.shields.io/badge/languages-DE%20%7C%20EN-blue)
