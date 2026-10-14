@@ -163,7 +163,7 @@ public class StartTriggerTool implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onSelectionChat(AsyncChatEvent event) {
         if (!"exit".equalsIgnoreCase(
                 PlainTextComponentSerializer.plainText().serialize(event.message()).trim())) return;

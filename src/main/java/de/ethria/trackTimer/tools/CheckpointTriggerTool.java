@@ -35,7 +35,7 @@ public final class CheckpointTriggerTool extends StartTriggerTool {
     }
 
     @Override @EventHandler public void onBlockInteract(PlayerInteractEvent event) { super.onBlockInteract(event); }
-    @Override @EventHandler(priority = EventPriority.HIGHEST)
+    @Override @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onSelectionChat(AsyncChatEvent event) { super.onSelectionChat(event); }
     @Override @EventHandler public void onQuit(PlayerQuitEvent event) { super.onQuit(event); }
 }
