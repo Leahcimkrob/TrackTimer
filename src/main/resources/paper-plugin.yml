@@ -4,6 +4,7 @@ prefix: TrackTimer
 version: '${version}'
 
 main: de.ethria.trackTimer.TrackTimer
+loader: de.ethria.trackTimer.database.TrackTimerPluginLoader
 api-version: '26.2'
 load: POSTWORLD
 

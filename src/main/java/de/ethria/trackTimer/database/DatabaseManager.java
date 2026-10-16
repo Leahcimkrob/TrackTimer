@@ -41,6 +41,7 @@ public final class DatabaseManager {
             if (parent != null && !new File(parent).isDirectory() && !new File(parent).mkdirs()) {
                 throw new SQLException("Could not create SQLite database directory: " + parent);
             }
+            loadDriver("org.sqlite.JDBC", "Paper's bundled SQLite JDBC driver is unavailable.");
             connection = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath());
             autoIncrement = "INTEGER PRIMARY KEY AUTOINCREMENT";
             try (Statement statement = connection.createStatement()) {
@@ -53,6 +54,7 @@ public final class DatabaseManager {
             String url = "jdbc:mysql://" + host + ":" + port + "/" + name
                     + "?useSSL=" + config.getBoolean("database.mysql.useSSL", true)
                     + "&serverTimezone=UTC";
+            loadDriver("com.mysql.cj.jdbc.Driver", "Could not load the MySQL JDBC driver from Paper's runtime libraries.");
             connection = DriverManager.getConnection(
                     url,
                     config.getString("database.mysql.username", "root"),
@@ -158,12 +160,14 @@ public final class DatabaseManager {
     private Connection openConnection(String type) throws SQLException {
         FileConfiguration config = plugin.getConfig();
         if ("sqlite".equals(type)) {
+            loadDriver("org.sqlite.JDBC", "Paper's bundled SQLite JDBC driver is unavailable.");
             File file = new File(plugin.getDataFolder(), config.getString("database.sqlite.file", "tracktimer.db"));
             File parent = file.getParentFile();
             if (parent != null && !parent.isDirectory() && !parent.mkdirs())
                 throw new SQLException("Could not create SQLite database directory: " + parent);
             return DriverManager.getConnection("jdbc:sqlite:" + file.getAbsolutePath());
         }
+        loadDriver("com.mysql.cj.jdbc.Driver", "Could not load the MySQL JDBC driver from Paper's runtime libraries.");
         String url = "jdbc:mysql://" + config.getString("database.mysql.host", "localhost") + ":"
                 + config.getInt("database.mysql.port", 3306) + "/" + config.getString("database.mysql.database", "tracktimer")
                 + "?useSSL=" + config.getBoolean("database.mysql.useSSL", true) + "&serverTimezone=UTC";
