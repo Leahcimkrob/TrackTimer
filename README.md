@@ -1,6 +1,6 @@
 # TrackTimer
 
-![Version](https://img.shields.io/badge/version-1.1-blue)
+![Version](https://img.shields.io/badge/version-1.3-blue)
 ![Paper API](https://img.shields.io/badge/Paper_API-26.2-green)
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![Languages](https://img.shields.io/badge/languages-DE%20%7C%20EN-blue)
@@ -12,19 +12,22 @@
 
 TrackTimer ist ein Paper-Plugin für Rennstrecken und Zeitrennen in Minecraft.
 Spieler können alleine auf Bestzeit fahren oder gemeinsam nach einem
-Redstone-Signal starten. Das Plugin erfasst Runden und Checkpoint-Zeiten und
-zeigt die Ergebnisse in Bestenlisten und optionalen Hologrammen an.
+Redstone-Signal oder mit einem Ampelstart starten. Das Plugin erfasst Runden
+und Checkpoint-Zeiten und zeigt die Ergebnisse in Bestenlisten und optionalen
+Hologrammen an.
 
 ### Funktionen
 
 - Mehrere Strecken mit eigener Rundenanzahl verwalten.
-- Strecken über eine GUI bearbeiten und Start-, Checkpoint-, Ziel- und Redstone-Trigger mit Werkzeugen direkt in der Welt setzen.
+- Strecken über eine GUI bearbeiten und zwischen Spieler-, Signal- und Ampelstart wechseln. Start-, Checkpoint-, Ziel- und Startsignal-Trigger lassen sich mit Werkzeugen direkt in der Welt setzen.
+- Ampelstarts mit fünf konfigurierbaren Signallichtern, zufälligem Startzeitpunkt und Frühstart-Erkennung ausführen.
 - Mehrere Blöcke demselben Checkpoint zuordnen, etwa über die gesamte Streckenbreite.
 - Checkpoints in der richtigen Reihenfolge verlangen. Erst nach allen Checkpoints zählt die Ziellinie eine Runde.
 - Laufende Zeit in der Bossbar und Checkpoint-Zeiten in der Actionbar anzeigen.
 - Rennen zu Fuß, im Minecart oder mit unterstützten Custom-Fahrzeugen fahren.
 - Bestenlisten, persönliche Rundenzeiten und Checkpoint-Zeiten in GUIs ansehen.
-- Normale Rennen und Ampel-Rennen getrennt auswerten.
+- Normale Rennen getrennt von gemeinsam gestarteten Redstone-Rennen auswerten. Signal- und Ampelstarts erscheinen dabei unter derselben Redstone-Ergebniskategorie.
+- Signal- und Ampelrennen nach Startzeit auswählen und ihre Ergebnisse in TopTen-GUIs, im Chat und in Hologrammen anzeigen.
 - Ergebnis-Hologramme platzieren, die sich nach abgeschlossenen Rennen aktualisieren.
 - Livehologramme für normale Rennen und Ampel-Rennen über den Editor oder `/tt hologram addlive <event>` platzieren.
 - Platzierung, Spielerkopf und Name, aktuelle Runde und Gesamtzeit der Teilnehmer live anzeigen. Spielerköpfe werden mit CMI unterstützt.
@@ -52,20 +55,22 @@ TrackTimer steht unter der [Mozilla Public License 2.0 (MPL-2.0)](https://www.mo
 ## English
 
 TrackTimer is a Paper plugin for race tracks and timed races in Minecraft.
-Players can race individually for their best time or start together after a
-redstone signal. The plugin records laps and checkpoint times and displays
-results in leaderboards and optional holograms.
+Players can race individually for their best time, start together after a
+redstone signal or use a traffic-light start. The plugin records laps and
+checkpoint times and displays results in leaderboards and optional holograms.
 
 ### Features
 
 - Manage multiple tracks with their own lap counts.
-- Edit tracks through a GUI and place start, checkpoint, finish and redstone triggers directly in the world using selection tools.
+- Edit tracks through a GUI and switch between player, signal and traffic-light starts. Place start, checkpoint, finish and start-signal triggers directly in the world using selection tools.
+- Run traffic-light starts with five configurable lights, a randomized start time and false-start detection.
 - Assign several blocks to the same checkpoint to cover the width of a track.
 - Require checkpoints to be passed in order. The finish line only counts a lap after all checkpoints have been reached.
 - Show the running time in a boss bar and checkpoint times in the action bar.
 - Race on foot, in minecarts or with supported custom vehicles.
 - View leaderboards, personal lap times and checkpoint times through GUIs.
-- Keep normal race results and redstone race results separate.
+- Keep normal race results separate from races started together by redstone. Signal and traffic-light starts share the redstone results category.
+- Select signal and traffic-light races by start time and show their results in TopTen GUIs, chat and holograms.
 - Place results holograms that update after completed races.
 - Place live holograms for normal and redstone races through the editor or `/tt hologram addlive <event>`.
 - Show participants' position, player head and name, current lap and total elapsed time live. Player heads are supported with CMI.
