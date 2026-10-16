@@ -87,6 +87,14 @@ public final class EventEditorGui implements Listener {
         startMode.setItemMeta(startModeMeta);
         inventory.setItem(slot("items.start-mode.slot", 23, size), startMode);
 
+        ItemStack cooldown = context.configuredIcon("guis.event-editor.items.cooldown", Material.CLOCK);
+        ItemMeta cooldownMeta = cooldown.getItemMeta();
+        cooldownMeta.displayName(context.language.gui("event-editor.cooldown.name"));
+        cooldownMeta.lore(context.language.guiList("event-editor.cooldown.lore",
+                LanguageManager.placeholders("seconds", event.cooldownSeconds())));
+        cooldown.setItemMeta(cooldownMeta);
+        inventory.setItem(slot("items.cooldown.slot", 24, size), cooldown);
+
         inventory.setItem(slot("items.change-icon.slot", 29, size), named(
                 context.configuredIcon("guis.event-editor.items.change-icon", Material.CHEST), "event-editor.change-icon"));
         inventory.setItem(slot("items.delete.slot", 31, size), named(
@@ -163,6 +171,17 @@ public final class EventEditorGui implements Listener {
                 } catch (SQLException exception) {
                     reportDatabaseError(player, exception);
                 }
+            }
+        } else if (rawSlot == slot("items.cooldown.slot", 24, size)) {
+            int cooldown = selected.cooldownSeconds();
+            if (event.getClick().isRightClick()) cooldown = Math.min(86400, cooldown + 1);
+            else if (event.getClick().isLeftClick()) cooldown = Math.max(0, cooldown - 1);
+            else return;
+            try {
+                context.database.updateEventCooldown(selected.id(), cooldown);
+                reopen(player, selected.id(), holder.overviewPage);
+            } catch (SQLException exception) {
+                reportDatabaseError(player, exception);
             }
         } else if (rawSlot == slot("items.delete.slot", 31, size)) {
             if (event.getClick().isShiftClick() && event.getClick().isLeftClick()) {

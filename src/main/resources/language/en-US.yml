@@ -85,6 +85,7 @@ trigger:
   not-found: "<red>No matching trigger for this event is saved here."
 
 race:
+  cooldown-active: "<red>This race is still on cooldown for <yellow><seconds></yellow> seconds."
   bossbar:
     text: "<yellow><event></yellow> <white><time>"
     # Available time placeholders: <hours>, <minutes>, <seconds>, <ms>.

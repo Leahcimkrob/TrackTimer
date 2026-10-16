@@ -55,6 +55,9 @@ public final class RaceEndListener {
 
                 if (finished) {
                     races.finishRace(player, end.eventId(), now);
+                    if (sessionSummary != null || (race.sessionId() == null && !races.hasActiveRaces(end.eventId()))) {
+                        database.startEventCooldown(end.eventId(), now);
+                    }
                     holograms.updateEvent(end.eventId());
                     var finishLines = language.chatLines("race.finished", LanguageManager.placeholders(
                             "event", race.eventName(), "time", races.formatDuration(elapsedMillis)));

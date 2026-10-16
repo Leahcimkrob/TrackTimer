@@ -190,6 +190,13 @@ event-editor:
     lore:
       - "<gray>Start: <white><start_mode>"
       - "<yellow>Left-click to switch"
+  cooldown:
+    name: "<gold>Start cooldown"
+    lore:
+      - "<gray>Current: <white><seconds> seconds"
+      - "<green>Right-click: +1 second"
+      - "<red>Left-click: -1 second"
+      - "<gray>0 disables the cooldown."
   change-icon:
     name: "<yellow>Change event item"
     lore:

@@ -35,6 +35,7 @@ public final class RaceStartListener implements Listener {
     private final Map<Long, Map<UUID, RunningRace>> liveFinishers = new HashMap<>();
     private final Map<Long, Long> liveEndedAt = new HashMap<>();
     private final java.util.Set<Long> finishedEvents = new java.util.HashSet<>();
+    private final Map<String, Long> cooldownNoticeAt = new HashMap<>();
 
     public RaceStartListener(JavaPlugin plugin, DatabaseManager database, LanguageManager language) {
         this.plugin = plugin;
@@ -55,6 +56,10 @@ public final class RaceStartListener implements Listener {
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 if (!TriggerPositionMatcher.isWithinHeight(position, point.triggerY(), tolerance)
                         || isRunning(player, point.eventId())) continue;
+                if (point.cooldownUntil() > System.currentTimeMillis()) {
+                    notifyCooldown(player, point.eventId(), point.cooldownUntil());
+                    continue;
+                }
                 RaceResult result;
                 if ("signal".equals(point.startMode())) {
                     RedstoneSession session = database.getActiveRedstoneSession(point.eventId());
@@ -70,6 +75,15 @@ public final class RaceStartListener implements Listener {
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.SEVERE, "Could not start race for " + player.getName(), exception);
         }
+    }
+
+    private void notifyCooldown(Player player, long eventId, long cooldownUntil) {
+        String key = player.getUniqueId() + ":" + eventId;
+        long now = System.currentTimeMillis();
+        if (now < cooldownNoticeAt.getOrDefault(key, 0L)) return;
+        cooldownNoticeAt.put(key, now + 3000);
+        long seconds = Math.max(1, (cooldownUntil - now + 999) / 1000);
+        player.sendMessage(language.chat("race.cooldown-active", LanguageManager.placeholders("seconds", seconds)));
     }
 
     private boolean isRunning(Player player, long eventId) {
@@ -115,6 +129,10 @@ public final class RaceStartListener implements Listener {
 
     public RunningRace activeRace(Player player, long eventId) {
         return running.getOrDefault(player.getUniqueId(), Map.of()).get(eventId);
+    }
+
+    public boolean hasActiveRaces(long eventId) {
+        return running.values().stream().anyMatch(races -> races.containsKey(eventId));
     }
 
     public void finishRace(Player player, long eventId) {
@@ -212,6 +230,7 @@ public final class RaceStartListener implements Listener {
         running.clear();
         liveFinishers.clear();
         liveEndedAt.clear();
+        cooldownNoticeAt.clear();
         finishedEvents.clear();
     }
 

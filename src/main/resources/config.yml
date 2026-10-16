@@ -3,6 +3,8 @@
 language: de-DE
 
 race:
+  # Default cooldown after a track race ends; copied into each newly created event (seconds, 0-86400).
+  default-cooldown-seconds: 30
   # Maximum vertical distance, in blocks, between a player/vehicle and a start trigger.
   # Increase this for elevated custom vehicles; lower it to avoid triggering tracks above/below.
   start-trigger-height-tolerance: 2.0

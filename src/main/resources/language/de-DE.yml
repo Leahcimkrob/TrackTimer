@@ -85,6 +85,7 @@ trigger:
   not-found: "<red>Hier ist kein passender Trigger für dieses Event gespeichert."
 
 race:
+  cooldown-active: "<red>Dieses Rennen hat noch <yellow><seconds></yellow> Sekunden Cooldown."
   bossbar:
     text: "<yellow><event></yellow> <white><time>"
     # Verfügbare Zeit-Platzhalter: <hours>, <minutes>, <seconds>, <ms>.

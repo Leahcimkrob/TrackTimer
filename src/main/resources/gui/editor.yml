@@ -57,6 +57,9 @@ guis:
         material: PLAYER_HEAD
         head-database-id: "75167"
         fallback-material: REDSTONE
+      cooldown:
+        slot: 24
+        material: CLOCK
       change-icon:
         slot: 29
         material: PLAYER_HEAD

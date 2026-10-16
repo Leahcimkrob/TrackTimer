@@ -73,6 +73,7 @@ public final class DatabaseManager {
             }
             statement.executeUpdate(liveHologramTableSql());
         }
+        DatabaseMigrator.migrateEventCooldown(connection, defaultCooldownSeconds());
         ensureRaceResultsRedstoneColumn();
         ensureRaceHologramFilterColumns();
         dropLegacyRaceHologramUniqueIndex(connection);
@@ -137,6 +138,7 @@ public final class DatabaseManager {
                 statement.executeUpdate(liveHologramTableSql());
                 if ("sqlite".equals(targetType)) statement.execute("PRAGMA foreign_keys = ON");
             }
+            DatabaseMigrator.migrateEventCooldown(target, defaultCooldownSeconds());
             target.setAutoCommit(false);
             try {
                 for (String table : List.of("players", "events", "event_triggers", "race_sessions",
@@ -182,6 +184,18 @@ public final class DatabaseManager {
         return normalized;
     }
 
+    private void loadDriver(String className, String errorMessage) throws SQLException {
+        try {
+            Class.forName(className, true, getClass().getClassLoader());
+        } catch (ClassNotFoundException exception) {
+            throw new SQLException(errorMessage, exception);
+        }
+    }
+
+    private int defaultCooldownSeconds() {
+        return Math.max(0, Math.min(86400, plugin.getConfig().getInt("race.default-cooldown-seconds", 30)));
+    }
+
     private void copyTable(Connection source, Connection target, String table) throws SQLException {
         try (Statement query = source.createStatement(); ResultSet rows = query.executeQuery("SELECT * FROM " + table)) {
             ResultSetMetaData metadata = rows.getMetaData();
@@ -225,11 +239,12 @@ public final class DatabaseManager {
             throw new IllegalArgumentException("Start mode must be 'player' or 'signal'.");
         }
 
-        String sql = "INSERT INTO events (event_name, laps, start_mode) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO events (event_name, laps, start_mode, cooldown_seconds) VALUES (?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, eventName);
             statement.setInt(2, laps);
             statement.setString(3, startMode);
+            statement.setInt(4, defaultCooldownSeconds());
             statement.executeUpdate();
             return true;
         } catch (SQLException exception) {
@@ -245,13 +260,15 @@ public final class DatabaseManager {
         try (Statement statement = connection.createStatement();
              ResultSet rows = statement.executeQuery("""
                      SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
+                            e.cooldown_seconds, e.cooldown_until,
                             (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
                      FROM events e ORDER BY e.event_name
                      """)) {
             while (rows.next()) {
                 events.add(new Event(rows.getLong("id"), rows.getString("event_name"),
                         rows.getInt("laps"), rows.getString("start_mode"), rows.getString("icon"),
-                        rows.getInt("trigger_count"), rows.getString("created_at")));
+                        rows.getInt("trigger_count"), rows.getString("created_at"),
+                        rows.getInt("cooldown_seconds"), rows.getLong("cooldown_until")));
             }
         }
         return List.copyOf(events);
@@ -260,6 +277,7 @@ public final class DatabaseManager {
     public Event getEvent(long eventId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
+                       e.cooldown_seconds, e.cooldown_until,
                        (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
                 FROM events e WHERE e.id = ?
                 """)) {
@@ -268,7 +286,8 @@ public final class DatabaseManager {
                 if (!rows.next()) return null;
                 return new Event(rows.getLong("id"), rows.getString("event_name"),
                         rows.getInt("laps"), rows.getString("start_mode"), rows.getString("icon"),
-                        rows.getInt("trigger_count"), rows.getString("created_at"));
+                        rows.getInt("trigger_count"), rows.getString("created_at"),
+                        rows.getInt("cooldown_seconds"), rows.getLong("cooldown_until"));
             }
         }
     }
@@ -324,7 +343,8 @@ public final class DatabaseManager {
         return List.copyOf(entries);
     }
 
-    public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount, String created) { }
+    public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount,
+                        String created, int cooldownSeconds, long cooldownUntil) { }
     public record RaceStatisticsEntry(long resultId, long eventId, String eventName, String playerUuid,
                                       String playerName, long raceTimeMillis, int lapsCompleted,
                                       long startTimeMillis, boolean redstoneStart) { }
@@ -732,7 +752,7 @@ public final class DatabaseManager {
                                             int minY, int maxY) throws SQLException {
         List<StartPoint> points = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT e.id, e.event_name, e.start_mode, e.laps, t.y,
+                SELECT e.id, e.event_name, e.start_mode, e.laps, e.cooldown_until, t.y,
                        (SELECT COALESCE(MAX(cp.checkpoint_order), 0) FROM event_triggers cp
                         WHERE cp.event_id = e.id AND cp.trigger_type = 'checkpoint') AS max_checkpoint_order
                 FROM event_triggers t JOIN events e ON e.id = t.event_id
@@ -749,7 +769,7 @@ public final class DatabaseManager {
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) points.add(new StartPoint(rows.getLong("id"), rows.getString("event_name"),
                         rows.getString("start_mode"), rows.getInt("y"), rows.getInt("laps"),
-                        rows.getInt("max_checkpoint_order")));
+                        rows.getInt("max_checkpoint_order"), rows.getLong("cooldown_until")));
             }
         }
         return points;
@@ -858,14 +878,14 @@ public final class DatabaseManager {
     }
 
     public record StartPoint(long eventId, String eventName, String startMode, int triggerY,
-                             int laps, int maxCheckpointOrder) { }
+                             int laps, int maxCheckpointOrder, long cooldownUntil) { }
     public record RaceResult(long id, long startTime, Long sessionId) { }
 
     public List<RedstoneStartPoint> findRedstoneStartTriggers(String server, String world, int x, int y, int z)
             throws SQLException {
         List<RedstoneStartPoint> triggers = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT e.id, e.event_name FROM event_triggers t JOIN events e ON e.id = t.event_id
+                SELECT e.id, e.event_name, e.cooldown_until FROM event_triggers t JOIN events e ON e.id = t.event_id
                 WHERE t.trigger_type = 'start' AND t.trigger_mode = 'REDSTONE_SIGNAL'
                   AND e.start_mode = 'signal' AND t.server = ? AND t.world = ?
                   AND t.x = ? AND t.y = ? AND t.z = ?
@@ -876,13 +896,14 @@ public final class DatabaseManager {
             statement.setInt(4, y);
             statement.setInt(5, z);
             try (ResultSet rows = statement.executeQuery()) {
-                while (rows.next()) triggers.add(new RedstoneStartPoint(rows.getLong("id"), rows.getString("event_name")));
+                while (rows.next()) triggers.add(new RedstoneStartPoint(rows.getLong("id"), rows.getString("event_name"),
+                        rows.getLong("cooldown_until")));
             }
         }
         return triggers;
     }
 
-    public record RedstoneStartPoint(long eventId, String eventName) { }
+    public record RedstoneStartPoint(long eventId, String eventName, long cooldownUntil) { }
 
     public RedstoneSession activateRedstoneSession(long eventId, long startTime) throws SQLException {
         RedstoneSession current = getActiveRedstoneSession(eventId);
@@ -1306,6 +1327,33 @@ public final class DatabaseManager {
         eventChangeListener.accept(eventId);
     }
 
+    public void updateEventCooldown(long eventId, int cooldownSeconds) throws SQLException {
+        if (cooldownSeconds < 0 || cooldownSeconds > 86400)
+            throw new IllegalArgumentException("Event cooldown must be between 0 and 86400 seconds.");
+        try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE events SET cooldown_seconds = ?, cooldown_until = CASE WHEN ? = 0 THEN 0 ELSE cooldown_until END WHERE id = ?")) {
+            statement.setInt(1, cooldownSeconds);
+            statement.setInt(2, cooldownSeconds);
+            statement.setLong(3, eventId);
+            statement.executeUpdate();
+        }
+        eventChangeListener.accept(eventId);
+    }
+
+    /** Starts the configured per-event cooldown from the supplied race-end timestamp. */
+    public void startEventCooldown(long eventId, long endedAt) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE events
+                SET cooldown_until = CASE WHEN cooldown_seconds > 0
+                    THEN ? + cooldown_seconds * 1000 ELSE 0 END
+                WHERE id = ?
+                """)) {
+            statement.setLong(1, endedAt);
+            statement.setLong(2, eventId);
+            statement.executeUpdate();
+        }
+    }
+
     public void updateEventIcon(long eventId, String icon) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET icon = ? WHERE id = ?")) {
             statement.setString(1, icon);
@@ -1402,12 +1450,14 @@ public final class DatabaseManager {
                     event_name VARCHAR(128) NOT NULL UNIQUE,
                     laps INTEGER NOT NULL,
                     start_mode VARCHAR(16) NOT NULL DEFAULT 'player',
+                    cooldown_seconds INTEGER NOT NULL DEFAULT %d,
+                    cooldown_until BIGINT NOT NULL DEFAULT 0,
                     icon TEXT NOT NULL DEFAULT 'stone',
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     CHECK (laps > 0),
                     CHECK (start_mode IN ('player', 'signal'))
                 )
-                """.formatted(autoIncrement),
+                """.formatted(autoIncrement, defaultCooldownSeconds()),
                 """
                 CREATE TABLE IF NOT EXISTS event_triggers (
                     id %s,
