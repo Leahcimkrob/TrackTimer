@@ -123,6 +123,9 @@ public final class RaceStartListener implements Listener {
         running.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>())
                 .put(eventId, new RunningRace(player, eventId, eventName, result.id(), startTime,
                         result.sessionId(), point.laps(), point.maxCheckpointOrder(), bar, task));
+        if ("traffic_light".equals(point.startMode()) && trafficLightRaces != null) {
+            trafficLightRaces.participantStarted(eventId);
+        }
         activeRace(player, eventId).recordStartCrossing(System.currentTimeMillis());
     }
 
@@ -230,7 +233,10 @@ public final class RaceStartListener implements Listener {
         Map<Long, RunningRace> races = running.remove(playerId);
         if (races != null) {
             races.values().forEach(RunningRace::stop);
-            races.keySet().forEach(this::liveRaces);
+            races.keySet().forEach(eventId -> {
+                liveRaces(eventId);
+                if (trafficLightRaces != null) trafficLightRaces.participantsChanged(eventId);
+            });
         }
     }
 
@@ -250,6 +256,7 @@ public final class RaceStartListener implements Listener {
         if (race != null) race.stop();
         if (races.isEmpty()) running.remove(playerId);
         liveRaces(eventId);
+        if (race != null && trafficLightRaces != null) trafficLightRaces.participantsChanged(eventId);
     }
 
     public static final class RunningRace {

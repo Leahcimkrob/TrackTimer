@@ -76,7 +76,8 @@ public final class TrafficLightTriggerTool implements Listener {
         if (active != null) active.stop(player, true);
         stop(player, false);
 
-        ItemStack tool = trafficLightHead();
+        ItemStack tool = new ItemStack(context.material(
+                context.triggerSettings().getString("guis.trigger-editor.items.tool.material"), Material.STICK));
         ItemMeta meta = tool.getItemMeta();
         meta.displayName(context.language().gui("trigger-editor.tool.traffic-light.name"));
         List<Component> lore = new ArrayList<>(context.language().guiList("trigger-editor.tool.lore"));
@@ -275,7 +276,7 @@ public final class TrafficLightTriggerTool implements Listener {
             try { face = BlockFace.valueOf(light.facing()); }
             catch (IllegalArgumentException exception) { face = BlockFace.SOUTH; }
             List<Block> blocks = headBlocks(light);
-            if (face == BlockFace.NORTH || face == BlockFace.EAST) Collections.reverse(blocks);
+            if (face == BlockFace.NORTH || face == BlockFace.WEST) Collections.reverse(blocks);
             BlockFace rotation = face.getOppositeFace();
             List<SignalHead> row = blocks.stream()
                     .map(block -> new SignalHead(block, rotation))

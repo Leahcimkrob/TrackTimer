@@ -74,6 +74,8 @@ public final class TrafficLightRaceListener implements Listener {
     }
 
     private void startSequence(TrafficLightStartPoint trigger, Block redstoneBlock) throws SQLException {
+        StartSequence previous = sequences.get(trigger.eventId());
+        if (previous != null && previous.hasStarted) return;
         List<List<SignalHead>> rows = lightTool.signalHeadRows(trigger.eventId(),
                 plugin.getServer().getName(), redstoneBlock.getWorld().getName());
         if (rows.isEmpty()) {
@@ -81,9 +83,10 @@ public final class TrafficLightRaceListener implements Listener {
                     + " was ignored because no traffic-light heads are saved in this world.");
             return;
         }
-        StartSequence previous = sequences.remove(trigger.eventId());
+        previous = sequences.remove(trigger.eventId());
         if (previous != null) {
             if (previous.task != null) previous.task.cancel();
+            if (previous.joinTimeout != null) previous.joinTimeout.cancel();
             setAllDark(previous.rows);
         }
         TrafficLightSounds sounds = database.getTrafficLightSounds(trigger.eventId());
@@ -116,15 +119,51 @@ public final class TrafficLightRaceListener implements Listener {
     private void releaseStart(StartSequence sequence) {
         if (sequences.get(sequence.eventId) != sequence || sequence.aborted) return;
         sequence.task = null;
-        playNote(sequence.center, sequence.sounds.sound(), sequence.sounds.go());
+        playLongNote(sequence.center, sequence.sounds.sound(), sequence.sounds.go());
         sendTitle(sequence.center, language.chatFragment("race.start-title"));
         setAllDark(sequence.rows);
         sequence.released = true;
+        long timeoutSeconds = Math.max(0,
+                plugin.getConfig().getLong("race.redstone-start-join-timeout-seconds", 30L));
+        if (timeoutSeconds > 0) {
+            long delayTicks = timeoutSeconds > Long.MAX_VALUE / 20 ? Long.MAX_VALUE : timeoutSeconds * 20;
+            sequence.joinTimeout = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                sequence.joinTimeout = null;
+                if (sequences.get(sequence.eventId) == sequence && !sequence.hasStarted
+                        && !races.hasActiveRaces(sequence.eventId)) endSequence(sequence);
+            }, delayTicks);
+        }
+    }
+
+    /** Called after a driver successfully crosses the released traffic-light start. */
+    public void participantStarted(long eventId) {
+        StartSequence sequence = sequences.get(eventId);
+        if (sequence == null || !sequence.released) return;
+        sequence.hasStarted = true;
+        if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
+        sequence.joinTimeout = null;
+    }
+
+    /** Ends the start session once its last driver finishes or leaves. */
+    public void participantsChanged(long eventId) {
+        StartSequence sequence = sequences.get(eventId);
+        if (sequence != null && sequence.hasStarted && !races.hasActiveRaces(eventId)) endSequence(sequence);
+    }
+
+    private void endSequence(StartSequence sequence) {
+        if (!sequences.remove(sequence.eventId, sequence)) return;
+        if (sequence.task != null) sequence.task.cancel();
+        if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
+        sequence.task = null;
+        sequence.joinTimeout = null;
+        setAllDark(sequence.rows);
     }
 
     private void abort(StartSequence sequence) {
         if (sequence.task != null) sequence.task.cancel();
+        if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
         sequence.task = null;
+        sequence.joinTimeout = null;
         sequence.aborted = true;
         sequences.remove(sequence.eventId, sequence);
         setAllDark(sequence.rows);
@@ -140,11 +179,25 @@ public final class TrafficLightRaceListener implements Listener {
     }
 
     private void playNote(Location location, String soundId, int note) {
-        float pitch = (float) Math.pow(2.0, (Math.max(0, Math.min(24, note)) - 12) / 12.0);
+        float pitch = notePitch(note);
         Sound sound;
         try { sound = Sound.valueOf(soundId); }
         catch (IllegalArgumentException exception) { sound = Sound.BLOCK_NOTE_BLOCK_BIT; }
         location.getWorld().playSound(location, sound, 1.0f, pitch);
+    }
+
+    private void playLongNote(Location location, String soundId, int note) {
+        playNote(location, soundId, note);
+        // Note-block sounds have a fixed sample length. Replay the same note once
+        // after its pitch-adjusted sample duration to make the GO tone about twice as long.
+        long sampleTicks = Math.max(1, Math.round(10.0 / notePitch(note)));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (location.getWorld() != null) playNote(location, soundId, note);
+        }, sampleTicks);
+    }
+
+    private float notePitch(int note) {
+        return (float) Math.pow(2.0, (Math.max(0, Math.min(24, note)) - 12) / 12.0);
     }
 
     private void sendTitle(Location center, Component title) {
@@ -159,6 +212,7 @@ public final class TrafficLightRaceListener implements Listener {
     public void shutdown() {
         for (StartSequence sequence : new ArrayList<>(sequences.values())) {
             if (sequence.task != null) sequence.task.cancel();
+            if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
             setAllDark(sequence.rows);
         }
         sequences.clear();
@@ -174,7 +228,9 @@ public final class TrafficLightRaceListener implements Listener {
         private int nextLight;
         private boolean released;
         private boolean aborted;
+        private boolean hasStarted;
         private BukkitTask task;
+        private BukkitTask joinTimeout;
 
         private StartSequence(long eventId, String eventName, Location center,
                               List<List<SignalHead>> rows, TrafficLightSounds sounds) {
