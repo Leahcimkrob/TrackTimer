@@ -67,7 +67,13 @@ public class StartTriggerTool implements Listener {
         beginWithOrder(player, eventId, overviewPage, null);
     }
 
+    public static void cancelActive(Player player) {
+        StartTriggerTool active = ACTIVE_TOOLS.get(player.getUniqueId());
+        if (active != null) active.stop(player, true);
+    }
+
     protected void beginWithOrder(Player player, long eventId, int overviewPage, Integer checkpointOrder) {
+        TrafficLightTriggerTool.cancelActive(player);
         StartTriggerTool currentTool = ACTIVE_TOOLS.get(player.getUniqueId());
         if (currentTool != null) currentTool.stop(player, true);
         stop(player, false);

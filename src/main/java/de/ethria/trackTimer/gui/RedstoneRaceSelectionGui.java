@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
-/** Lets players choose a redstone race session before opening its TopTen results. */
+/** Lets players choose a signal or traffic-light race before opening its TopTen results. */
 public final class RedstoneRaceSelectionGui implements Listener {
     private static final int INVENTORY_SIZE = 54;
     private static final int BUTTON_ROW_START = 45;
@@ -164,7 +164,7 @@ public final class RedstoneRaceSelectionGui implements Listener {
         }
         RaceChoice choice = holder.choices.get(event.getRawSlot());
         if (choice != null) {
-            topTenGui.open(player, holder.event, holder.overviewPage, choice.date, choice.time);
+                topTenGui.open(player, holder.event, holder.overviewPage, choice.date, choice.time);
         }
     }
 

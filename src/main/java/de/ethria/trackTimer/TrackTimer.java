@@ -18,6 +18,7 @@ import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
+import de.ethria.trackTimer.tools.TrafficLightTriggerTool;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramTool;
 import de.ethria.trackTimer.tools.RaceStatisticsHologramDeleteTool;
 import de.ethria.trackTimer.race.RaceStartListener;
@@ -27,6 +28,7 @@ import de.ethria.trackTimer.race.RaceEndListener;
 import de.ethria.trackTimer.race.RaceStatisticsEvaluator;
 import de.ethria.trackTimer.race.RaceStatisticsHologramManager;
 import de.ethria.trackTimer.race.RedstoneStartListener;
+import de.ethria.trackTimer.race.TrafficLightRaceListener;
 import de.ethria.trackTimer.language.LanguageManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -43,6 +45,7 @@ public final class TrackTimer extends JavaPlugin {
     private EditorGuiContext editorGuiContext;
     private ConfigGui configGui;
     private RaceStartListener raceStartListener;
+    private TrafficLightRaceListener trafficLightRaceListener;
     private RaceTriggerMonitor raceTriggerMonitor;
     private RaceStatisticsEvaluator raceStatisticsEvaluator;
     private RaceStatisticsHologramManager hologramManager;
@@ -79,8 +82,9 @@ public final class TrackTimer extends JavaPlugin {
         EndTriggerTool endTriggerTool = new EndTriggerTool(editorGuiContext, eventEditorGui);
         RedstoneTriggerTool redstoneTriggerTool = new RedstoneTriggerTool(editorGuiContext, eventEditorGui);
         CheckpointTriggerTool checkpointTriggerTool = new CheckpointTriggerTool(editorGuiContext, eventEditorGui);
+        TrafficLightTriggerTool trafficLightTriggerTool = new TrafficLightTriggerTool(editorGuiContext, eventEditorGui);
         EventTriggerGui eventTriggerGui = new EventTriggerGui(editorGuiContext, eventEditorGui,
-                startTriggerTool, endTriggerTool, redstoneTriggerTool, checkpointTriggerTool);
+                startTriggerTool, endTriggerTool, redstoneTriggerTool, checkpointTriggerTool, trafficLightTriggerTool);
         eventOverviewGui.setEventEditorGui(eventEditorGui);
         eventEditorGui.setIconSwapGui(eventIconSwapGui);
         eventEditorGui.setTriggerGui(eventTriggerGui);
@@ -93,7 +97,11 @@ public final class TrackTimer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(endTriggerTool, this);
         getServer().getPluginManager().registerEvents(redstoneTriggerTool, this);
         getServer().getPluginManager().registerEvents(checkpointTriggerTool, this);
+        getServer().getPluginManager().registerEvents(trafficLightTriggerTool, this);
         raceStartListener = new RaceStartListener(this, databaseManager, languageManager);
+        trafficLightRaceListener = new TrafficLightRaceListener(
+                this, databaseManager, languageManager, trafficLightTriggerTool, raceStartListener);
+        raceStartListener.setTrafficLightRaceListener(trafficLightRaceListener);
         api = new TrackTimerApi(databaseManager, raceStartListener);
         RedstoneStartListener redstoneStartListener = new RedstoneStartListener(this, databaseManager, languageManager, raceStartListener);
         RaceCheckpointListener raceCheckpointListener = new RaceCheckpointListener(
@@ -146,6 +154,7 @@ public final class TrackTimer extends JavaPlugin {
         raceTriggerMonitor.addHandler(raceEndListener::onRacePosition);
         getServer().getPluginManager().registerEvents(raceStartListener, this);
         getServer().getPluginManager().registerEvents(redstoneStartListener, this);
+        getServer().getPluginManager().registerEvents(trafficLightRaceListener, this);
         getServer().getPluginManager().registerEvents(raceTriggerMonitor, this);
         registerMainCommand(eventOverviewGui, raceStartListener, raceStatisticsEvaluator,
                 hologramTool, hologramDeleteTool, liveTool);
@@ -203,6 +212,7 @@ public final class TrackTimer extends JavaPlugin {
         if (liveHologramManager != null) liveHologramManager.shutdown();
         if (raceTriggerMonitor != null) raceTriggerMonitor.shutdown();
         if (raceStartListener != null) raceStartListener.shutdown();
+        if (trafficLightRaceListener != null) trafficLightRaceListener.shutdown();
         if (databaseManager != null) {
             databaseManager.close();
         }

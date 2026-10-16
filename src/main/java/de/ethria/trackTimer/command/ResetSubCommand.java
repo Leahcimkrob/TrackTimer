@@ -92,9 +92,12 @@ public final class ResetSubCommand implements SubCommand {
     private void sendEventOverview(CommandSender sender, Event event) {
         boolean german = language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de");
         String icon = event.icon().startsWith("b64:") ? (german ? "benutzerdefiniertes Item" : "custom item") : event.icon();
-        String startMode = "signal".equals(event.startMode())
-                ? (german ? "Redstone-Signal" : "Redstone signal")
-                : (german ? "Spieler" : "Player");
+        String modeKey = switch (event.startMode()) {
+            case "signal" -> "signal";
+            case "traffic_light" -> "traffic-light";
+            default -> "player";
+        };
+        Component startMode = language.chatFragment("event.start-modes." + modeKey);
         sender.sendMessage(language.chat("event.data-overview", LanguageManager.placeholders(
                 "id", event.id(), "event", event.name(), "laps", event.laps(), "start_mode", startMode,
                 "icon", icon, "trigger_count", event.triggerCount(), "created", event.created())));

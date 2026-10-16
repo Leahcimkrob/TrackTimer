@@ -31,6 +31,7 @@ public final class RaceStartListener implements Listener {
     private final JavaPlugin plugin;
     private final DatabaseManager database;
     private final LanguageManager language;
+    private TrafficLightRaceListener trafficLightRaces;
     private final Map<UUID, Map<Long, RunningRace>> running = new HashMap<>();
     private final Map<Long, Map<UUID, RunningRace>> liveFinishers = new HashMap<>();
     private final Map<Long, Long> liveEndedAt = new HashMap<>();
@@ -41,6 +42,10 @@ public final class RaceStartListener implements Listener {
         this.plugin = plugin;
         this.database = database;
         this.language = language;
+    }
+
+    public void setTrafficLightRaceListener(TrafficLightRaceListener listener) {
+        trafficLightRaces = listener;
     }
 
     public void onRacePosition(Player player, Location position) {
@@ -56,7 +61,10 @@ public final class RaceStartListener implements Listener {
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 if (!TriggerPositionMatcher.isWithinHeight(position, point.triggerY(), tolerance)
                         || isRunning(player, point.eventId())) continue;
-                if (point.cooldownUntil() > System.currentTimeMillis()) {
+                if ("traffic_light".equals(point.startMode())
+                        && (trafficLightRaces == null || !trafficLightRaces.allowStart(player, point))) continue;
+                if ("player".equals(point.startMode())
+                        && point.cooldownUntil() > System.currentTimeMillis()) {
                     notifyCooldown(player, point.eventId(), point.cooldownUntil());
                     continue;
                 }
@@ -68,7 +76,8 @@ public final class RaceStartListener implements Listener {
                             player.getName(), session);
                     if (result == null) continue;
                 } else {
-                    result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
+                    result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName(),
+                            "traffic_light".equals(point.startMode()));
                 }
                 beginDisplay(player, point, result);
             }
@@ -97,7 +106,7 @@ public final class RaceStartListener implements Listener {
         if (previousFinishers != null) previousFinishers.remove(player.getUniqueId());
         String eventName = point.eventName();
         long startTime = result.startTime();
-        if (result.sessionId() == null) {
+        if (result.sessionId() == null && !"traffic_light".equals(point.startMode())) {
             player.showTitle(Title.title(language.chatFragment("race.start-title"), Component.empty()));
         }
         BossBar bar = BossBar.bossBar(language.chatFragment("race.bossbar.text", LanguageManager.placeholders(

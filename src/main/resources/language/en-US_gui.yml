@@ -39,7 +39,7 @@ config-editor:
       lore:
         - "<gray>Distance above and below in blocks."
     join-timeout:
-      name: "<gold>Traffic light start timeout"
+      name: "<gold>Signal start timeout"
       lore:
         - "<gray>Seconds; 0 keeps the start armed."
     title-radius:
@@ -51,7 +51,7 @@ config-editor:
       lore:
         - "<gray>Player count; 0 shows no results."
     gui-signal:
-      name: "<gold>GUI: traffic light races"
+      name: "<gold>GUI: redstone races"
       lore:
         - "<gray>Number of recent races; 0 shows no results."
     player-details:
@@ -63,7 +63,7 @@ config-editor:
       lore:
         - "<gray>Player count; 0 shows no results."
     hologram-signal:
-      name: "<gold>Hologram: traffic light races"
+      name: "<gold>Hologram: redstone races"
       lore:
         - "<gray>Number of recent races; 0 shows no results."
     tool-timeout:
@@ -91,7 +91,7 @@ config-editor:
       lore:
         - "<gray>Player count; 0 shows no results."
     chat-signal:
-      name: "<gold>Chat: traffic light races"
+      name: "<gold>Chat: redstone races"
       lore:
         - "<gray>Number of recent races; 0 shows no results."
     sort:
@@ -106,15 +106,20 @@ overview:
       - "<gray>Start mode: <white><start_mode>"
       - "<gray>Created: <white><created>"
     topten-click: "<yellow>Left-click or Shift-left-click: open TopTen"
-    redstone-click: "<yellow>Left-click: select a redstone race"
+    redstone-click: "<yellow>Left-click: select a redstone race (signal or traffic-light)"
     redstone-standard-click: "<yellow>Shift-left-click: open standard TopTen"
     edit-click: "<yellow>Right-click: edit event"
   empty-item:
     name: "<gray>No events available"
 
+start-modes:
+  player: "Player start"
+  signal: "Signal start"
+  traffic-light: "Traffic light start"
+
 topten:
   title: "Single Race - <event>"
-  redstone-title: "Redstone Race - <event>"
+  redstone-title: "Redstone Races - <event>"
   entry-item:
     name: "<gold>Rank <rank>"
     lore:
@@ -147,9 +152,9 @@ topten:
     empty-item:
       name: "<gray>No lap times stored"
   redstone-selection:
-    title: "Traffic Light Races - <event>"
+    title: "Redstone races - <event>"
     empty-item:
-      name: "<gray>No completed traffic light races yet"
+      name: "<gray>No completed redstone races yet"
   redstone-race:
     name: "<gold>Race <rank>"
     lore:
@@ -189,10 +194,11 @@ event-editor:
     name: "<red>Start mode"
     lore:
       - "<gray>Start: <white><start_mode>"
-      - "<yellow>Left-click to switch"
+      - "<yellow>Left-click cycles Player start → Signal start → Traffic light start → Player start"
   cooldown:
     name: "<gold>Start cooldown"
     lore:
+      - "<red>Only applies to normal player races."
       - "<gray>Current: <white><seconds> seconds"
       - "<green>Right-click: +1 second"
       - "<red>Left-click: -1 second"
@@ -235,20 +241,28 @@ trigger-editor:
       - "<gray>Trigger mode: <trigger_mode>"
       - "<yellow>Shift-left-click: teleport to block"
   redstone:
-    name: "<blue>Redsstone start signal"
+    name: "<blue>Signal-start trigger"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Trigger mode: <trigger_mode>"
       - "<yellow>Shift-left-click: teleport to block"
+  traffic-light:
+    name: "<gold>Traffic light start"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Five dark traffic-light heads facing the player"
+      - "<yellow>Shift-left-click: teleport to block"
   add-start:
     name: "<green>Set start trigger"
   add-redstone:
-    name: "<blue>Set redstone start signal"
+    name: "<blue>Set signal start"
     lore:
-      - "If you want to trigger the start signal with redstone,"
-      - "you also need to set normal start triggers, because redstone"
-      - "only activates the start signal."
+      - "The redstone signal releases the shared race start."
+      - "Also set normal start triggers to detect drivers"
+      - "when they cross the start line."
+  add-traffic-light:
+    name: "<gold>Set traffic-light start"
   add-checkpoint:
     name: "<yellow>Set checkpoint"
   add-end:
@@ -264,8 +278,12 @@ trigger-editor:
       name: "<gold>End trigger tool"
       lore: []
     redstone:
-      name: "<gold>Redstone trigger tool"
+      name: "<gold>Signal-start trigger tool"
       lore: []
+    traffic-light:
+      name: "<gold>Traffic-light trigger tool"
+      lore:
+        - "<gray>Places five dark traffic-light heads."
     lore:
       - "<gray>Left-click: add trigger"
       - "<gray>Right-click: remove trigger"
@@ -307,7 +325,7 @@ buttons:
   hologram-redstone:
     name: "<gold>Place redstone race hologram"
     lore:
-      - "<gray>Displays redstone race results."
+      - "<gray>Displays signal-start and traffic-light race results."
       - "<yellow>Left-click: upper-left corner"
       - "<yellow>Right-click: lower-right corner"
   hologram-delete:

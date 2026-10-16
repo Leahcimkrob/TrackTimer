@@ -57,16 +57,21 @@ public final class EventOverviewGui implements Listener {
                 ItemStack item = context.icon(event.icon());
                 ItemMeta meta = item.getItemMeta();
                 meta.displayName(context.language.gui("overview.event-item.name", LanguageManager.placeholders("event", event.name())));
-                boolean german = context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de");
-                String startModeLabel = "signal".equals(event.startMode())
-                        ? (german ? "Redstone-Signal" : "Redstone signal")
-                        : (german ? "Spieler" : "Player");
+                String modeKey = switch (event.startMode()) {
+                    case "signal" -> "signal";
+                    case "traffic_light" -> "traffic-light";
+                    default -> "player";
+                };
+                net.kyori.adventure.text.Component startModeLabel = context.language.gui("start-modes." + modeKey);
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>(context.language.guiList(
                         "overview.event-item.lore", LanguageManager.placeholders("event", event.name(),
                                 "laps", event.laps(), "start_mode", startModeLabel, "created", event.created())));
                 if ("signal".equals(event.startMode())) {
                     lore.add(context.language.gui("overview.event-item.redstone-click"));
                     lore.add(context.language.gui("overview.event-item.redstone-standard-click"));
+                } else if ("traffic_light".equals(event.startMode())) {
+                    lore.add(context.language.gui("overview.event-item.topten-click"));
+                    lore.add(context.language.gui("overview.event-item.redstone-click"));
                 } else {
                     lore.add(context.language.gui("overview.event-item.topten-click"));
                 }
@@ -122,11 +127,11 @@ public final class EventOverviewGui implements Listener {
                 } else if ("signal".equals(selected.startMode())
                         && event.getClick().isShiftClick() && event.getClick().isLeftClick()) {
                     if (topTenGui != null) topTenGui.openStandard(player, selected, holder.page);
-                } else if ("signal".equals(selected.startMode())
+                } else if (("signal".equals(selected.startMode()) || "traffic_light".equals(selected.startMode()))
                         && event.getClick() == ClickType.LEFT && redstoneRaceSelectionGui != null) {
                     redstoneRaceSelectionGui.open(player, selected, holder.page);
                 } else if (topTenGui != null) {
-                    topTenGui.openStandard(player, selected, holder.page);
+                    topTenGui.open(player, selected, holder.page);
                 }
             }
         }

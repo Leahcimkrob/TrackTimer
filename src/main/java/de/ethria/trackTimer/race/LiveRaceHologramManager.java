@@ -141,7 +141,10 @@ public final class LiveRaceHologramManager {
                 .thenComparingLong(RaceStartListener.RunningRace::lastProgressAt)
                 .thenComparingLong(race -> (race.finishedAt() > 0 ? race.finishedAt() : now) - race.startTime())
                 .thenComparing(race -> race.player().getUniqueId()));
-        boolean redstone = entries.isEmpty() ? "signal".equals(event.startMode()) : entries.getFirst().sessionId() != null;
+        boolean redstone = entries.isEmpty()
+                ? "signal".equals(event.startMode()) || "traffic_light".equals(event.startMode())
+                : entries.getFirst().sessionId() != null
+                    || "traffic_light".equals(event.startMode());
         var lines = new ArrayList<String>();
         lines.add(text(redstone ? "live-hologram.race-title" : "live-hologram.free-title", "event", event.name()));
         if (entries.isEmpty()) {

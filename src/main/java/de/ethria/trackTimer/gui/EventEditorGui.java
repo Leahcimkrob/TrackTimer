@@ -78,22 +78,26 @@ public final class EventEditorGui implements Listener {
         ItemStack startMode = context.configuredIcon("guis.event-editor.items.start-mode", Material.REDSTONE);
         ItemMeta startModeMeta = startMode.getItemMeta();
         startModeMeta.displayName(context.language.gui("event-editor.start-mode.name"));
-        boolean german = context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de");
-        String modeLabel = "signal".equals(event.startMode())
-                ? (german ? "Redstone-Signal" : "Redstone signal")
-                : (german ? "Spieler" : "Player");
+        String modeKey = switch (event.startMode()) {
+            case "signal" -> "signal";
+            case "traffic_light" -> "traffic-light";
+            default -> "player";
+        };
+        Component modeLabel = context.language.gui("start-modes." + modeKey);
         startModeMeta.lore(context.language.guiList("event-editor.start-mode.lore",
                 LanguageManager.placeholders("start_mode", modeLabel)));
         startMode.setItemMeta(startModeMeta);
         inventory.setItem(slot("items.start-mode.slot", 23, size), startMode);
 
-        ItemStack cooldown = context.configuredIcon("guis.event-editor.items.cooldown", Material.CLOCK);
-        ItemMeta cooldownMeta = cooldown.getItemMeta();
-        cooldownMeta.displayName(context.language.gui("event-editor.cooldown.name"));
-        cooldownMeta.lore(context.language.guiList("event-editor.cooldown.lore",
-                LanguageManager.placeholders("seconds", event.cooldownSeconds())));
-        cooldown.setItemMeta(cooldownMeta);
-        inventory.setItem(slot("items.cooldown.slot", 24, size), cooldown);
+        if ("player".equals(event.startMode())) {
+            ItemStack cooldown = context.configuredIcon("guis.event-editor.items.cooldown", Material.CLOCK);
+            ItemMeta cooldownMeta = cooldown.getItemMeta();
+            cooldownMeta.displayName(context.language.gui("event-editor.cooldown.name"));
+            cooldownMeta.lore(context.language.guiList("event-editor.cooldown.lore",
+                    LanguageManager.placeholders("seconds", event.cooldownSeconds())));
+            cooldown.setItemMeta(cooldownMeta);
+            inventory.setItem(slot("items.cooldown.slot", 24, size), cooldown);
+        }
 
         inventory.setItem(slot("items.change-icon.slot", 29, size), named(
                 context.configuredIcon("guis.event-editor.items.change-icon", Material.CHEST), "event-editor.change-icon"));
@@ -144,7 +148,8 @@ public final class EventEditorGui implements Listener {
         Event selected = holder.event;
         if (liveHologramTool != null && rawSlot == slot("items.live-hologram.slot", 22, size)) {
             player.closeInventory();
-            liveHologramTool.giveTool(player, selected, "signal".equals(selected.startMode()));
+            liveHologramTool.giveTool(player, selected,
+                    "signal".equals(selected.startMode()) || "traffic_light".equals(selected.startMode()));
             return;
         }
         if (rawSlot == slot("items.event-name.slot", 13, size)) {
@@ -164,7 +169,11 @@ public final class EventEditorGui implements Listener {
             if (iconSwapGui != null) iconSwapGui.open(player, selected, holder.overviewPage);
         } else if (rawSlot == slot("items.start-mode.slot", 23, size)) {
             if (event.getClick() == ClickType.LEFT) {
-                String nextMode = "player".equals(selected.startMode()) ? "signal" : "player";
+                String nextMode = switch (selected.startMode()) {
+                    case "player" -> "signal";
+                    case "signal" -> "traffic_light";
+                    default -> "player";
+                };
                 try {
                     context.database.updateEventStartMode(selected.id(), nextMode);
                     reopen(player, selected.id(), holder.overviewPage);
@@ -172,7 +181,8 @@ public final class EventEditorGui implements Listener {
                     reportDatabaseError(player, exception);
                 }
             }
-        } else if (rawSlot == slot("items.cooldown.slot", 24, size)) {
+        } else if (rawSlot == slot("items.cooldown.slot", 24, size)
+                && "player".equals(selected.startMode())) {
             int cooldown = selected.cooldownSeconds();
             if (event.getClick().isRightClick()) cooldown = Math.min(86400, cooldown + 1);
             else if (event.getClick().isLeftClick()) cooldown = Math.max(0, cooldown - 1);

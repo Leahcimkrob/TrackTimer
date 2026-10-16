@@ -74,6 +74,8 @@ public final class DatabaseManager {
             statement.executeUpdate(liveHologramTableSql());
         }
         DatabaseMigrator.migrateEventCooldown(connection, defaultCooldownSeconds());
+        DatabaseMigrator.migrateTrafficLightStartMode(connection, defaultCooldownSeconds());
+        DatabaseMigrator.migrateTrafficLightSounds(connection);
         ensureRaceResultsRedstoneColumn();
         ensureRaceHologramFilterColumns();
         dropLegacyRaceHologramUniqueIndex(connection);
@@ -139,12 +141,14 @@ public final class DatabaseManager {
                 if ("sqlite".equals(targetType)) statement.execute("PRAGMA foreign_keys = ON");
             }
             DatabaseMigrator.migrateEventCooldown(target, defaultCooldownSeconds());
+            DatabaseMigrator.migrateTrafficLightStartMode(target, defaultCooldownSeconds());
             target.setAutoCommit(false);
             try {
-                for (String table : List.of("players", "events", "event_triggers", "race_sessions",
+                for (String table : List.of("players", "events", "event_triggers", "event_traffic_lights", "race_sessions",
                         "race_results", "race_checkpoint_times", "race_lap_times", "race_session_results",
                         "race_holograms", "race_live_holograms")) {
-                    if (("race_holograms".equals(table) || "race_live_holograms".equals(table)) && !tableExists(source, table)) continue;
+                    if (("race_holograms".equals(table) || "race_live_holograms".equals(table)
+                            || "event_traffic_lights".equals(table)) && !tableExists(source, table)) continue;
                     copyTable(source, target, table);
                 }
                 removeDuplicateRaceHolograms(target, null);
@@ -235,8 +239,8 @@ public final class DatabaseManager {
         if (laps < 1) {
             throw new IllegalArgumentException("Event laps must be greater than zero.");
         }
-        if (!List.of("player", "signal").contains(startMode)) {
-            throw new IllegalArgumentException("Start mode must be 'player' or 'signal'.");
+        if (!List.of("player", "signal", "traffic_light").contains(startMode)) {
+            throw new IllegalArgumentException("Start mode must be 'player', 'signal', or 'traffic_light'.");
         }
 
         String sql = "INSERT INTO events (event_name, laps, start_mode, cooldown_seconds) VALUES (?, ?, ?, ?)";
@@ -261,7 +265,8 @@ public final class DatabaseManager {
              ResultSet rows = statement.executeQuery("""
                      SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
                             e.cooldown_seconds, e.cooldown_until,
-                            (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
+                            ((SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id)
+                              + (SELECT COUNT(*) FROM event_traffic_lights l WHERE l.event_id = e.id)) AS trigger_count
                      FROM events e ORDER BY e.event_name
                      """)) {
             while (rows.next()) {
@@ -278,7 +283,8 @@ public final class DatabaseManager {
         try (PreparedStatement statement = connection.prepareStatement("""
                 SELECT e.id, e.event_name, e.laps, e.start_mode, e.icon, e.created_at,
                        e.cooldown_seconds, e.cooldown_until,
-                       (SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id) AS trigger_count
+                       ((SELECT COUNT(*) FROM event_triggers t WHERE t.event_id = e.id)
+                         + (SELECT COUNT(*) FROM event_traffic_lights l WHERE l.event_id = e.id)) AS trigger_count
                 FROM events e WHERE e.id = ?
                 """)) {
             statement.setLong(1, eventId);
@@ -345,6 +351,33 @@ public final class DatabaseManager {
 
     public record Event(long id, String name, int laps, String startMode, String icon, int triggerCount,
                         String created, int cooldownSeconds, long cooldownUntil) { }
+
+    public TrafficLightSounds getTrafficLightSounds(long eventId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT traffic_light_sound, traffic_light_red_pitch_1, traffic_light_red_pitch_2, traffic_light_red_pitch_3,
+                       traffic_light_red_pitch_4, traffic_light_red_pitch_5, traffic_light_go_pitch
+                FROM events WHERE id = ?
+                """)) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) return new TrafficLightSounds("BLOCK_NOTE_BLOCK_BIT", 6, 8, 10, 11, 11, 18);
+                return new TrafficLightSounds(rows.getString(1), rows.getInt(2), rows.getInt(3), rows.getInt(4),
+                        rows.getInt(5), rows.getInt(6), rows.getInt(7));
+            }
+        }
+    }
+
+    public record TrafficLightSounds(String sound, int red1, int red2, int red3, int red4, int red5, int go) {
+        public int redPitch(int index) {
+            return switch (index) {
+                case 0 -> red1;
+                case 1 -> red2;
+                case 2 -> red3;
+                case 3 -> red4;
+                default -> red5;
+            };
+        }
+    }
     public record RaceStatisticsEntry(long resultId, long eventId, String eventName, String playerUuid,
                                       String playerName, long raceTimeMillis, int lapsCompleted,
                                       long startTimeMillis, boolean redstoneStart) { }
@@ -669,8 +702,8 @@ public final class DatabaseManager {
     }
 
     public void updateEventStartMode(long eventId, String startMode) throws SQLException {
-        if (!List.of("player", "signal").contains(startMode)) {
-            throw new IllegalArgumentException("Start mode must be 'player' or 'signal'.");
+        if (!List.of("player", "signal", "traffic_light").contains(startMode)) {
+            throw new IllegalArgumentException("Start mode must be 'player', 'signal', or 'traffic_light'.");
         }
         try (PreparedStatement statement = connection.prepareStatement("UPDATE events SET start_mode = ? WHERE id = ?")) {
             statement.setString(1, startMode);
@@ -719,6 +752,10 @@ public final class DatabaseManager {
                 }
             }
         }
+        for (TrafficLightTrigger light : listTrafficLightTriggers(eventId)) {
+            triggers.add("traffic_light — " + light.server() + "/" + light.world() + " "
+                    + light.x() + ", " + light.y() + ", " + light.z() + " [TRAFFIC_LIGHT]");
+        }
         return List.copyOf(triggers);
     }
 
@@ -741,7 +778,76 @@ public final class DatabaseManager {
                 }
             }
         }
+        for (TrafficLightTrigger light : listTrafficLightTriggers(eventId)) {
+            triggers.add(new EventTrigger("traffic_light", null, light.server(), light.world(),
+                    light.x(), light.y(), light.z(), "TRAFFIC_LIGHT", "TRAFFIC_LIGHT"));
+        }
         return List.copyOf(triggers);
+    }
+
+    public record TrafficLightTrigger(long eventId, String server, String world, int x, int y, int z, String facing) { }
+
+    public List<TrafficLightTrigger> listTrafficLightTriggers(long eventId) throws SQLException {
+        List<TrafficLightTrigger> lights = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT event_id, server, world, x, y, z, facing FROM event_traffic_lights WHERE event_id = ?")) {
+            statement.setLong(1, eventId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) lights.add(new TrafficLightTrigger(rows.getLong("event_id"), rows.getString("server"),
+                        rows.getString("world"), rows.getInt("x"), rows.getInt("y"), rows.getInt("z"), rows.getString("facing")));
+            }
+        }
+        return List.copyOf(lights);
+    }
+
+    public List<TrafficLightTrigger> listTrafficLightTriggers(String server) throws SQLException {
+        List<TrafficLightTrigger> lights = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT event_id, server, world, x, y, z, facing FROM event_traffic_lights WHERE server = ?")) {
+            statement.setString(1, server);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) lights.add(new TrafficLightTrigger(rows.getLong("event_id"), rows.getString("server"),
+                        rows.getString("world"), rows.getInt("x"), rows.getInt("y"), rows.getInt("z"), rows.getString("facing")));
+            }
+        }
+        return List.copyOf(lights);
+    }
+
+    public boolean addTrafficLightTrigger(long eventId, String server, String world, int x, int y, int z, String facing)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO event_traffic_lights (event_id, server, world, x, y, z, facing)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, server);
+            statement.setString(3, world);
+            statement.setInt(4, x);
+            statement.setInt(5, y);
+            statement.setInt(6, z);
+            statement.setString(7, facing);
+            try {
+                return statement.executeUpdate() > 0;
+            } catch (SQLException exception) {
+                if (isUniqueConstraintViolation(exception)) return false;
+                throw exception;
+            }
+        }
+    }
+
+    public boolean removeTrafficLightTrigger(long eventId, String server, String world, int x, int y, int z)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                DELETE FROM event_traffic_lights WHERE event_id = ? AND server = ? AND world = ? AND x = ? AND y = ? AND z = ?
+                """)) {
+            statement.setLong(1, eventId);
+            statement.setString(2, server);
+            statement.setString(3, world);
+            statement.setInt(4, x);
+            statement.setInt(5, y);
+            statement.setInt(6, z);
+            return statement.executeUpdate() > 0;
+        }
     }
 
     public record EventTrigger(String type, Integer checkpointOrder, String server, String world,
@@ -757,7 +863,7 @@ public final class DatabaseManager {
                         WHERE cp.event_id = e.id AND cp.trigger_type = 'checkpoint') AS max_checkpoint_order
                 FROM event_triggers t JOIN events e ON e.id = t.event_id
                 WHERE t.trigger_type = 'start' AND t.trigger_mode <> 'REDSTONE_SIGNAL'
-                  AND e.start_mode IN ('player', 'signal') AND t.server = ? AND t.world = ?
+                  AND e.start_mode IN ('player', 'signal', 'traffic_light') AND t.server = ? AND t.world = ?
                   AND t.x = ? AND t.z = ? AND t.y BETWEEN ? AND ?
                 """)) {
             statement.setString(1, server);
@@ -777,17 +883,23 @@ public final class DatabaseManager {
 
     /** Registers the player once and creates a normal in-progress race result. */
     public RaceResult beginRace(long eventId, String playerUuid, String playerName) throws SQLException {
-        return beginRace(eventId, playerUuid, playerName, null, System.currentTimeMillis());
+        return beginRace(eventId, playerUuid, playerName, null, System.currentTimeMillis(), false);
+    }
+
+    /** Creates an individual race result, marking signal and traffic-light starts as redstone races. */
+    public RaceResult beginRace(long eventId, String playerUuid, String playerName,
+                                boolean redstoneStart) throws SQLException {
+        return beginRace(eventId, playerUuid, playerName, null, System.currentTimeMillis(), redstoneStart);
     }
 
     public RaceResult beginSessionRace(long eventId, String playerUuid, String playerName,
                                        RedstoneSession session) throws SQLException {
         if (session.eventId() != eventId) throw new IllegalArgumentException("Session belongs to a different event.");
-        return beginRace(eventId, playerUuid, playerName, session.id(), session.startTime());
+        return beginRace(eventId, playerUuid, playerName, session.id(), session.startTime(), true);
     }
 
     private RaceResult beginRace(long eventId, String playerUuid, String playerName,
-                                 Long sessionId, long startTime) throws SQLException {
+                                 Long sessionId, long startTime, boolean redstoneStart) throws SQLException {
         boolean originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
         try {
@@ -844,7 +956,7 @@ public final class DatabaseManager {
                 insert.setLong(1, eventId);
                 insert.setString(2, playerUuid);
                 insert.setLong(3, startTime);
-                insert.setBoolean(4, sessionId != null);
+                insert.setBoolean(4, redstoneStart || sessionId != null);
                 insert.executeUpdate();
                 try (ResultSet keys = insert.getGeneratedKeys()) {
                     if (!keys.next()) throw new SQLException("Could not retrieve the new race result ID.");
@@ -904,6 +1016,31 @@ public final class DatabaseManager {
     }
 
     public record RedstoneStartPoint(long eventId, String eventName, long cooldownUntil) { }
+
+    public List<TrafficLightStartPoint> findTrafficLightStartTriggers(String server, String world,
+                                                                       int x, int y, int z) throws SQLException {
+        List<TrafficLightStartPoint> triggers = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT e.id, e.event_name, e.cooldown_until
+                FROM event_triggers t JOIN events e ON e.id = t.event_id
+                WHERE t.trigger_type = 'start' AND t.trigger_mode = 'REDSTONE_SIGNAL'
+                  AND e.start_mode = 'traffic_light' AND t.server = ? AND t.world = ?
+                  AND t.x = ? AND t.y = ? AND t.z = ?
+                """)) {
+            statement.setString(1, server);
+            statement.setString(2, world);
+            statement.setInt(3, x);
+            statement.setInt(4, y);
+            statement.setInt(5, z);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) triggers.add(new TrafficLightStartPoint(rows.getLong("id"),
+                        rows.getString("event_name"), rows.getLong("cooldown_until")));
+            }
+        }
+        return List.copyOf(triggers);
+    }
+
+    public record TrafficLightStartPoint(long eventId, String eventName, long cooldownUntil) { }
 
     public RedstoneSession activateRedstoneSession(long eventId, long startTime) throws SQLException {
         RedstoneSession current = getActiveRedstoneSession(eventId);
@@ -1346,7 +1483,7 @@ public final class DatabaseManager {
                 UPDATE events
                 SET cooldown_until = CASE WHEN cooldown_seconds > 0
                     THEN ? + cooldown_seconds * 1000 ELSE 0 END
-                WHERE id = ?
+                WHERE id = ? AND start_mode = 'player'
                 """)) {
             statement.setLong(1, endedAt);
             statement.setLong(2, eventId);
@@ -1370,6 +1507,7 @@ public final class DatabaseManager {
             executeDelete("DELETE FROM race_checkpoint_times WHERE trigger_id IN (SELECT id FROM event_triggers WHERE event_id = ?)", eventId);
             executeDelete("DELETE FROM race_results WHERE event_id = ?", eventId);
             executeDelete("DELETE FROM event_triggers WHERE event_id = ?", eventId);
+            executeDelete("DELETE FROM event_traffic_lights WHERE event_id = ?", eventId);
             executeDelete("DELETE FROM events WHERE id = ?", eventId);
             connection.commit();
         } catch (SQLException exception) {
@@ -1452,12 +1590,33 @@ public final class DatabaseManager {
                     start_mode VARCHAR(16) NOT NULL DEFAULT 'player',
                     cooldown_seconds INTEGER NOT NULL DEFAULT %d,
                     cooldown_until BIGINT NOT NULL DEFAULT 0,
+                    traffic_light_sound VARCHAR(64) NOT NULL DEFAULT 'BLOCK_NOTE_BLOCK_BIT',
+                    traffic_light_red_pitch_1 INTEGER NOT NULL DEFAULT 6,
+                    traffic_light_red_pitch_2 INTEGER NOT NULL DEFAULT 8,
+                    traffic_light_red_pitch_3 INTEGER NOT NULL DEFAULT 10,
+                    traffic_light_red_pitch_4 INTEGER NOT NULL DEFAULT 11,
+                    traffic_light_red_pitch_5 INTEGER NOT NULL DEFAULT 11,
+                    traffic_light_go_pitch INTEGER NOT NULL DEFAULT 18,
                     icon TEXT NOT NULL DEFAULT 'stone',
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     CHECK (laps > 0),
-                    CHECK (start_mode IN ('player', 'signal'))
+                    CHECK (start_mode IN ('player', 'signal', 'traffic_light'))
                 )
                 """.formatted(autoIncrement, defaultCooldownSeconds()),
+                """
+                CREATE TABLE IF NOT EXISTS event_traffic_lights (
+                    id %s,
+                    event_id BIGINT NOT NULL,
+                    server VARCHAR(128) NOT NULL,
+                    world VARCHAR(128) NOT NULL,
+                    x INTEGER NOT NULL,
+                    y INTEGER NOT NULL,
+                    z INTEGER NOT NULL,
+                    facing VARCHAR(16) NOT NULL,
+                    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                    UNIQUE (event_id, server, world, x, y, z)
+                )
+                """.formatted(autoIncrement),
                 """
                 CREATE TABLE IF NOT EXISTS event_triggers (
                     id %s,

@@ -24,6 +24,11 @@ guis:
         material: PLAYER_HEAD
         head-database-id: "24214"
         fallback-material: BLUE_WOOL
+      traffic-light-trigger:
+        slot: 47
+        material: PLAYER_HEAD
+        head-database-id: "129034"
+        fallback-material: REDSTONE_LAMP
       back:
         slot: 49
         material: PLAYER_HEAD
@@ -56,6 +61,10 @@ guis:
         material: PLAYER_HEAD
         head-database-id: "64618"
         fallback-material: BLUE_WOOL
+      traffic-light:
+        material: PLAYER_HEAD
+        head-database-id: "129034"
+        fallback-material: REDSTONE_LAMP
       checkpoint:
         material: PLAYER_HEAD
         head-database-id: "2073"

@@ -60,6 +60,13 @@ public final class CreateSubCommand implements SubCommand {
                                                 StringArgumentType.getString(context, "eventname"),
                                                 IntegerArgumentType.getInteger(context, "laps"),
                                                 "signal"
+                                        )))
+                                .then(Commands.literal("traffic_light")
+                                        .executes(context -> execute(
+                                                context.getSource().getSender(),
+                                                StringArgumentType.getString(context, "eventname"),
+                                                IntegerArgumentType.getInteger(context, "laps"),
+                                                "traffic_light"
                                         )))))
                 .build();
     }
@@ -75,8 +82,10 @@ public final class CreateSubCommand implements SubCommand {
                         LanguageManager.placeholders("event", eventName)));
                 return Command.SINGLE_SUCCESS;
             }
+            String modeKey = mode.replace('_', '-');
             sender.sendMessage(language.chat("event.created",
-                    LanguageManager.placeholders("event", eventName, "laps", laps, "mode", mode)));
+                    LanguageManager.placeholders("event", eventName, "laps", laps,
+                            "mode", language.chatFragment("event.start-modes." + modeKey))));
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.SEVERE, "Could not create event '" + eventName + "'.", exception);
             sender.sendMessage(language.chat("event.create-failed",

@@ -7,6 +7,7 @@ import de.ethria.trackTimer.tools.StartTriggerTool;
 import de.ethria.trackTimer.tools.EndTriggerTool;
 import de.ethria.trackTimer.tools.RedstoneTriggerTool;
 import de.ethria.trackTimer.tools.CheckpointTriggerTool;
+import de.ethria.trackTimer.tools.TrafficLightTriggerTool;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -32,16 +33,19 @@ public final class EventTriggerGui implements Listener {
     private final EndTriggerTool endTriggerTool;
     private final RedstoneTriggerTool redstoneTriggerTool;
     private final CheckpointTriggerTool checkpointTriggerTool;
+    private final TrafficLightTriggerTool trafficLightTriggerTool;
 
     public EventTriggerGui(EditorGuiContext context, EventEditorGui eventEditorGui,
                            StartTriggerTool startTriggerTool, EndTriggerTool endTriggerTool,
-                           RedstoneTriggerTool redstoneTriggerTool, CheckpointTriggerTool checkpointTriggerTool) {
+                           RedstoneTriggerTool redstoneTriggerTool, CheckpointTriggerTool checkpointTriggerTool,
+                           TrafficLightTriggerTool trafficLightTriggerTool) {
         this.context = context;
         this.eventEditorGui = eventEditorGui;
         this.startTriggerTool = startTriggerTool;
         this.endTriggerTool = endTriggerTool;
         this.redstoneTriggerTool = redstoneTriggerTool;
         this.checkpointTriggerTool = checkpointTriggerTool;
+        this.trafficLightTriggerTool = trafficLightTriggerTool;
     }
 
     public void open(Player player, Event event, int overviewPage) {
@@ -50,7 +54,7 @@ public final class EventTriggerGui implements Listener {
 
     private void open(Player player, Event event, int overviewPage, int requestedPage) {
         int size = context.inventorySize(context.triggerSettings, "guis.trigger-editor.size", 54, "trigger.yml");
-        TriggerHolder holder = new TriggerHolder(event.id(), overviewPage);
+        TriggerHolder holder = new TriggerHolder(event.id(), event.startMode(), overviewPage);
         Inventory inventory = Bukkit.createInventory(holder, size, context.language.gui("trigger-editor.title",
                 LanguageManager.placeholders("event", event.name())));
         holder.inventory = inventory;
@@ -83,6 +87,9 @@ public final class EventTriggerGui implements Listener {
                 "guis.trigger-editor.button-bar.start-trigger", Material.PLAYER_HEAD, "trigger-editor.add-start"));
         inventory.setItem(slot("button-bar.start-redstone-trigger.slot", 48, size), configuredNamed(
                 "guis.trigger-editor.button-bar.start-redstone-trigger", Material.PLAYER_HEAD, "trigger-editor.add-redstone"));
+        if ("traffic_light".equals(event.startMode())) inventory.setItem(
+                slot("button-bar.traffic-light-trigger.slot", 47, size), named(
+                        TrafficLightTriggerTool.trafficLightHead(), "trigger-editor.add-traffic-light"));
         inventory.setItem(slot("button-bar.checkpoint-trigger.slot", 50, size), configuredNamed(
                 "guis.trigger-editor.button-bar.checkpoint-trigger", Material.PLAYER_HEAD, "trigger-editor.add-checkpoint"));
         inventory.setItem(slot("button-bar.end-trigger.slot", 52, size), configuredNamed(
@@ -105,6 +112,9 @@ public final class EventTriggerGui implements Listener {
         if ("REDSTONE_SIGNAL".equals(trigger.triggerMode())) {
             key = "trigger-editor.redstone";
             iconPath = "guis.trigger-editor.items.redstone";
+        } else if ("traffic_light".equals(type)) {
+            key = "trigger-editor.traffic-light";
+            iconPath = "guis.trigger-editor.items.traffic-light";
         } else if ("start".equals(type)) {
             key = "trigger-editor.start";
             iconPath = "guis.trigger-editor.items.start";
@@ -119,7 +129,8 @@ public final class EventTriggerGui implements Listener {
             iconPath = "guis.trigger-editor.items.checkpoint";
         }
 
-        ItemStack item = context.configuredIcon(context.triggerSettings, iconPath, Material.PLAYER_HEAD);
+        ItemStack item = "traffic_light".equals(type) ? TrafficLightTriggerTool.trafficLightHead()
+                : context.configuredIcon(context.triggerSettings, iconPath, Material.PLAYER_HEAD);
         ItemMeta meta = item.getItemMeta();
         if (trigger.checkpointOrder() != null) {
             item.setAmount(Math.max(1, Math.min(64, trigger.checkpointOrder())));
@@ -131,6 +142,8 @@ public final class EventTriggerGui implements Listener {
         String modeLabel = switch (trigger.triggerMode()) {
             case "PRESSURE_PLATE" -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
                     ? "Druckplatte" : "Pressure plate";
+            case "TRAFFIC_LIGHT" -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
+                    ? "Ampelstart" : "Traffic light";
             case "REDSTONE_SIGNAL" -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
                     ? "Redstone-Signal" : "Redstone signal";
             default -> context.language.getLocale().toLowerCase(java.util.Locale.ROOT).startsWith("de")
@@ -190,6 +203,9 @@ public final class EventTriggerGui implements Listener {
             startTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         } else if (event.getRawSlot() == slot("button-bar.start-redstone-trigger.slot", 48, size)) {
             redstoneTriggerTool.begin(player, holder.eventId, holder.overviewPage);
+        } else if (event.getRawSlot() == slot("button-bar.traffic-light-trigger.slot", 47, size)
+                && "traffic_light".equals(holder.startMode)) {
+            trafficLightTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         } else if (event.getRawSlot() == slot("button-bar.end-trigger.slot", 52, size)) {
             endTriggerTool.begin(player, holder.eventId, holder.overviewPage);
         } else if (event.getRawSlot() == slot("button-bar.checkpoint-trigger.slot", 50, size)) {
@@ -226,14 +242,16 @@ public final class EventTriggerGui implements Listener {
 
     private static final class TriggerHolder implements InventoryHolder {
         private final long eventId;
+        private final String startMode;
         private final int overviewPage;
         private int page;
         private int pages = 1;
         private List<EventTrigger> triggers = new ArrayList<>();
         private Inventory inventory;
 
-        private TriggerHolder(long eventId, int overviewPage) {
+        private TriggerHolder(long eventId, String startMode, int overviewPage) {
             this.eventId = eventId;
+            this.startMode = startMode;
             this.overviewPage = overviewPage;
         }
 

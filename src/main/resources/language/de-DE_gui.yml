@@ -39,7 +39,7 @@ config-editor:
       lore:
         - "<gray>Abstand nach oben und unten in Blöcken."
     join-timeout:
-      name: "<gold>Wartezeit beim Ampel-Start"
+      name: "<gold>Wartezeit beim Signalstart"
       lore:
         - "<gray>Sekunden; 0 hält den Start freigegeben."
     title-radius:
@@ -51,7 +51,7 @@ config-editor:
       lore:
         - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
     gui-signal:
-      name: "<gold>GUI: Ampel-Rennen"
+      name: "<gold>GUI: Redstone-Rennen"
       lore:
         - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
     player-details:
@@ -63,7 +63,7 @@ config-editor:
       lore:
         - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
     hologram-signal:
-      name: "<gold>Hologramm: Ampel-Rennen"
+      name: "<gold>Hologramm: Redstone-Rennen"
       lore:
         - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
     tool-timeout:
@@ -91,7 +91,7 @@ config-editor:
       lore:
         - "<gray>Spieleranzahl; 0 zeigt keine Ergebnisse."
     chat-signal:
-      name: "<gold>Chat: Ampel-Rennen"
+      name: "<gold>Chat: Redstone-Rennen"
       lore:
         - "<gray>Anzahl der letzten Rennen; 0 zeigt keine Ergebnisse."
     sort:
@@ -106,15 +106,20 @@ overview:
       - "<gray>Startmodus: <white><start_mode>"
       - "<gray>Erstellt: <white><created>"
     topten-click: "<yellow>Linksklick oder Shift-Linksklick: TopTen öffnen"
-    redstone-click: "<yellow>Linksklick: Redstone-Rennen auswählen"
+    redstone-click: "<yellow>Linksklick: Redstone-Rennen auswählen (Signal oder Ampel)"
     redstone-standard-click: "<yellow>Shift-Linksklick: normale TopTen öffnen"
     edit-click: "<yellow>Rechtsklick: Event bearbeiten"
   empty-item:
     name: "<gray>Keine Events vorhanden"
 
+start-modes:
+  player: "Spielerstart"
+  signal: "Signalstart"
+  traffic-light: "Ampelstart"
+
 topten:
   title: "Einzelrennen - <event>"
-  redstone-title: "Ampel-Rennen - <event>"
+  redstone-title: "Redstone-Rennen - <event>"
   entry-item:
     name: "<gold>Platz <rank>"
     lore:
@@ -147,9 +152,9 @@ topten:
     empty-item:
       name: "<gray>Keine Rundenzeiten gespeichert"
   redstone-selection:
-    title: "Ampel-Rennen - <event>"
+    title: "Redstone-Rennen - <event>"
     empty-item:
-      name: "<gray>Noch keine abgeschlossenen Ampel-Rennen"
+      name: "<gray>Noch keine abgeschlossenen Redstone-Rennen"
   redstone-race:
     name: "<gold><rank>. Rennen"
     lore:
@@ -189,10 +194,11 @@ event-editor:
     name: "<red>Startmodus"
     lore:
       - "<gray>Start: <white><start_mode>"
-      - "<yellow>Linksklick zum Wechseln"
+      - "<yellow>Linksklick wechselt Spielerstart → Signalstart → Ampelstart → Spielerstart"
   cooldown:
     name: "<gold>Start-Cooldown"
     lore:
+      - "<red>Gilt nur für normale Spielerrennen."
       - "<gray>Aktuell: <white><seconds> Sekunden"
       - "<green>Rechtsklick: +1 Sekunde"
       - "<red>Linksklick: -1 Sekunde"
@@ -234,20 +240,28 @@ trigger-editor:
       - "<gray>Auslösung: <trigger_mode>"
       - "<yellow>Shift-Linksklick: zum Block teleportieren"
   redstone:
-    name: "<blue>Redstone-Startsignal"
+    name: "<blue>Signalstart-Trigger"
     lore:
       - "<gray><server>/<world> <x>, <y>, <z>"
       - "<gray>Block: <block>"
       - "<gray>Auslösung: <trigger_mode>"
       - "<yellow>Shift-Linksklick: zum Block teleportieren"
+  traffic-light:
+    name: "<gold>Ampelstart"
+    lore:
+      - "<gray><server>/<world> <x>, <y>, <z>"
+      - "<gray>Fünf dunkle Ampelköpfe, zum Spieler ausgerichtet"
+      - "<yellow>Shift-Linksklick: zum Block teleportieren"
   add-start:
     name: "<green>Start-Trigger setzen"
   add-redstone:
-    name: "<blue>Redstone-Startsignal setzen"
+    name: "<blue>Signalstart setzen"
     lore:
-      - "Wenn du das Startsignal über Redstone auslösen möchtest,"
-      - "musst du auch normale Start-Trigger setzen, da Redstone "
-      - "nur das Startsignal auslöst."
+      - "Das Redstone-Signal gibt den gemeinsamen Start frei."
+      - "Setze zusätzlich normale Start-Trigger, damit die Fahrer"
+      - "beim Überfahren erkannt werden."
+  add-traffic-light:
+    name: "<gold>Ampelstart setzen"
   add-checkpoint:
     name: "<yellow>Checkpoint setzen"
   add-end:
@@ -263,8 +277,12 @@ trigger-editor:
       name: "<gold>End-Trigger-Werkzeug"
       lore: []
     redstone:
-      name: "<gold>Redstone-Trigger-Werkzeug"
+      name: "<gold>Signalstart-Trigger-Werkzeug"
       lore: []
+    traffic-light:
+      name: "<gold>Ampel-Trigger-Werkzeug"
+      lore:
+        - "<gray>Platziert fünf dunkle Ampelköpfe."
 
     lore:
       - "<gray>Linksklick: Trigger hinzufügen"
@@ -305,9 +323,9 @@ buttons:
       - "<yellow>Linksklick: obere linke Ecke"
       - "<yellow>Rechtsklick: untere rechte Ecke"
   hologram-redstone:
-    name: "<gold>Hologramm für Ampel-Rennen setzen"
+    name: "<gold>Hologramm für Redstone-Rennen setzen"
     lore:
-      - "<gray>Zeigt die Ergebnisse der Ampel-Rennen."
+      - "<gray>Zeigt die Ergebnisse von Signal- und Ampelrennen."
       - "<yellow>Linksklick: obere linke Ecke"
       - "<yellow>Rechtsklick: untere rechte Ecke"
   hologram-delete:

@@ -120,7 +120,9 @@ public final class HologramSubCommand implements SubCommand {
                     return Command.SINGLE_SUCCESS;
                 }
             }
-            createTool.giveTool(player, event, date != null, date, time);
+            createTool.giveTool(player, event,
+                    date != null || "signal".equals(event.startMode()) || "traffic_light".equals(event.startMode()),
+                    date, time);
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.WARNING, "Could not prepare the race hologram tool for '"
                     + eventName + "'.", exception);
@@ -143,7 +145,8 @@ public final class HologramSubCommand implements SubCommand {
             if (event == null) {
                 player.sendMessage(language.chat("event.not-found", LanguageManager.placeholders("event", eventName)));
             } else {
-                liveTool.giveTool(player, event, "signal".equals(event.startMode()), null, null);
+                liveTool.giveTool(player, event,
+                        "signal".equals(event.startMode()) || "traffic_light".equals(event.startMode()), null, null);
             }
         } catch (SQLException exception) {
             plugin.getLogger().log(Level.WARNING, "Could not prepare the live hologram tool for '" + eventName + "'.", exception);
