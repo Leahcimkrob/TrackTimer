@@ -55,7 +55,7 @@ public final class TrafficLightRaceListener implements Listener {
         Block block = event.getBlock();
         try {
             for (TrafficLightStartPoint trigger : database.findTrafficLightStartTriggers(
-                    plugin.getServer().getName(), block.getWorld().getName(),
+                    database.getServerName(), block.getWorld().getName(),
                     block.getX(), block.getY(), block.getZ())) {
                 startSequence(trigger, block);
             }
@@ -77,7 +77,7 @@ public final class TrafficLightRaceListener implements Listener {
         StartSequence previous = sequences.get(trigger.eventId());
         if (previous != null && previous.hasStarted) return;
         List<List<SignalHead>> rows = lightTool.signalHeadRows(trigger.eventId(),
-                plugin.getServer().getName(), redstoneBlock.getWorld().getName());
+                database.getServerName(), redstoneBlock.getWorld().getName());
         if (rows.isEmpty()) {
             plugin.getLogger().warning("Traffic-light start for event " + trigger.eventName()
                     + " was ignored because no traffic-light heads are saved in this world.");
@@ -119,6 +119,13 @@ public final class TrafficLightRaceListener implements Listener {
     private void releaseStart(StartSequence sequence) {
         if (sequences.get(sequence.eventId) != sequence || sequence.aborted) return;
         sequence.task = null;
+        try {
+            sequence.session = database.activateRedstoneSession(sequence.eventId, System.currentTimeMillis());
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not activate the traffic-light start session.", exception);
+            abort(sequence);
+            return;
+        }
         playLongNote(sequence.center, sequence.sounds.sound(), sequence.sounds.go());
         sendTitle(sequence.center, language.chatFragment("race.start-title"));
         setAllDark(sequence.rows);
@@ -130,7 +137,9 @@ public final class TrafficLightRaceListener implements Listener {
             sequence.joinTimeout = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 sequence.joinTimeout = null;
                 if (sequences.get(sequence.eventId) == sequence && !sequence.hasStarted
-                        && !races.hasActiveRaces(sequence.eventId)) endSequence(sequence);
+                        && !races.hasActiveRaces(sequence.eventId)) {
+                    endSequence(sequence);
+                }
             }, delayTicks);
         }
     }
@@ -142,6 +151,12 @@ public final class TrafficLightRaceListener implements Listener {
         sequence.hasStarted = true;
         if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
         sequence.joinTimeout = null;
+    }
+
+    /** Returns the shared GO-time session for a released traffic-light start. */
+    public DatabaseManager.RedstoneSession session(long eventId) {
+        StartSequence sequence = sequences.get(eventId);
+        return sequence == null || !sequence.released ? null : sequence.session;
     }
 
     /** Ends the start session once its last driver finishes or leaves. */
@@ -156,7 +171,17 @@ public final class TrafficLightRaceListener implements Listener {
         if (sequence.joinTimeout != null) sequence.joinTimeout.cancel();
         sequence.task = null;
         sequence.joinTimeout = null;
+        if (sequence.session != null && !sequence.hasStarted) expireSession(sequence);
         setAllDark(sequence.rows);
+    }
+
+    private void expireSession(StartSequence sequence) {
+        try {
+            database.expireUnjoinedRedstoneSession(sequence.session.id(), sequence.session.startTime());
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE,
+                    "Could not remove an unused traffic-light start session.", exception);
+        }
     }
 
     private void abort(StartSequence sequence) {
@@ -166,6 +191,7 @@ public final class TrafficLightRaceListener implements Listener {
         sequence.joinTimeout = null;
         sequence.aborted = true;
         sequences.remove(sequence.eventId, sequence);
+        if (sequence.session != null && !sequence.hasStarted) expireSession(sequence);
         setAllDark(sequence.rows);
         sendTitle(sequence.center, language.chatFragment("race.traffic-light-abort-title"));
     }
@@ -229,6 +255,7 @@ public final class TrafficLightRaceListener implements Listener {
         private boolean released;
         private boolean aborted;
         private boolean hasStarted;
+        private DatabaseManager.RedstoneSession session;
         private BukkitTask task;
         private BukkitTask joinTimeout;
 

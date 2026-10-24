@@ -47,8 +47,7 @@ public final class LeaveSubCommand implements SubCommand {
         } catch (SQLException exception) {
             player.getServer().getLogger().log(Level.SEVERE,
                     "Could not cancel unfinished races for " + player.getName() + ".", exception);
-            player.sendMessage(language.chat("database.error",
-                    LanguageManager.placeholders("message", exception.getMessage())));
+            player.sendMessage(language.chat("database.error"));
         }
         return Command.SINGLE_SUCCESS;
     }

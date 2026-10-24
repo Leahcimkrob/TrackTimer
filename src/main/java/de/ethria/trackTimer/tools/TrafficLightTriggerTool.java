@@ -168,7 +168,7 @@ public final class TrafficLightTriggerTool implements Listener {
         List<Block> heads = headBlocks(anchor, towardPlayer, side);
         try {
             for (TrafficLightTrigger light : context.database().listTrafficLightTriggers(selection.eventId)) {
-                if (!light.server().equalsIgnoreCase(context.plugin().getServer().getName())) continue;
+                if (!light.server().equalsIgnoreCase(context.database().getServerName())) continue;
                 if (sameAnchor(light, anchor)) {
                     player.sendMessage(context.language().chat("trigger.already-exists"));
                     return;
@@ -185,7 +185,7 @@ public final class TrafficLightTriggerTool implements Listener {
                 }
             }
             boolean added = context.database().addTrafficLightTrigger(selection.eventId,
-                    context.plugin().getServer().getName(), anchor.getWorld().getName(),
+                    context.database().getServerName(), anchor.getWorld().getName(),
                     anchor.getX(), anchor.getY(), anchor.getZ(), towardPlayer.name());
             if (!added) {
                 player.sendMessage(context.language().chat("trigger.already-exists"));
@@ -205,7 +205,7 @@ public final class TrafficLightTriggerTool implements Listener {
     private void remove(Player player, Selection selection, Block clicked) {
         try {
             for (TrafficLightTrigger light : context.database().listTrafficLightTriggers(selection.eventId)) {
-                if (!light.server().equalsIgnoreCase(context.plugin().getServer().getName())) continue;
+                if (!light.server().equalsIgnoreCase(context.database().getServerName())) continue;
                 List<Block> heads = headBlocks(light);
                 boolean isHead = heads.stream().anyMatch(block -> block.getLocation().equals(clicked.getLocation()));
                 if (!isHead) continue;
@@ -232,7 +232,7 @@ public final class TrafficLightTriggerTool implements Listener {
         if (!player.isOnline() || selections.get(player.getUniqueId()) != selection) return;
         try {
             for (TrafficLightTrigger light : context.database().listTrafficLightTriggers(selection.eventId)) {
-                if (!light.server().equalsIgnoreCase(context.plugin().getServer().getName())
+                if (!light.server().equalsIgnoreCase(context.database().getServerName())
                         || !light.world().equals(player.getWorld().getName())) continue;
                 for (Block block : headBlocks(light)) {
                     player.spawnParticle(org.bukkit.Particle.FLAME,
@@ -241,14 +241,14 @@ public final class TrafficLightTriggerTool implements Listener {
                 }
             }
         } catch (SQLException exception) {
-            context.plugin().getLogger().warning("Could not show traffic-light markers: " + exception.getMessage());
+            context.plugin().getLogger().log(Level.WARNING, "Could not show traffic-light markers.", exception);
         }
     }
 
     private void refreshProtectedBlocks() {
         protectedBlocks.clear();
         try {
-            for (TrafficLightTrigger light : context.database().listTrafficLightTriggers(context.plugin().getServer().getName())) {
+            for (TrafficLightTrigger light : context.database().listTrafficLightTriggers(context.database().getServerName())) {
                 for (Block block : headBlocks(light)) protectedBlocks.add(key(block.getLocation()));
             }
         } catch (SQLException exception) {
@@ -304,7 +304,7 @@ public final class TrafficLightTriggerTool implements Listener {
     }
 
     private boolean sameAnchor(TrafficLightTrigger light, Block block) {
-        return light.server().equalsIgnoreCase(context.plugin().getServer().getName())
+        return light.server().equalsIgnoreCase(context.database().getServerName())
                 && light.world().equals(block.getWorld().getName())
                 && light.x() == block.getX() && light.y() == block.getY() && light.z() == block.getZ();
     }

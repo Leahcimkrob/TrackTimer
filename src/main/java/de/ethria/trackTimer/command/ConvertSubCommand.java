@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
 
 /** Copies TrackTimer data between the configured SQLite and MySQL databases. */
 public final class ConvertSubCommand implements SubCommand {
@@ -62,8 +63,9 @@ public final class ConvertSubCommand implements SubCommand {
         } catch (IllegalArgumentException exception) {
             sender.sendMessage(language.chat("database.convert-invalid"));
         } catch (SQLException exception) {
-            sender.sendMessage(language.chat("database.convert-failed",
-                    LanguageManager.placeholders("message", exception.getMessage() == null ? "unknown" : exception.getMessage())));
+            database.getPluginLogger().log(Level.SEVERE,
+                    "Could not convert TrackTimer data from " + from + " to " + to + ".", exception);
+            sender.sendMessage(language.chat("database.convert-failed"));
         }
     }
 }

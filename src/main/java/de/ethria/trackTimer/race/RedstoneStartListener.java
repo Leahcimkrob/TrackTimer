@@ -39,7 +39,7 @@ public final class RedstoneStartListener implements Listener {
         Block block = event.getBlock();
         try {
             for (RedstoneStartPoint trigger : database.findRedstoneStartTriggers(
-                    plugin.getServer().getName(), block.getWorld().getName(),
+                    database.getServerName(), block.getWorld().getName(),
                     block.getX(), block.getY(), block.getZ())) {
                 var session = database.activateRedstoneSession(trigger.eventId(), System.currentTimeMillis());
                 races.resetLiveStandings(trigger.eventId());

@@ -57,7 +57,7 @@ public final class RaceStartListener implements Listener {
         int minY = TriggerPositionMatcher.minY(position, tolerance);
         int maxY = TriggerPositionMatcher.maxY(position, tolerance);
         try {
-            for (StartPoint point : database.findStartPoints(plugin.getServer().getName(),
+            for (StartPoint point : database.findStartPoints(database.getServerName(),
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 if (!TriggerPositionMatcher.isWithinHeight(position, point.triggerY(), tolerance)
                         || isRunning(player, point.eventId())) continue;
@@ -75,9 +75,14 @@ public final class RaceStartListener implements Listener {
                     result = database.beginSessionRace(point.eventId(), player.getUniqueId().toString(),
                             player.getName(), session);
                     if (result == null) continue;
+                } else if ("traffic_light".equals(point.startMode())) {
+                    RedstoneSession session = trafficLightRaces.session(point.eventId());
+                    if (session == null) continue;
+                    result = database.beginSessionRace(point.eventId(), player.getUniqueId().toString(),
+                            player.getName(), session);
+                    if (result == null) continue;
                 } else {
-                    result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName(),
-                            "traffic_light".equals(point.startMode()));
+                    result = database.beginRace(point.eventId(), player.getUniqueId().toString(), player.getName());
                 }
                 beginDisplay(player, point, result);
             }

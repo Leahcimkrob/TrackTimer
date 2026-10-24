@@ -61,7 +61,7 @@ public final class LiveRaceHologramManager {
     public void load() throws SQLException {
         shutdown();
         boards.clear(); events.clear(); lastLines.clear(); retryAfter.clear();
-        for (RaceHologramBoard board : database.listLiveHolograms(plugin.getServer().getName())) {
+        for (RaceHologramBoard board : database.listLiveHolograms(database.getServerName())) {
             Event event = database.getEvent(board.eventId());
             if (event == null) continue;
             boards.put(board.id(), board);
@@ -97,7 +97,7 @@ public final class LiveRaceHologramManager {
 
     public boolean remove(String id) throws SQLException {
         RaceHologramBoard board = boards.get(id);
-        if (board == null || !database.deleteLiveHologram(id, plugin.getServer().getName())) return false;
+        if (board == null || !database.deleteLiveHologram(id, database.getServerName())) return false;
         boards.remove(id); lastLines.remove(id); retryAfter.remove(id);
         renderer.removeLiveDisplay(board);
         return true;

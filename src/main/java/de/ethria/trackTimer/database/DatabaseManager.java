@@ -2,6 +2,8 @@ package de.ethria.trackTimer.database;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 
 import java.io.File;
 import java.sql.Connection;
@@ -24,14 +26,18 @@ public final class DatabaseManager {
     private final JavaPlugin plugin;
     private final Connection connection;
     private final String autoIncrement;
+    private final String serverName;
     private final List<RaceHologramBoard> duplicateRaceHologramBoards = new ArrayList<>();
     private java.util.function.LongConsumer eventChangeListener = ignored -> { };
 
     public void setEventChangeListener(java.util.function.LongConsumer listener) { eventChangeListener = listener; }
 
+    public java.util.logging.Logger getPluginLogger() { return plugin.getLogger(); }
+
     public DatabaseManager(JavaPlugin plugin) throws SQLException {
         this.plugin = plugin;
         FileConfiguration config = plugin.getConfig();
+        serverName = resolveServerName(config);
         String type = config.getString("database.type", "sqlite").trim().toLowerCase(Locale.ROOT);
 
         if ("sqlite".equals(type)) {
@@ -186,6 +192,30 @@ public final class DatabaseManager {
         if (!List.of("sqlite", "mysql").contains(normalized))
             throw new IllegalArgumentException("Database type must be sqlite or mysql.");
         return normalized;
+    }
+
+    private String resolveServerName(FileConfiguration config) {
+        String configured = config.getString("database.server_name", "auto");
+        if (configured != null && !configured.isBlank() && !configured.equalsIgnoreCase("auto")) {
+            return configured.trim();
+        }
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            try {
+                Class<?> papi = Class.forName("me.clip.placeholderapi.PlaceholderAPI");
+                Object value = papi.getMethod("setPlaceholders", OfflinePlayer.class, String.class)
+                        .invoke(null, (OfflinePlayer) null, "%server_name%");
+                if (value instanceof String name && !name.isBlank() && !name.equals("%server_name%")) {
+                    return name;
+                }
+            } catch (ReflectiveOperationException ignored) {
+                plugin.getLogger().warning("Could not resolve server_name through PlaceholderAPI; using Bukkit server name.");
+            }
+        }
+        return Bukkit.getServer().getName();
+    }
+
+    public String getServerName() {
+        return serverName;
     }
 
     private void loadDriver(String className, String errorMessage) throws SQLException {
@@ -1565,7 +1595,8 @@ public final class DatabaseManager {
         try {
             connection.close();
         } catch (SQLException exception) {
-            plugin.getLogger().warning("Could not close the database connection: " + exception.getMessage());
+            plugin.getLogger().log(java.util.logging.Level.WARNING,
+                    "Could not close the database connection.", exception);
         }
     }
 

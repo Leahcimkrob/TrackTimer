@@ -113,7 +113,7 @@ public class StartTriggerTool implements Listener {
                 player.spawnParticle(particle, point, 2, .12, .12, .12, 0);
             }
         } catch (SQLException exception) {
-            context.plugin().getLogger().warning("Could not show start trigger particles: " + exception.getMessage());
+            context.plugin().getLogger().log(Level.WARNING, "Could not show start trigger particles.", exception);
         }
     }
 
@@ -140,7 +140,7 @@ public class StartTriggerTool implements Listener {
         try {
             String mode = "REDSTONE_SIGNAL".equals(configuredMode) ? configuredMode
                     : isPressurePlate(block) ? "PRESSURE_PLATE" : configuredMode;
-            boolean added = addTriggerToDatabase(selection.eventId, context.plugin().getServer().getName(),
+            boolean added = addTriggerToDatabase(selection.eventId, context.database().getServerName(),
                     block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), block.getType().name(),
                     mode, selection.checkpointOrder);
             if ("checkpoint".equals(triggerType)) {
@@ -160,7 +160,7 @@ public class StartTriggerTool implements Listener {
     private void removeTrigger(Player player, Selection selection, Block block) {
         try {
             boolean removed = removeTriggerFromDatabase(selection.eventId,
-                    context.plugin().getServer().getName(), block.getWorld().getName(),
+                    context.database().getServerName(), block.getWorld().getName(),
                     block.getX(), block.getY(), block.getZ());
             player.sendMessage(context.language().chat(removed ? "trigger.removed" : "trigger.not-found"));
         } catch (SQLException exception) {

@@ -149,10 +149,10 @@ leaderboard:
 
 database:
   connected: "<green>Database (<yellow><type></yellow>) connected successfully."
-  error: "<red>Database error: <message>"
+  error: "<red>The database request failed. Check the server log for details."
   converted: "<green>Data copied from <yellow><from></yellow> to <yellow><to></yellow>."
   convert-invalid: "<red>Invalid database types. Allowed: sqlite and mysql; source and target must differ."
-  convert-failed: "<red>Data conversion failed: <message>"
+  convert-failed: "<red>Data conversion failed. Check the server log for details."
 
 live-hologram:
   race-title: "<gold>Redstone-start race - <event>"

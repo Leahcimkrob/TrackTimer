@@ -33,7 +33,7 @@ public final class RaceCheckpointListener {
         int minY = TriggerPositionMatcher.minY(position, tolerance);
         int maxY = TriggerPositionMatcher.maxY(position, tolerance);
         try {
-            for (CheckpointPoint checkpoint : database.findCheckpointTriggers(plugin.getServer().getName(),
+            for (CheckpointPoint checkpoint : database.findCheckpointTriggers(database.getServerName(),
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 RaceStartListener.RunningRace race = races.activeRace(player, checkpoint.eventId());
                 if (race == null || race.nextCheckpoint() < 1

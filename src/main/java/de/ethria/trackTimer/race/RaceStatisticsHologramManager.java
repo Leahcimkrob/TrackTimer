@@ -96,7 +96,7 @@ public final class RaceStatisticsHologramManager {
         try {
             migrateLegacyFile();
             List<RaceHologramBoard> boards = new ArrayList<>();
-            for (RaceHologramBoard stored : database.listRaceHologramBoards(plugin.getServer().getName())) {
+            for (RaceHologramBoard stored : database.listRaceHologramBoards(database.getServerName())) {
                 RaceHologramBoard adjusted = adjustPlacement(stored);
                 if (Double.compare(stored.centerX(), adjusted.centerX()) != 0
                         || Double.compare(stored.topY(), adjusted.topY()) != 0
@@ -121,7 +121,7 @@ public final class RaceStatisticsHologramManager {
 
     /** Recreates existing displays after removing them from the previously selected provider. */
     public void reload() throws SQLException {
-        List<RaceHologramBoard> boards = database.listRaceHologramBoards(plugin.getServer().getName());
+        List<RaceHologramBoard> boards = database.listRaceHologramBoards(database.getServerName());
         for (RaceHologramBoard board : boards) removeProviderHologram(fromDatabase(board));
         resolveProvider();
         if (provider == Provider.NONE) return;
@@ -176,10 +176,10 @@ public final class RaceStatisticsHologramManager {
 
         String key = UUID.randomUUID().toString();
         String hologramName = "tracktimer_" + event.id() + "_" + key.replace("-", "");
-        Board board = new Board(key, hologramName, event.id(), redstone, plugin.getServer().getName(), world.getName(),
+        Board board = new Board(key, hologramName, event.id(), redstone, database.getServerName(), world.getName(),
                 lowX, lowY, lowZ, highX, highY, highZ, x, highY + VERTICAL_OFFSET, z, yaw,
                 filterDate == null ? null : filterDate.toString(), filterTime == null ? null : filterTime.toString());
-        RaceHologramBoard saved = database.saveRaceHologramBoard(toDatabase(board, plugin.getServer().getName()));
+        RaceHologramBoard saved = database.saveRaceHologramBoard(toDatabase(board, database.getServerName()));
         refresh(fromDatabase(saved));
         return true;
     }
@@ -211,7 +211,7 @@ public final class RaceStatisticsHologramManager {
 
     public int deleteHologramAt(Location clickedBlock, Location playerLocation) throws SQLException {
         if (!isAvailable()) return 0;
-        List<RaceHologramBoard> matches = new ArrayList<>(database.listRaceHologramBoardsAt(plugin.getServer().getName(),
+        List<RaceHologramBoard> matches = new ArrayList<>(database.listRaceHologramBoardsAt(database.getServerName(),
                 clickedBlock.getWorld().getName(), clickedBlock.getBlockX(), clickedBlock.getBlockY(),
                 clickedBlock.getBlockZ()));
         if (liveHolograms != null) matches.addAll(liveHolograms.boardsAt(clickedBlock));
@@ -221,7 +221,7 @@ public final class RaceStatisticsHologramManager {
                 .orElse(null);
         if (selected == null) return 0;
         if (liveHolograms != null && liveHolograms.remove(selected.id())) return 1;
-        if (!database.deleteRaceHologramBoard(selected.id(), plugin.getServer().getName())) {
+        if (!database.deleteRaceHologramBoard(selected.id(), database.getServerName())) {
             return 0;
         }
         removeProviderHologram(fromDatabase(selected));
@@ -245,7 +245,7 @@ public final class RaceStatisticsHologramManager {
             x = lowX + 0.5 + (west ? -1 : 1) * (0.5 + WALL_GAP);
             yaw = west ? 90f : -90f;
         }
-        return new RaceHologramBoard(UUID.randomUUID().toString(), event.id(), false, plugin.getServer().getName(),
+        return new RaceHologramBoard(UUID.randomUUID().toString(), event.id(), false, database.getServerName(),
                 first.getWorld().getName(), lowX, lowY, lowZ, highX, highY, highZ,
                 x, highY + VERTICAL_OFFSET, z, yaw, null, null);
     }
@@ -337,7 +337,7 @@ public final class RaceStatisticsHologramManager {
     public void updateEvent(long eventId) {
         if (!isAvailable()) return;
         try {
-            for (RaceHologramBoard board : database.listRaceHologramBoards(plugin.getServer().getName())) {
+            for (RaceHologramBoard board : database.listRaceHologramBoards(database.getServerName())) {
                 if (board.eventId() == eventId) refresh(fromDatabase(board));
             }
         } catch (SQLException exception) {
@@ -573,7 +573,7 @@ public final class RaceStatisticsHologramManager {
             return;
         }
 
-        String server = plugin.getServer().getName();
+        String server = database.getServerName();
         Set<String> existingIds = new HashSet<>();
         database.listRaceHologramBoards(server).forEach(board -> existingIds.add(board.id()));
         boolean complete = true;

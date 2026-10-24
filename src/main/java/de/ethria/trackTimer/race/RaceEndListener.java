@@ -36,7 +36,7 @@ public final class RaceEndListener {
         int minY = TriggerPositionMatcher.minY(position, tolerance);
         int maxY = TriggerPositionMatcher.maxY(position, tolerance);
         try {
-            for (EndPoint end : database.findEndTriggers(plugin.getServer().getName(),
+            for (EndPoint end : database.findEndTriggers(database.getServerName(),
                     position.getWorld().getName(), position.getBlockX(), position.getBlockZ(), minY, maxY)) {
                 RaceStartListener.RunningRace race = races.activeRace(player, end.eventId());
                 if (race == null || !race.checkpointsComplete()

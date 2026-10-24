@@ -223,7 +223,7 @@ public final class EventTriggerGui implements Listener {
     }
 
     private void teleportToTrigger(Player player, EventTrigger trigger) {
-        if (!context.plugin.getServer().getName().equalsIgnoreCase(trigger.server())) {
+        if (!context.database.getServerName().equalsIgnoreCase(trigger.server())) {
             player.sendMessage(context.language.chat("trigger.server-unavailable"));
             return;
         }

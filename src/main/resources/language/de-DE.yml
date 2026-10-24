@@ -149,10 +149,10 @@ leaderboard:
 
 database:
   connected: "<green>Datenbank (<yellow><type></yellow>) erfolgreich verbunden."
-  error: "<red>Datenbankfehler: <message>"
+  error: "<red>Die Datenbankanfrage ist fehlgeschlagen. Details stehen im Serverlog."
   converted: "<green>Daten wurden von <yellow><from></yellow> nach <yellow><to></yellow> übertragen."
   convert-invalid: "<red>Ungültige Datenbanktypen. Erlaubt sind sqlite und mysql; Quelle und Ziel müssen verschieden sein."
-  convert-failed: "<red>Datenübertragung fehlgeschlagen: <message>"
+  convert-failed: "<red>Datenübertragung fehlgeschlagen. Details stehen im Serverlog."
 
 live-hologram:
   race-title: "<gold>Redstone-Start-Rennen - <event>"
