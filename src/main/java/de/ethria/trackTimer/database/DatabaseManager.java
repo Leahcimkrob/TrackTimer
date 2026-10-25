@@ -26,7 +26,7 @@ public final class DatabaseManager {
     private final JavaPlugin plugin;
     private final Connection connection;
     private final String autoIncrement;
-    private final String serverName;
+    private volatile String serverName;
     private final List<RaceHologramBoard> duplicateRaceHologramBoards = new ArrayList<>();
     private java.util.function.LongConsumer eventChangeListener = ignored -> { };
 
@@ -70,6 +70,7 @@ public final class DatabaseManager {
         } else {
             throw new IllegalArgumentException("Unsupported database.type '" + type + "'. Use sqlite or mysql.");
         }
+        scheduleServerNameResolution(config);
     }
 
     public void initialize() throws SQLException {
@@ -199,19 +200,57 @@ public final class DatabaseManager {
         if (configured != null && !configured.isBlank() && !configured.equalsIgnoreCase("auto")) {
             return configured.trim();
         }
+        String placeholderName = resolvePlaceholderServerName();
+        return placeholderName == null ? Bukkit.getServer().getName() : placeholderName;
+    }
+
+    private String resolvePlaceholderServerName() {
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 Class<?> papi = Class.forName("me.clip.placeholderapi.PlaceholderAPI");
                 Object value = papi.getMethod("setPlaceholders", OfflinePlayer.class, String.class)
-                        .invoke(null, (OfflinePlayer) null, "%server_name%");
-                if (value instanceof String name && !name.isBlank() && !name.equals("%server_name%")) {
-                    return name;
+                        .invoke(null, (OfflinePlayer) null, "%server%");
+                if (value instanceof String name && !name.isBlank() && !name.equals("%server%")) {
+                    return name.trim();
                 }
             } catch (ReflectiveOperationException ignored) {
-                plugin.getLogger().warning("Could not resolve server_name through PlaceholderAPI; using Bukkit server name.");
+                // PlaceholderAPI or its server expansion may not be ready during plugin startup.
             }
         }
-        return Bukkit.getServer().getName();
+        return null;
+    }
+
+    private void scheduleServerNameResolution(FileConfiguration config) {
+        String configured = config.getString("database.server_name", "auto");
+        if (configured != null && !configured.isBlank() && !configured.equalsIgnoreCase("auto")) return;
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) return;
+
+        final int[] attempts = {0};
+        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            String resolved = resolvePlaceholderServerName();
+            if (resolved != null) {
+                String previous = serverName;
+                serverName = resolved;
+                if (!resolved.equals(previous)) {
+                    plugin.getLogger().info("Resolved server identifier through PlaceholderAPI: " + resolved);
+                    if (plugin instanceof de.ethria.trackTimer.TrackTimer trackTimer) {
+                        try {
+                            trackTimer.reloadHolograms();
+                        } catch (SQLException exception) {
+                            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                                    "Could not reload holograms after resolving the server identifier.", exception);
+                        }
+                    }
+                }
+                task.cancel();
+                return;
+            }
+            if (++attempts[0] >= 60) {
+                plugin.getLogger().warning("Placeholder %server% was not ready after 60 seconds; continuing to use Bukkit server name '"
+                        + Bukkit.getServer().getName() + "'. Set database.server_name explicitly if needed.");
+                task.cancel();
+            }
+        }, 20L, 20L);
     }
 
     public String getServerName() {
