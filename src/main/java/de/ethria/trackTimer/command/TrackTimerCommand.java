@@ -65,10 +65,11 @@ public final class TrackTimerCommand {
         ConvertSubCommand convert = new ConvertSubCommand(database, language);
         LeaveSubCommand leave = new LeaveSubCommand(language, raceStartListener);
         TopTenSubCommand topTen = new TopTenSubCommand(plugin, database, language, raceStatisticsEvaluator);
+        ServerSubCommand server = new ServerSubCommand(database);
         HologramSubCommand hologram = new HologramSubCommand(plugin, database, language,
                 raceStatisticsEvaluator, hologramTool, hologramDeleteTool, liveTool);
         List<SubCommand> availableSubCommands = new ArrayList<>(List.of(
-                reload, config, create, delete, reset, editor, overview, convert, leave, topTen));
+                reload, config, create, delete, reset, editor, overview, convert, leave, topTen, server));
         if (hologramTool != null && hologramDeleteTool != null) availableSubCommands.add(hologram);
         HelpSubCommand help = new HelpSubCommand(language, label, availableSubCommands);
         List<SubCommand> subCommands = new ArrayList<>();

@@ -51,6 +51,7 @@ permissions:
       tracktimer.command.leave: true
       tracktimer.command.topten: true
       tracktimer.command.hologram: true
+      tracktimer.command.server: true
 
   tracktimer.command.reload:
     description: Allows reloading the TrackTimer configuration and language files.
@@ -98,4 +99,8 @@ permissions:
 
   tracktimer.command.hologram:
     description: Allows creating and removing race statistics holograms.
+    default: op
+
+  tracktimer.command.server:
+    description: Allows viewing the resolved server identifier used in database records.
     default: op

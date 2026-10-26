@@ -4,6 +4,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.io.File;
 import java.sql.Connection;
@@ -13,13 +15,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSetMetaData;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class DatabaseManager {
+public final class DatabaseManager implements PluginMessageListener {
+    private static final String BUNGEE_CHANNEL = "BungeeCord";
     private static final java.util.regex.Pattern EVENT_NAME_PATTERN =
             java.util.regex.Pattern.compile("[\\p{L}\\p{N}_-]+");
 
@@ -27,6 +33,7 @@ public final class DatabaseManager {
     private final Connection connection;
     private final String autoIncrement;
     private volatile String serverName;
+    private volatile boolean bungeeServerNameResolved;
     private final List<RaceHologramBoard> duplicateRaceHologramBoards = new ArrayList<>();
     private java.util.function.LongConsumer eventChangeListener = ignored -> { };
 
@@ -74,6 +81,7 @@ public final class DatabaseManager {
     }
 
     public void initialize() throws SQLException {
+        registerBungeeServerNameLookup(plugin.getConfig());
         try (Statement statement = connection.createStatement()) {
             for (String sql : tableStatements()) {
                 statement.executeUpdate(sql);
@@ -200,8 +208,64 @@ public final class DatabaseManager {
         if (configured != null && !configured.isBlank() && !configured.equalsIgnoreCase("auto")) {
             return configured.trim();
         }
-        String placeholderName = resolvePlaceholderServerName();
-        return placeholderName == null ? Bukkit.getServer().getName() : placeholderName;
+        return Bukkit.getServer().getName();
+    }
+
+    private void registerBungeeServerNameLookup(FileConfiguration config) {
+        String configured = config.getString("database.server_name", "auto");
+        if (configured != null && !configured.isBlank() && !configured.equalsIgnoreCase("auto")) return;
+        try {
+            Bukkit.getMessenger().registerOutgoingPluginChannel(plugin, BUNGEE_CHANNEL);
+            Bukkit.getMessenger().registerIncomingPluginChannel(plugin, BUNGEE_CHANNEL, this);
+            Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+                if (bungeeServerNameResolved) {
+                    task.cancel();
+                    return;
+                }
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                         DataOutputStream output = new DataOutputStream(bytes)) {
+                        output.writeUTF("GetServer");
+                        player.sendPluginMessage(plugin, BUNGEE_CHANNEL, bytes.toByteArray());
+                    } catch (IOException exception) {
+                        plugin.getLogger().warning("Could not request the BungeeCord server name: " + exception.getMessage());
+                    }
+                    break;
+                }
+            }, 1L, 100L);
+        } catch (IllegalArgumentException exception) {
+            plugin.getLogger().warning("Could not register the BungeeCord plugin messaging channel: " + exception.getMessage());
+        }
+    }
+
+    @Override
+    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+        if (!BUNGEE_CHANNEL.equals(channel) || bungeeServerNameResolved) return;
+        try (java.io.DataInputStream input = new java.io.DataInputStream(new java.io.ByteArrayInputStream(message))) {
+            String subchannel = input.readUTF();
+            if (!"GetServer".equals(subchannel)) return;
+            String resolved = input.readUTF().trim();
+            if (resolved.isBlank()) return;
+            bungeeServerNameResolved = true;
+            updateResolvedServerName(resolved, "BungeeCord");
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Could not read the BungeeCord server name response: " + exception.getMessage());
+        }
+    }
+
+    private void updateResolvedServerName(String resolved, String source) {
+        String previous = serverName;
+        serverName = resolved;
+        if (resolved.equals(previous)) return;
+        plugin.getLogger().info("Resolved server identifier through " + source + ": " + resolved);
+        if (plugin instanceof de.ethria.trackTimer.TrackTimer trackTimer) {
+            try {
+                trackTimer.reloadHolograms();
+            } catch (SQLException exception) {
+                plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                        "Could not reload holograms after resolving the server identifier.", exception);
+            }
+        }
     }
 
     private String resolvePlaceholderServerName() {
@@ -228,26 +292,15 @@ public final class DatabaseManager {
         final int[] attempts = {0};
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
             String resolved = resolvePlaceholderServerName();
-            if (resolved != null) {
-                String previous = serverName;
-                serverName = resolved;
-                if (!resolved.equals(previous)) {
-                    plugin.getLogger().info("Resolved server identifier through PlaceholderAPI: " + resolved);
-                    if (plugin instanceof de.ethria.trackTimer.TrackTimer trackTimer) {
-                        try {
-                            trackTimer.reloadHolograms();
-                        } catch (SQLException exception) {
-                            plugin.getLogger().log(java.util.logging.Level.SEVERE,
-                                    "Could not reload holograms after resolving the server identifier.", exception);
-                        }
-                    }
-                }
-                task.cancel();
-                return;
+            if (!bungeeServerNameResolved && resolved != null && !resolved.equals(serverName)) {
+                updateResolvedServerName(resolved, "PlaceholderAPI");
             }
             if (++attempts[0] >= 60) {
-                plugin.getLogger().warning("Placeholder %server% was not ready after 60 seconds; continuing to use Bukkit server name '"
-                        + Bukkit.getServer().getName() + "'. Set database.server_name explicitly if needed.");
+                if (!bungeeServerNameResolved && resolved == null) {
+                    plugin.getLogger().warning("Could not resolve the server identifier through BungeeCord or PlaceholderAPI; "
+                            + "continuing to use Bukkit server name '" + Bukkit.getServer().getName()
+                            + "'. Set database.server_name explicitly if needed.");
+                }
                 task.cancel();
             }
         }, 20L, 20L);
@@ -1631,6 +1684,8 @@ public final class DatabaseManager {
     }
 
     public void close() {
+        Bukkit.getMessenger().unregisterIncomingPluginChannel(plugin, BUNGEE_CHANNEL, this);
+        Bukkit.getMessenger().unregisterOutgoingPluginChannel(plugin, BUNGEE_CHANNEL);
         try {
             connection.close();
         } catch (SQLException exception) {
