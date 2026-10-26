@@ -14,6 +14,10 @@ authors: [ Bloody_Mind ]
 # the HeadDatabase plugin is installed, but works fine without it.
 dependencies:
   server:
+    LuckPerms:
+      load: BEFORE
+      required: true
+      join-classpath: true
     HeadDatabase:
       load: BEFORE
       required: false

@@ -56,11 +56,6 @@ command:
     - tt
 
 database:
-  # Identifier stored with triggers and holograms for this server instance.
-  # "auto" tries BungeeCord first, then PlaceholderAPI %server%, then the Bukkit server name.
-  # Can only be changed by restarting.
-  server_name: auto
-
   # Supported values: sqlite, mysql
   # Can only be changed by restarting.
   type: sqlite
